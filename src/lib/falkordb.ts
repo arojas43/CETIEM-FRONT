@@ -1,0 +1,457 @@
+/**
+ * Servicio mejorado para FalkorDB con manejo robusto de errores
+ * y verificación de conexión
+ */
+
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const Redis = require("ioredis");
+
+export interface FalkorDBConfig {
+  host: string;
+  port: number;
+  graphName: string;
+  connectionTimeout?: number;
+  maxRetries?: number;
+}
+
+export interface FalkorDBStats {
+  connected: boolean;
+  entityCount: number;
+  relationCount: number;
+  entityTypes: Array<{ type: string; count: number }>;
+  relationTypes: Array<{ type: string; count: number }>;
+  documentsInGraph: number;
+}
+
+export interface QueryResult {
+  headers: string[];
+  rows: Record<string, any>[];
+  count: number;
+  executionTime?: number;
+}
+
+export class FalkorDBService {
+  private config: FalkorDBConfig;
+  private client: any = null;
+  private isConnected: boolean = false;
+  private connectionPromise: Promise<boolean> | null = null;
+  private lastConnectionAttempt: number = 0;
+  private connectionCooldown: number = 5000; // 5 segundos entre intentos
+
+  constructor(config?: Partial<FalkorDBConfig>) {
+    this.config = {
+      host: config?.host || process.env.FALKORDB_HOST || "localhost",
+      port: config?.port || parseInt(process.env.FALKORDB_PORT || "6380"),
+      graphName: config?.graphName || "certificacion",
+      connectionTimeout: config?.connectionTimeout || 5000,
+      maxRetries: config?.maxRetries || 3,
+    };
+  }
+
+  /**
+   * Verifica si FalkorDB está disponible sin crear conexión persistente
+   */
+  async checkConnection(): Promise<boolean> {
+    const now = Date.now();
+    
+    // Si ya está conectado, retornar verdadero
+    if (this.isConnected && this.client) {
+      try {
+        await this.client.ping();
+        return true;
+      } catch {
+        this.isConnected = false;
+        this.client = null;
+      }
+    }
+
+    // Respetar cooldown entre intentos
+    if (now - this.lastConnectionAttempt < this.connectionCooldown) {
+      return false;
+    }
+
+    this.lastConnectionAttempt = now;
+
+    let client;
+    try {
+      client = new Redis({
+        host: this.config.host,
+        port: this.config.port,
+        lazyConnect: true,
+        connectionTimeout: this.config.connectionTimeout,
+        maxRetriesPerRequest: 1,
+        retryStrategy: (times: number) => {
+          if (times > 2) return null;
+          return Math.min(times * 100, 500);
+        },
+      });
+
+      await client.connect();
+      await client.ping();
+      
+      // Verificar que FalkorDB responde comandos GRAPH
+      await client.call('GRAPH.QUERY', this.config.graphName, 'RETURN 1');
+      
+      await client.quit();
+      return true;
+    } catch (error: any) {
+      console.warn('[FalkorDB] Verificación falló:', error.message);
+      if (client) {
+        try { await client.quit(); } catch {}
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Conecta a FalkorDB con reintentos
+   */
+  async connect(): Promise<boolean> {
+    if (this.isConnected && this.client) {
+      return true;
+    }
+
+    if (this.connectionPromise) {
+      return this.connectionPromise;
+    }
+
+    this.connectionPromise = this._connectWithRetries();
+    const result = await this.connectionPromise;
+    this.connectionPromise = null;
+    return result;
+  }
+
+  private async _connectWithRetries(): Promise<boolean> {
+    const maxRetries = this.config.maxRetries || 3;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[FalkorDB] Intento de conexión ${attempt}/${maxRetries}...`);
+
+        this.client = new Redis({
+          host: this.config.host,
+          port: this.config.port,
+          lazyConnect: true,
+          connectionTimeout: this.config.connectionTimeout,
+          maxRetriesPerRequest: 3,
+          retryStrategy: (times: number) => {
+            if (times > 3) return null;
+            return Math.min(times * 200, 2000);
+          },
+        });
+
+        await this.client.connect();
+        await this.client.ping();
+
+        // Verificar que FalkorDB responde
+        await this.client.call('GRAPH.QUERY', this.config.graphName, 'RETURN "connected" AS status');
+
+        this.isConnected = true;
+        console.log(`✅ [FalkorDB] Conectado exitosamente en ${this.config.host}:${this.config.port}`);
+        return true;
+      } catch (error: any) {
+        console.warn(`[FalkorDB] Intento ${attempt} fallido:`, error.message);
+        
+        if (this.client) {
+          try { await this.client.quit(); } catch {}
+          this.client = null;
+        }
+
+        if (attempt === maxRetries) {
+          console.error('❌ [FalkorDB] Todos los intentos de conexión fallaron');
+          this.isConnected = false;
+          return false;
+        }
+
+        // Esperar antes del siguiente intento
+        await new Promise(resolve => setTimeout(resolve, attempt * 500));
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Desconecta de FalkorDB
+   */
+  async disconnect(): Promise<void> {
+    if (this.client) {
+      try {
+        await this.client.quit();
+      } catch (error) {
+        console.warn('[FalkorDB] Error al desconectar:', error);
+      } finally {
+        this.client = null;
+        this.isConnected = false;
+      }
+    }
+  }
+
+  /**
+   * Ejecuta una consulta Cypher con manejo de errores
+   */
+  async query(cypher: string, timeout?: number): Promise<QueryResult> {
+    const startTime = Date.now();
+
+    if (!this.isConnected) {
+      const connected = await this.connect();
+      if (!connected) {
+        throw new Error('No se pudo conectar a FalkorDB. Verifica que el servicio esté corriendo.');
+      }
+    }
+
+    try {
+      const result = await Promise.race([
+        this.client.call('GRAPH.QUERY', this.config.graphName, cypher),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout en consulta')), timeout || 30000)
+        ),
+      ]);
+
+      if (!result || !result[0] || !result[1]) {
+        return { headers: [], rows: [], count: 0 };
+      }
+
+      const headers = result[0];
+      const rows = result[1].map((row: any[]) => {
+        const obj: Record<string, any> = {};
+        headers.forEach((header: string, i: number) => {
+          obj[header] = row[i];
+        });
+        return obj;
+      });
+
+      return {
+        headers,
+        rows,
+        count: rows.length,
+        executionTime: Date.now() - startTime,
+      };
+    } catch (error: any) {
+      console.error('[FalkorDB] Error en consulta:', error.message);
+      console.error('[FalkorDB] Cypher:', cypher);
+      
+      // Si el error es de conexión, marcar como desconectado
+      if (error.message.includes('ECONNREFUSED') || error.message.includes('closed')) {
+        this.isConnected = false;
+      }
+      
+      throw new Error(`Error consultando FalkorDB: ${error.message}`);
+    }
+  }
+
+  /**
+   * Obtiene estadísticas del grafo
+   */
+  async getStats(): Promise<FalkorDBStats> {
+    const connected = await this.checkConnection();
+    
+    if (!connected) {
+      return {
+        connected: false,
+        entityCount: 0,
+        relationCount: 0,
+        entityTypes: [],
+        relationTypes: [],
+        documentsInGraph: 0,
+      };
+    }
+
+    try {
+      // Conectar si es necesario
+      if (!this.isConnected) {
+        await this.connect();
+      }
+
+      // Contar entidades por tipo
+      const entityTypesResult = await this.query(
+        'MATCH (n) RETURN labels(n)[0] AS type, count(n) AS count ORDER BY count DESC'
+      );
+
+      // Contar relaciones por tipo
+      const relationTypesResult = await this.query(
+        'MATCH ()-[r]->() RETURN type(r) AS type, count(r) AS count ORDER BY count DESC'
+      );
+
+      // Contar documentos en el grafo
+      const docsResult = await this.query(
+        'MATCH (n) WHERE n.documentId IS NOT NULL RETURN count(DISTINCT n.documentId) AS count'
+      );
+
+      const totalEntities = entityTypesResult.rows.reduce((sum, r) => sum + (r.count as number || 0), 0);
+      const totalRelations = relationTypesResult.rows.reduce((sum, r) => sum + (r.count as number || 0), 0);
+
+      return {
+        connected: true,
+        entityCount: totalEntities,
+        relationCount: totalRelations,
+        entityTypes: entityTypesResult.rows as Array<{ type: string; count: number }>,
+        relationTypes: relationTypesResult.rows as Array<{ type: string; count: number }>,
+        documentsInGraph: docsResult.rows[0]?.count as number || 0,
+      };
+    } catch (error: any) {
+      console.error('[FalkorDB] Error obteniendo estadísticas:', error.message);
+      return {
+        connected: false,
+        entityCount: 0,
+        relationCount: 0,
+        entityTypes: [],
+        relationTypes: [],
+        documentsInGraph: 0,
+      };
+    }
+  }
+
+  /**
+   * Crea una entidad en el grafo
+   */
+  async createEntity(label: string, properties: Record<string, any>): Promise<boolean> {
+    // Filtrar propiedades undefined o null
+    const filteredProperties: Record<string, any> = {};
+    for (const [key, value] of Object.entries(properties)) {
+      if (value !== undefined && value !== null) {
+        filteredProperties[key] = value;
+      }
+    }
+
+    const propsString = Object.entries(filteredProperties)
+      .map(([key, value]) => {
+        if (typeof value === 'string') {
+          return `${key}: "${this.escapeQuotes(value)}"`;
+        }
+        return `${key}: ${JSON.stringify(value)}`;
+      })
+      .join(', ');
+
+    const cypher = `CREATE (n:${label} {${propsString}})`;
+
+    try {
+      await this.query(cypher);
+      return true;
+    } catch (error: any) {
+      console.error('[FalkorDB] Error creando entidad:', error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Crea una relación entre dos entidades
+   * IMPORTANTE: Sanitiza el tipo de relación para FalkorDB (solo ASCII)
+   */
+  async createRelation(
+    sourceId: string,
+    targetId: string,
+    relationType: string,
+    properties?: Record<string, any>
+  ): Promise<boolean> {
+    // Sanitizar tipo de relación: eliminar caracteres especiales (ñ, ó, í, etc.)
+    const sanitizedRelationType = this.sanitizeRelationType(relationType);
+    
+    const propsString = properties
+      ? ' {' + Object.entries(properties)
+          .map(([key, value]) => {
+            if (typeof value === 'string') {
+              return `${key}: "${this.escapeQuotes(value)}"`;
+            }
+            return `${key}: ${JSON.stringify(value)}`;
+          })
+          .join(', ') + '}'
+      : '';
+
+    const cypher = `MATCH (a {id: "${sourceId}"}), (b {id: "${targetId}"}) CREATE (a)-[r:${sanitizedRelationType}${propsString}]->(b)`;
+
+    try {
+      await this.query(cypher);
+      return true;
+    } catch (error: any) {
+      // La relación puede fallar si los nodos no existen, no es crítico
+      return false;
+    }
+  }
+
+  /**
+   * Sanitiza el tipo de relación para FalkorDB
+   * Elimina caracteres especiales y los reemplaza por equivalentes ASCII
+   */
+  private sanitizeRelationType(type: string): string {
+    return type
+      .replace(/Á/g, 'A').replace(/É/g, 'E').replace(/Í/g, 'I').replace(/Ó/g, 'O').replace(/Ú/g, 'U')
+      .replace(/á/g, 'a').replace(/é/g, 'e').replace(/í/g, 'i').replace(/ó/g, 'o').replace(/ú/g, 'u')
+      .replace(/Ñ/g, 'N').replace(/ñ/g, 'n')
+      .replace(/Ü/g, 'U').replace(/ü/g, 'u')
+      .replace(/[^A-Z0-9_]/g, '_'); // Reemplazar cualquier otro carácter especial por _
+  }
+
+  /**
+   * Elimina entidades por documentId
+   */
+  async deleteEntitiesByDocumentId(documentId: string): Promise<number> {
+    const cypher = `MATCH (n {documentId: "${documentId}"}) DETACH DELETE n`;
+
+    try {
+      const result = await this.query(cypher);
+      // El resultado típico es: { "Labels added": 0, "Nodes deleted": X, ... }
+      const deleted = result.rows.find(r => r['Nodes deleted'])?.['Nodes deleted'] as number || 0;
+      return deleted;
+    } catch (error: any) {
+      console.error('[FalkorDB] Error eliminando entidades:', error.message);
+      return 0;
+    }
+  }
+
+  /**
+   * Busca entidades por nombre o tipo
+   */
+  async searchEntities(options: {
+    name?: string;
+    type?: string;
+    documentId?: string;
+    limit?: number;
+  }): Promise<Record<string, any>[]> {
+    const conditions: string[] = [];
+    
+    if (options.name) {
+      conditions.push(`n.name CONTAINS "${this.escapeQuotes(options.name)}"`);
+    }
+    
+    if (options.type) {
+      conditions.push(`labels(n)[0] = "${this.escapeQuotes(options.type)}"`);
+    }
+    
+    if (options.documentId) {
+      conditions.push(`n.documentId = "${this.escapeQuotes(options.documentId)}"`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const limit = options.limit || 100;
+    const cypher = `MATCH (n) ${whereClause} RETURN n LIMIT ${limit}`;
+
+    try {
+      const result = await this.query(cypher);
+      return result.rows.map(r => r.n || {});
+    } catch (error: any) {
+      console.error('[FalkorDB] Error buscando entidades:', error.message);
+      return [];
+    }
+  }
+
+  private escapeQuotes(str: string): string {
+    return str.replace(/"/g, '\\"');
+  }
+
+  /**
+   * Verifica si hay una conexión activa
+   */
+  isHealthy(): boolean {
+    return this.isConnected && this.client !== null;
+  }
+}
+
+// Instancia singleton para usar en toda la aplicación
+export const falkorDBService = new FalkorDBService();
+
+// Función de utilidad para verificar conexión rápida
+export async function checkFalkorDBHealth(): Promise<boolean> {
+  return falkorDBService.checkConnection();
+}

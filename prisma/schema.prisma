@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  accounts      Account[]
+  sessions      Session[]
+  documents     Document[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  mimeType    String
+  size        Int
+  storageUrl  String
+  status      DocumentStatus @default(PENDING)
+  domain      DocumentDomain @default(LEGAL)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  certifications Certification[]
+  pageIndices PageIndex[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum DocumentStatus {
+  PENDING
+  PROCESSING
+  INDEXED
+  ANALYZED
+  FAILED
+}
+
+enum DocumentDomain {
+  MEDICAL
+  LEGAL
+  TECHNICAL
+  ACADEMIC
+  CUSTOM
+}
+
+model PageIndex {
+  id         String  @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  level      Int
+  title      String
+  content    String?  @db.Text
+  page       Int?
+  metadata   Json?
+  parent     PageIndex? @relation("PageIndexHierarchy", fields: [parentId], references: [id])
+  children   PageIndex[] @relation("PageIndexHierarchy")
+  parentId   String?
+  createdAt  DateTime @default(now())
+}
+
+model Certification {
+  id          String   @id @default(cuid())
+  name        String
+  type        CertificationType
+  status      CertificationStatus @default(DRAFT)
+  requirements Json
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id])
+  findings    Finding[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum CertificationType {
+  ISO_9001
+  ISO_14001
+  ISO_45001
+  FINANCIAL
+  LEGAL
+  CUSTOM
+}
+
+enum CertificationStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model Finding {
+  id              String   @id @default(cuid())
+  certificationId String
+  certification   Certification @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+  type            FindingType
+  severity        Severity
+  title           String
+  description     String   @db.Text
+  evidence        String?  @db.Text
+  recommendation  String?  @db.Text
+  status          FindingStatus @default(OPEN)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum FindingType {
+  COMPLIANCE
+  NON_COMPLIANCE
+  OBSERVATION
+  RECOMMENDATION
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FindingStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
