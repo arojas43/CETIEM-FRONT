@@ -67,6 +67,9 @@ model Document {
   user        User     @relation(fields: [userId], references: [id])
   certifications Certification[]
   pageIndices PageIndex[]
+  
+  processingProgress Json?
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

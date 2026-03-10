@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 /**
  * GET /api/documents/[id]/progress
- * Obtiene el progreso del procesamiento de un documento grande
+ * Obtiene el progreso de procesamiento de un documento
  */
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -18,20 +18,17 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Obtener documento
     const document = await prisma.document.findUnique({
       where: { id },
       select: {
         id: true,
-        name: true,
-        status: true,
-        description: true,
-        size: true,
         userId: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: {
-          select: { pageIndices: true },
+        status: true,
+        processingProgress: true,
+        pageIndices: {
+          select: {
+            id: true,
+          },
         },
       },
     });
@@ -44,12 +41,15 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Calcular progreso basado en el estado y metadatos
+    // Calcular progreso estimado
     const progress = calculateProgress(document);
 
     return NextResponse.json({
+      success: true,
       documentId: id,
+      status: document.status,
       progress,
+      details: document.processingProgress,
     });
   } catch (error: any) {
     console.error("Error getting progress:", error);
@@ -61,57 +61,105 @@ export async function GET(
 }
 
 /**
- * Calcula el progreso basado en el estado del documento
+ * POST /api/documents/[id]/progress
+ * Actualiza el progreso de procesamiento de un documento
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    const { id } = await params;
+    const body = await request.json();
+    const { step, percentage, details } = body;
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const document = await prisma.document.findUnique({
+      where: { id },
+      select: { id: true, userId: true },
+    });
+
+    if (!document) {
+      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+    }
+
+    if (document.userId !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Actualizar progreso
+    await prisma.document.update({
+      where: { id },
+      data: {
+        processingProgress: {
+          step,
+          percentage,
+          details,
+          updatedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Progreso actualizado",
+    });
+  } catch (error: any) {
+    console.error("Error updating progress:", error);
+    return NextResponse.json(
+      { error: "Error al actualizar progreso", details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Calcula el progreso basado en el estado y los índices
  */
 function calculateProgress(document: any) {
-  const status = document.status;
-  const sizeMB = (document.size || 0) / (1024 * 1024);
-  const sectionsCount = document._count?.pageIndices || 0;
+  const { status, pageIndices, processingProgress } = document;
 
-  // Estados y su porcentaje base
-  const statusProgress: Record<string, { percentage: number; label: string }> = {
-    PENDING: { percentage: 5, label: 'En cola' },
-    PROCESSING: { percentage: 20, label: 'Procesando' },
-    INDEXED: { percentage: 60, label: 'Índice creado' },
-    ANALYZED: { percentage: 100, label: 'Completado' },
-    FAILED: { percentage: 0, label: 'Fallido' },
+  // Progreso por defecto según el estado
+  const defaultProgress: Record<string, { percentage: number; step: string }> = {
+    PENDING: { percentage: 0, step: "En cola" },
+    PROCESSING: { percentage: 10, step: "Iniciando" },
+    INDEXED: { percentage: 50, step: "Índice completado" },
+    ANALYZED: { percentage: 100, step: "Completado" },
+    FAILED: { percentage: 0, step: "Error" },
   };
 
-  const baseProgress = statusProgress[status] || { percentage: 0, label: 'Desconocido' };
-
-  // Ajustar porcentaje basado en tamaño (documentos grandes toman más tiempo)
-  let adjustedPercentage = baseProgress.percentage;
-  
-  if (status === 'PROCESSING') {
-    // Durante el procesamiento, estimar basado en secciones creadas
-    const expectedSections = Math.ceil(sizeMB * 2); // ~2 secciones por MB
-    const sectionProgress = Math.min(100, (sectionsCount / expectedSections) * 100);
-    adjustedPercentage = 20 + (sectionProgress * 0.4); // 20% base + hasta 40% por secciones
-  } else if (status === 'INDEXED') {
-    // Durante el análisis, estimar basado en tiempo
-    adjustedPercentage = 60 + (Math.min(40, sectionsCount * 0.5));
+  // Si hay progreso guardado, usarlo
+  if (processingProgress) {
+    return {
+      percentage: processingProgress.percentage || 0,
+      step: processingProgress.step || "Procesando",
+      details: processingProgress.details || {},
+    };
   }
 
-  // Calcular tiempo estimado restante
-  const now = Date.now();
-  const createdAt = new Date(document.createdAt).getTime();
-  const elapsed = now - createdAt;
-  
-  let estimatedRemaining = 0;
-  if (adjustedPercentage > 0 && adjustedPercentage < 100) {
-    const totalEstimated = elapsed / (adjustedPercentage / 100);
-    estimatedRemaining = Math.max(0, totalEstimated - elapsed);
+  // Si no, calcular basado en el estado
+  const defaultProg = defaultProgress[status] || { percentage: 0, step: "Desconocido" };
+
+  // Ajustar basado en número de índices (PageIndex)
+  if (status === "INDEXED" && pageIndices) {
+    const indexCount = pageIndices.length;
+    const bonus = Math.min(indexCount / 100, 0.2); // Hasta 20% extra por muchos índices
+    return {
+      percentage: Math.min(defaultProg.percentage + bonus * 100, 99),
+      step: defaultProg.step,
+      details: {
+        pageIndices: indexCount,
+      },
+    };
   }
 
   return {
-    percentage: Math.round(adjustedPercentage),
-    status,
-    label: baseProgress.label,
-    details: {
-      sizeMB: sizeMB.toFixed(2),
-      sections: sectionsCount,
-      elapsedSeconds: Math.round(elapsed / 1000),
-    },
-    estimatedTimeRemaining: estimatedRemaining > 0 ? Math.round(estimatedRemaining / 1000) : null,
+    percentage: defaultProg.percentage,
+    step: defaultProg.step,
+    details: {},
   };
 }

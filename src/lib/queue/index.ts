@@ -265,6 +265,33 @@ export async function createReportGenerationWorker() {
 }
 
 /**
+ * Actualiza el progreso de procesamiento de un documento
+ */
+async function updateProgress(
+  documentId: string,
+  step: string,
+  percentage: number,
+  details: Record<string, any>
+): Promise<void> {
+  try {
+    await prisma.document.update({
+      where: { id: documentId },
+      data: {
+        processingProgress: {
+          step,
+          percentage: Math.min(percentage, 99), // Máximo 99% hasta completar
+          details,
+          updatedAt: new Date().toISOString(),
+        },
+      },
+    });
+  } catch (error: any) {
+    console.error(`[Progress] Error actualizando progreso:`, error.message);
+    // No lanzar error para no interrumpir el procesamiento
+  }
+}
+
+/**
  * Procesa la indexación de un documento con PageIndex y manejo robusto de errores
  * Soporta documentos grandes (hasta 2GB) con streaming y chunking
  */
@@ -273,8 +300,13 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
   console.log(`[PageIndex] Indexando documento: ${documentId}`);
 
   try {
+    // Reportar progreso: Iniciando
+    await updateProgress(documentId, "Iniciando PageIndex", 5, { stage: "initializing" });
+
     // Obtener documento de la BD
     console.log(`[PageIndex] [1/8] Obteniendo documento...`);
+    await updateProgress(documentId, "Obteniendo documento", 10, { stage: "fetching" });
+    
     const document = await prisma.document.findUnique({
       where: { id: documentId },
     });
@@ -286,6 +318,8 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
 
     // Obtener metadatos del almacenamiento local
     console.log(`[PageIndex] [2/8] Obteniendo metadatos...`);
+    await updateProgress(documentId, "Cargando metadatos", 15, { stage: "metadata" });
+    
     const { localStorageService } = await import('../local-storage');
     const metadata = await localStorageService.getMetadata(documentId);
 
@@ -298,6 +332,11 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
     const fileSize = document.size || 0;
     const isLargeDocument = fileSize > 50 * 1024 * 1024; // > 50MB
     console.log(`[PageIndex] Tamaño: ${(fileSize / 1024 / 1024).toFixed(2)}MB, Grande: ${isLargeDocument}`);
+    await updateProgress(documentId, `Analizando PDF (${(fileSize / 1024 / 1024).toFixed(1)}MB)`, 20, { 
+      stage: "analyzing",
+      fileSize,
+      isLargeDocument,
+    });
 
     // Leer archivo PDF (streaming para grandes)
     console.log(`[PageIndex] [3/8] Leyendo archivo PDF...`);
@@ -313,11 +352,17 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
     let pdfBuffer: Buffer;
     if (isLargeDocument) {
       console.log(`[PageIndex] Usando pdftotext para documento grande (>500MB)`);
+      await updateProgress(documentId, "Extrayendo texto (documento grande)", 30, { stage: "extracting_large" });
+      
       // Para documentos MUY grandes, usar pdftotext (poppler) con streaming real
       const { extractTextFromPDFWithPdftotext } = await import('../large-document-pdftotext');
-      
+
       const result = await extractTextFromPDFWithPdftotext(pdfPath, fileSize, (progress) => {
-        console.log(`[PageIndex] Progreso extracción: ${progress.percentage}%`);
+        const currentProgress = 30 + (progress.percentage * 0.2); // 30-50%
+        updateProgress(documentId, `Extrayendo texto: ${progress.percentage.toFixed(0)}%`, currentProgress, {
+          stage: "extracting",
+          extractionProgress: progress,
+        });
       });
       
       // Verificar si se extrajo texto
@@ -407,7 +452,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
 
       // Construir índice con PageIndex
       console.log(`[PageIndex] [4/8] Extrayendo texto y estructura...`);
-      const { pageIndexService } = await import('../pageindex');
+      await updateProgress(documentId, "Extrayendo estructura", 40, { stage: "extracting_structure" });
       
       let pageIndex;
       try {
@@ -419,43 +464,67 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
       } catch (error: any) {
         throw new Error(`Error en PageIndex: ${error.message}`);
       }
-      
+
       console.log(`[PageIndex] ✓ Índice construido`);
+      await updateProgress(documentId, "Índice construido", 45, { stage: "index_built" });
 
       // Guardar nodos del índice en la BD
       console.log(`[PageIndex] [5/8] Guardando índices en PostgreSQL...`);
+      await updateProgress(documentId, "Guardando índices", 48, { stage: "saving_indices" });
+      
       const nodes = pageIndexService.flattenNodes(pageIndex);
       const createdNodes = new Map<string, string>();
 
-      for (const node of nodes) {
-        try {
-          const parentId = node.parentId && node.level > 0 
-            ? createdNodes.get(node.parentId) || null 
-            : null;
+      const batchSize = 50;
+      for (let i = 0; i < nodes.length; i += batchSize) {
+        const batch = nodes.slice(i, i + batchSize);
+        const currentProgress = 48 + ((i / nodes.length) * 2); // 48-50%
+        
+        await updateProgress(documentId, `Guardando índices: ${Math.min(i + batchSize, nodes.length)}/${nodes.length}`, currentProgress, {
+          stage: "saving",
+          saved: i,
+          total: nodes.length,
+        });
 
-          const created = await prisma.pageIndex.create({
-            data: {
-              documentId,
-              level: node.level,
-              title: node.title,
-              content: node.content?.slice(0, 10000) || '',
-              page: node.page,
-              metadata: node.metadata || {},
-              parentId: parentId,
-            },
-          });
+        for (const node of batch) {
+          try {
+            const parentId = node.parentId && node.level > 0
+              ? createdNodes.get(node.parentId) || null
+              : null;
 
-          createdNodes.set(node.id, created.id);
-        } catch (error: any) {
-          console.error(`[PageIndex] Error guardando nodo ${node.id}:`, error.message);
+            const created = await prisma.pageIndex.create({
+              data: {
+                documentId,
+                level: node.level,
+                title: node.title,
+                content: node.content?.slice(0, 10000) || '',
+                page: node.page,
+                metadata: node.metadata || {},
+                parentId: parentId,
+              },
+            });
+
+            createdNodes.set(node.id, created.id);
+          } catch (error: any) {
+            console.error(`[PageIndex] Error guardando nodo ${node.id}:`, error.message);
+          }
         }
+
+        // Pequeña pausa entre lotes
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
 
       console.log(`[PageIndex] ✓ Índice guardado: ${createdNodes.size}/${nodes.length} nodos`);
+      await updateProgress(documentId, `Índices guardados: ${createdNodes.size}`, 50, { 
+        stage: "indices_saved",
+        totalIndices: createdNodes.size,
+      });
     }
 
     // Encolar análisis con Cognee
     console.log(`[PageIndex] [6/8] Encolando análisis con Cognee...`);
+    await updateProgress(documentId, "Encolando análisis Cognee", 52, { stage: "queueing_analysis" });
+    
     try {
       const { aiAnalysisQueue } = await import('../queue');
       await aiAnalysisQueue.add("ai-analysis", {
@@ -470,6 +539,8 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
 
     // Actualizar estado
     console.log(`[PageIndex] [7/8] Actualizando estado...`);
+    await updateProgress(documentId, "Completando indexación", 55, { stage: "finalizing" });
+    
     await prisma.document.update({
       where: { id: documentId },
       data: { status: "INDEXED" },
@@ -477,6 +548,11 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`[PageIndex] ✅ Indexación completada en ${duration}s`);
+    await updateProgress(documentId, "✓ Indexación completada", 60, { 
+      stage: "completed",
+      duration,
+      nextStep: "Análisis Cognee",
+    });
   } catch (error: any) {
     console.error(`[PageIndex] ❌ Error en indexación:`, error.message);
     
