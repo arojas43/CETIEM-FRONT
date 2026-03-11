@@ -577,8 +577,13 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
   console.log(`[AI Worker] ====================================`);
 
   try {
+    // Reportar progreso: Iniciando Cognee
+    await updateProgress(documentId, "Iniciando análisis Cognee", 60, { stage: "cognee_starting" });
+
     // Obtener documento
     console.log(`[AI Worker] [1/8] Obteniendo documento de BD...`);
+    await updateProgress(documentId, "Obteniendo documento", 62, { stage: "cognee_fetching" });
+    
     const document = await prisma.document.findUnique({
       where: { id: documentId },
     });
@@ -614,9 +619,10 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
     if (isLargeDocument) {
       // Documento grande: usar procesamiento por lotes
       console.log(`[AI Worker] [3/8] Usando procesamiento por lotes para documento grande...`);
-      
+      await updateProgress(documentId, "Procesando por lotes", 65, { stage: "batch_processing" });
+
       const { analyzeChunksInBatch } = await import('../large-document-batch');
-      
+
       // Convertir índices a chunks
       const chunks = indices.map((index, idx) => ({
         id: index.id,
@@ -629,16 +635,25 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
           page: index.page || undefined,
         },
       }));
-      
+
       console.log(`[AI Worker] Procesando ${chunks.length} chunks en lotes...`);
-      
+
+      // Callback de progreso para analyzeChunksInBatch
+      const onProgress = (progress: any) => {
+        const currentProgress = 65 + (progress.percentage * 0.3); // 65-95%
+        updateProgress(documentId, `Procesando chunks: ${progress.details?.chunksProcessed || 0}/${progress.details?.totalChunks || chunks.length}`, currentProgress, {
+          stage: "batch_processing",
+          chunksProcessed: progress.details?.chunksProcessed,
+          totalChunks: progress.details?.totalChunks,
+          entitiesExtracted: progress.details?.entitiesExtracted,
+        });
+      };
+
       const result = await analyzeChunksInBatch(
         chunks,
         documentId,
         document.name,
-        (progress: any) => {
-          console.log(`[AI Worker] Progreso: ${progress.percentage}% - ${progress.details?.chunksProcessed || 0}/${progress.details?.totalChunks || chunks.length} chunks`);
-        }
+        onProgress
       );
       
       console.log(`[AI Worker] ✓ Lotes completados: ${result.chunksProcessed}`);

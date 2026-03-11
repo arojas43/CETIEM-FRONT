@@ -6,6 +6,7 @@ import { FileText, Trash2, Edit2, Save, X, ChevronLeft, ChevronRight, Search, Fi
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { ProcessingProgress } from "@/components/processing-progress";
 
 interface Document {
   id: string;
@@ -356,6 +357,15 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
                         <p className="text-xs text-gray-400 mt-1">
                           {new Date(doc.createdAt).toLocaleDateString('es-ES')}
                         </p>
+                        
+                        {/* Barra de progreso si está procesando */}
+                        {(doc.status === "PROCESSING" || doc.status === "PENDING") && (
+                          <ProcessingProgress
+                            documentId={doc.id}
+                            status={doc.status}
+                            className="mt-2"
+                          />
+                        )}
                       </>
                     )}
                   </div>
