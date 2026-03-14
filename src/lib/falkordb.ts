@@ -149,6 +149,8 @@ export class FalkorDBService {
 
         this.isConnected = true;
         console.log(`✅ [FalkorDB] Conectado exitosamente en ${this.config.host}:${this.config.port}`);
+        // Crear índices en background sin bloquear
+        this.ensureIndexes().catch(() => {});
         return true;
       } catch (error: any) {
         console.warn(`[FalkorDB] Intento ${attempt} fallido:`, error.message);
@@ -242,6 +244,140 @@ export class FalkorDBService {
   }
 
   /**
+   * Ejecuta una consulta Cypher de solo lectura (GRAPH.RO_QUERY)
+   * Permite ejecución paralela a diferencia de GRAPH.QUERY que bloquea escrituras
+   */
+  async roQuery(cypher: string, timeout?: number): Promise<QueryResult> {
+    const startTime = Date.now();
+
+    if (!this.isConnected) {
+      const connected = await this.connect();
+      if (!connected) {
+        throw new Error('No se pudo conectar a FalkorDB. Verifica que el servicio esté corriendo.');
+      }
+    }
+
+    try {
+      const result = await Promise.race([
+        this.client.call('GRAPH.RO_QUERY', this.config.graphName, cypher),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout en consulta')), timeout || 30000)
+        ),
+      ]);
+
+      if (!result || !result[0] || !result[1]) {
+        return { headers: [], rows: [], count: 0 };
+      }
+
+      const headers = result[0];
+      const rows = result[1].map((row: any[]) => {
+        const obj: Record<string, any> = {};
+        headers.forEach((header: string, i: number) => {
+          obj[header] = row[i];
+        });
+        return obj;
+      });
+
+      return {
+        headers,
+        rows,
+        count: rows.length,
+        executionTime: Date.now() - startTime,
+      };
+    } catch (error: any) {
+      // Si GRAPH.RO_QUERY no está disponible (versión antigua), usar GRAPH.QUERY
+      if (error.message?.includes('unknown command') || error.message?.includes('ERR')) {
+        return this.query(cypher, timeout);
+      }
+      console.error('[FalkorDB] Error en roQuery:', error.message);
+      if (error.message.includes('ECONNREFUSED') || error.message.includes('closed')) {
+        this.isConnected = false;
+      }
+      throw new Error(`Error consultando FalkorDB: ${error.message}`);
+    }
+  }
+
+  /**
+   * Crea índices en FalkorDB para mejorar el rendimiento de consultas por documentId.
+   * Usa un flag de módulo para ejecutarse una sola vez durante el ciclo de vida del proceso.
+   */
+  async ensureIndexes(): Promise<void> {
+    if (_indexesEnsured) return;
+
+    const labels = [
+      'ORGANIZATION', 'REGULATION', 'REQUIREMENT', 'PERSON', 'DATE',
+      'DOCUMENT', 'PROCEDURE', 'LOCATION', 'DISEASE', 'TREATMENT',
+      'ANATOMY', 'MEDICATION', 'SYMPTOM', 'SYSTEM', 'EQUIPMENT',
+      'CONCEPT', 'TECHNOLOGY', 'FINDING', 'AUTHOR', 'ENTITY',
+    ];
+
+    for (const label of labels) {
+      try {
+        await this.query(`CREATE INDEX FOR (n:${label}) ON (n.documentId)`);
+      } catch {
+        // El índice ya existe o la etiqueta no tiene nodos — ignorar
+      }
+    }
+    _indexesEnsured = true;
+    console.log('[FalkorDB] Índices verificados/creados');
+  }
+
+  /**
+   * Crea múltiples entidades en bloque usando UNWIND.
+   * Agrupa por label y lanza una sola query por tipo — órdenes de magnitud más rápido
+   * que una CREATE por entidad para documentos grandes.
+   */
+  async createEntitiesBatch(
+    entities: Array<{ label: string; properties: Record<string, any> }>
+  ): Promise<number> {
+    if (entities.length === 0) return 0;
+
+    // Agrupar por label y filtrar propiedades nulas
+    const byLabel = new Map<string, Array<Record<string, any>>>();
+    for (const e of entities) {
+      const filtered: Record<string, any> = {};
+      for (const [k, v] of Object.entries(e.properties)) {
+        if (v !== undefined && v !== null) filtered[k] = v;
+      }
+      if (!byLabel.has(e.label)) byLabel.set(e.label, []);
+      byLabel.get(e.label)!.push(filtered);
+    }
+
+    let created = 0;
+    const MAX_PER_QUERY = 500;
+
+    for (const [label, propsList] of byLabel) {
+      for (let i = 0; i < propsList.length; i += MAX_PER_QUERY) {
+        const batch = propsList.slice(i, i + MAX_PER_QUERY);
+
+        // Recolectar todas las claves únicas del batch
+        const keys = Array.from(new Set(batch.flatMap(p => Object.keys(p))));
+
+        // Serializar lista de maps inline
+        const propsArray = batch.map(p => {
+          const entries = Object.entries(p).map(([k, v]) =>
+            `${k}: ${typeof v === 'string' ? `"${this.escapeCypherString(v)}"` : JSON.stringify(v)}`
+          );
+          return `{${entries.join(', ')}}`;
+        });
+
+        // Mapeo explícito de propiedades en CREATE para que FalkorDB lea de props.*
+        const propMapping = keys.map(k => `${k}: props.${k}`).join(', ');
+        const cypher = `UNWIND [${propsArray.join(', ')}] AS props CREATE (n:${label} {${propMapping}})`;
+
+        try {
+          await this.query(cypher);
+          created += batch.length;
+        } catch (error: any) {
+          console.error(`[FalkorDB] Error en createEntitiesBatch ${label}:`, error.message);
+        }
+      }
+    }
+
+    return created;
+  }
+
+  /**
    * Obtiene estadísticas del grafo
    */
   async getStats(): Promise<FalkorDBStats> {
@@ -264,18 +400,18 @@ export class FalkorDBService {
         await this.connect();
       }
 
-      // Contar entidades por tipo
-      const entityTypesResult = await this.query(
+      // Contar entidades por tipo (read-only para no bloquear escrituras)
+      const entityTypesResult = await this.roQuery(
         'MATCH (n) RETURN labels(n)[0] AS type, count(n) AS count ORDER BY count DESC'
       );
 
       // Contar relaciones por tipo
-      const relationTypesResult = await this.query(
+      const relationTypesResult = await this.roQuery(
         'MATCH ()-[r]->() RETURN type(r) AS type, count(r) AS count ORDER BY count DESC'
       );
 
       // Contar documentos en el grafo
-      const docsResult = await this.query(
+      const docsResult = await this.roQuery(
         'MATCH (n) WHERE n.documentId IS NOT NULL RETURN count(DISTINCT n.documentId) AS count'
       );
 
@@ -436,8 +572,17 @@ export class FalkorDBService {
     }
   }
 
+  private escapeCypherString(str: string): string {
+    return str
+      .replace(/\\/g, '\\\\') // Backslashes primero
+      .replace(/"/g, '\\"')   // Comillas dobles
+      .replace(/\n/g, '\\n')  // Saltos de línea
+      .replace(/\r/g, '\\r'); // Retorno de carro
+  }
+
+  // Alias para compatibilidad interna
   private escapeQuotes(str: string): string {
-    return str.replace(/"/g, '\\"');
+    return this.escapeCypherString(str);
   }
 
   /**
@@ -447,6 +592,9 @@ export class FalkorDBService {
     return this.isConnected && this.client !== null;
   }
 }
+
+// Flag para evitar re-ejecutar ensureIndexes en cada reconexión
+let _indexesEnsured = false;
 
 // Instancia singleton para usar en toda la aplicación
 export const falkorDBService = new FalkorDBService();

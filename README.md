@@ -179,7 +179,8 @@ RAG1/
 │   │   │   ├── documents/            # Gestión de documentos
 │   │   │   │   └── [id]/
 │   │   │   │       ├── process/      # Procesamiento manual
-│   │   │   │       ├── search/       # Q&A
+│   │   │   │       ├── search/       # Q&A (GET: stats, POST: query)
+│   │   │   │       ├── domain/       # Cambio de dominio (PATCH)
 │   │   │   │       └── graph/        # Grafo del documento
 │   │   │   └── auth/                 # Autenticación
 │   │   ├── dashboard/                # Panel principal
@@ -203,6 +204,7 @@ RAG1/
 │   │
 │   └── components/                   # Componentes React
 │       ├── ui/                       # Componentes base (shadcn/ui)
+│       ├── markdown-renderer.tsx     # Renderer Markdown sin dependencias
 │       └── document-list-paginated.tsx
 │
 ├── prisma/
@@ -543,6 +545,69 @@ npx tsx test-queue-job.js
 
 ---
 
+## 🆕 Novedades v6.0.0
+
+### Q&A con Streaming y Razonamiento Extendido (Qwen)
+
+- **SSE streaming real**: Las respuestas de Qwen 3.5 122B se transmiten token a token.
+- **Chain-of-thought activado** (`enable_thinking: true`): el modelo razona antes de responder; los bloques `<think>…</think>` se descartan automáticamente.
+- **Contexto extendido**: `max_tokens: 16384` con `temperature: 0.6`.
+
+### Q&A Multi-Constraint (Página + Sección + Párrafo simultáneos)
+
+```
+Antes:  "dame la página 5" → solo buscaba por página (excluyente)
+Ahora:  "dame el párrafo 2 de la sección Introducción en la página 5"
+        → combina los tres filtros en una sola consulta a PostgreSQL
+```
+
+- `extractQueryIntent()` detecta página, sección Y párrafo de forma simultánea (no exclusiva).
+- Nuevo helper `extractParagraphs(text)` con 3 estrategias: línea en blanco → límite de oración → salto de línea.
+- `getPageIndexByLLMTreeSearch()` filtra nodos de solo página (`isPageNode: true`) para reducir tokens enviados al LLM.
+
+### MarkdownRenderer (renderizado enriquecido sin dependencias)
+
+Las respuestas del Q&A ahora se renderizan con formato visual:
+
+- Encabezados `#` / `##` / `###`
+- **negrita** / *cursiva* / `código inline`
+- Bloques de código con fondo gris
+- Listas ordenadas y no ordenadas
+- Separadores `---`
+
+Sin dependencias externas (zero-deps), implementado en `src/components/markdown-renderer.tsx`.
+
+### Progreso en Tiempo Real para Procesamiento Manual
+
+`processDocument()` ahora escribe el progreso a la BD en cada etapa:
+
+| Etapa | Porcentaje |
+|-------|-----------|
+| Verificando servicios | 3% |
+| Cargando PDF | 8% |
+| PageIndex | 12–38% |
+| Estructura indexada | 45% |
+| Análisis Cognee (por chunk) | 45–95% |
+| Verificando grafo | 97% |
+| Completado | 100% |
+
+La UI muestra la barra de progreso en tiempo real mediante polling cada 2 segundos.
+
+### pageIndexReference en la Cola de Procesamiento
+
+Los workers del queue ahora pasan la referencia de página y sección a `cogneeService.extractKnowledge()` para cada nodo de PageIndex, permitiendo que las entidades en FalkorDB tengan metadatos de página precisos.
+
+### Nuevo Endpoint `/api/documents/[id]/domain`
+
+`PATCH /api/documents/[id]/domain` — permite cambiar el dominio de análisis de un documento sin reprocesarlo.
+
+### Fixes en la UI
+
+- La barra de progreso aparece inmediatamente al hacer clic en "Reprocesar" (actualización optimista del estado local).
+- Eliminada alerta de éxito redundante tras el reprocesamiento.
+
+---
+
 ## 👥 Contribución
 
 1. Fork el repositorio
@@ -580,6 +645,6 @@ Para soporte técnico o preguntas:
 
 ---
 
-**Última actualización:** Marzo 2026  
-**Versión:** 5.0.0  
+**Última actualización:** Marzo 2026
+**Versión:** 6.0.0
 **Estado:** ✅ Producción

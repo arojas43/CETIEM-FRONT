@@ -162,10 +162,13 @@ LOCAL_STORAGE_PATH=/home/alex/cetiem/certificacion-ia/uploads
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=desarrollo-local-secret-key-12345
 
-# NVIDIA NIM
+# NVIDIA NIM (chat + embeddings)
 NVIDIA_API_KEY=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
 NVIDIA_EMBEDDING_MODEL=llama-3_2-nemoretriever-300m-embed-v1
 NVIDIA_CHAT_MODEL=meta/llama-3.1-70b-instruct
+
+# NVIDIA QA (Qwen 3.5 122B — key dedicada)
+NVIDIA_QA_API_KEY=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
 
 # Redis (puerto 6379)
 REDIS_HOST=localhost
@@ -180,6 +183,10 @@ COGNEE_LLM_PROVIDER=nvidia
 COGNEE_EMBEDDING_PROVIDER=nvidia
 FALKORDB_HOST=localhost
 FALKORDB_PORT=6380
+
+# Límites de procesamiento
+MAX_CHUNKS_TO_PROCESS=500
+MAX_BATCHES=100
 EOF
 
 echo -e "${GREEN}✓ .env configurado${NC}"
@@ -323,16 +330,15 @@ echo ""
 echo -e "${YELLOW}Abre tu navegador en: http://localhost:3000${NC}"
 echo ""
 
-# Iniciar Next.js en primer plano (MODO DESARROLLO, SIN BUILD)
-cd "$PROJECT_DIR"
-exec npm run dev
-
-# Cleanup al salir
+# Cleanup al salir (debe registrarse ANTES del exec/npm run dev)
 cleanup() {
     echo ""
     echo -e "${YELLOW}Deteniendo workers...${NC}"
     kill $WORKERS_PID 2>/dev/null || true
     echo -e "${GREEN}✓ Servicios detenidos${NC}"
 }
+trap cleanup EXIT INT TERM
 
-trap cleanup EXIT
+# Iniciar Next.js en primer plano (MODO DESARROLLO, SIN BUILD)
+cd "$PROJECT_DIR"
+npm run dev

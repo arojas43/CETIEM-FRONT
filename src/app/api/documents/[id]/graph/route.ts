@@ -56,14 +56,14 @@ export async function GET(
     const entitiesQuery = `MATCH (n) WHERE n.documentId = "${id}" RETURN labels(n)[0] AS type, n.name AS name, n.description AS description, n.id AS id, n.documentId AS docId`;
     console.log(`[Graph API] Ejecutando consulta: ${entitiesQuery}`);
     
-    const entitiesResult = await falkorDBService.query(entitiesQuery);
+    const entitiesResult = await falkorDBService.roQuery(entitiesQuery);
     console.log(`[Graph API] Entidades encontradas: ${entitiesResult.rows.length}`);
 
     // Buscar relaciones entre entidades del documento
     const relationsQuery = `MATCH (a)-[r]->(b) WHERE a.documentId = "${id}" AND b.documentId = "${id}" RETURN a.name AS source, type(r) AS type, b.name AS target, a.id AS sourceId, b.id AS targetId`;
     console.log(`[Graph API] Ejecutando consulta relaciones: ${relationsQuery}`);
-    
-    const relationsResult = await falkorDBService.query(relationsQuery);
+
+    const relationsResult = await falkorDBService.roQuery(relationsQuery);
     console.log(`[Graph API] Relaciones encontradas: ${relationsResult.rows.length}`);
 
     const entities = entitiesResult.rows.map(row => ({

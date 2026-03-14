@@ -4,8 +4,8 @@
  */
 
 import { nimService } from './nim';
-import { cogneeService } from './cognee';
 import { falkorDBService } from './falkordb';
+import type { CogneeDomain } from './cognee-service';
 import type { TextChunk, ChunkAnalysis, ProcessingProgress } from './large-document-types';
 import { DOCUMENT_LIMITS } from './large-document-types';
 
@@ -16,7 +16,8 @@ export async function analyzeChunksInBatch(
   chunks: TextChunk[],
   documentId: string,
   documentName: string,
-  onProgress?: (progress: ProcessingProgress) => void
+  onProgress?: (progress: ProcessingProgress) => void,
+  domain?: CogneeDomain
 ): Promise<{
   totalEntities: number;
   totalRelations: number;
@@ -44,7 +45,7 @@ export async function analyzeChunksInBatch(
   let errors = 0;
 
   // Inicializar FalkorDB
-  const connected = await cogneeService.initialize();
+  const connected = await falkorDBService.connect();
   if (!connected) {
     console.warn('[BatchAnalyzer] FalkorDB no disponible, solo análisis en memoria');
   }
@@ -62,7 +63,8 @@ export async function analyzeChunksInBatch(
       batchChunks,
       documentId,
       documentName,
-      3 // concurrencia máxima
+      3, // concurrencia máxima
+      domain
     );
     
     // Acumular resultados
@@ -112,48 +114,30 @@ export async function analyzeChunksInBatch(
 }
 
 /**
- * Procesa un lote con concurrencia limitada
+ * Procesa un lote con concurrencia limitada usando un pool de workers
  */
 async function processBatchWithConcurrency(
   chunks: TextChunk[],
   documentId: string,
   documentName: string,
-  maxConcurrency: number = 3
+  maxConcurrency: number = 3,
+  domain?: CogneeDomain
 ): Promise<ChunkAnalysis[]> {
-  const results: ChunkAnalysis[] = [];
-  const executing: Promise<void>[] = [];
+  const results: ChunkAnalysis[] = new Array(chunks.length);
+  const queue = chunks.map((chunk, index) => ({ chunk, index }));
+  let queueIndex = 0;
 
-  for (const chunk of chunks) {
-    const promise = (async () => {
-      const result = await processSingleChunk(chunk, documentId, documentName);
-      results.push(result);
-    })();
-    
-    executing.push(promise);
-    
-    // Limitar concurrencia
-    if (executing.length >= maxConcurrency) {
-      await Promise.race(executing);
-      // Limpiar promesas completadas
-      const stillExecuting = executing.filter(p => {
-        try {
-          // Verificar si ya se resolvió
-          return (p as any).status === 'pending';
-        } catch {
-          return true;
-        }
-      });
-      
-      // Esperar a que al menos una termine
-      if (executing.length === stillExecuting.length) {
-        await Promise.allSettled(executing.slice(0, 1));
-      }
+  async function worker() {
+    while (true) {
+      const item = queue[queueIndex++];
+      if (!item) break;
+      results[item.index] = await processSingleChunk(item.chunk, documentId, documentName, domain);
     }
   }
 
-  // Esperar todas las restantes
-  await Promise.allSettled(executing);
-  
+  const workers = Array.from({ length: Math.min(maxConcurrency, chunks.length) }, worker);
+  await Promise.all(workers);
+
   return results;
 }
 
@@ -163,7 +147,8 @@ async function processBatchWithConcurrency(
 async function processSingleChunk(
   chunk: TextChunk,
   documentId: string,
-  documentName: string
+  documentName: string,
+  domain?: CogneeDomain
 ): Promise<ChunkAnalysis> {
   const startTime = Date.now();
   
@@ -332,7 +317,8 @@ function parseRelationsFromResponse(response: string, chunkId: string): Array<{
 }
 
 /**
- * Persiste entidades y relaciones en FalkorDB
+ * Persiste entidades y relaciones en FalkorDB usando UNWIND batch por tipo.
+ * Reemplaza las N queries individuales por una query por label — mucho más rápido.
  */
 async function persistChunkEntities(
   entities: Array<{ id: string; type: string; name: string; description?: string; confidence: number }>,
@@ -340,27 +326,30 @@ async function persistChunkEntities(
   documentId: string
 ): Promise<void> {
   try {
-    // Persistir entidades
-    for (const entity of entities) {
-      await falkorDBService.createEntity(entity.type, {
-        id: entity.id,
-        name: entity.name,
-        description: entity.description,
-        documentId,
-        confidence: entity.confidence,
-      });
+    if (entities.length > 0) {
+      // Batch CREATE agrupado por tipo de entidad
+      const batchInput = entities.map(e => ({
+        label: e.type,
+        properties: {
+          id: e.id,
+          name: e.name,
+          description: e.description,
+          documentId,
+          confidence: e.confidence,
+        },
+      }));
+      const created = await falkorDBService.createEntitiesBatch(batchInput);
+      console.log(`[FalkorDB] Batch: ${created}/${entities.length} entidades creadas`);
     }
-    
-    // Persistir relaciones
+
+    // Relaciones siguen siendo individuales (requieren MATCH de nodos existentes)
     for (const relation of relations) {
-      await falkorDBService.createRelation(
-        relation.source,
-        relation.target,
-        relation.type
-      );
+      await falkorDBService.createRelation(relation.source, relation.target, relation.type);
     }
-    
-    console.log(`[FalkorDB] Persistidas ${entities.length} entidades y ${relations.length} relaciones`);
+
+    if (relations.length > 0) {
+      console.log(`[FalkorDB] Persistidas ${relations.length} relaciones`);
+    }
   } catch (error: any) {
     console.error('[FalkorDB] Error persistiendo entidades:', error.message);
   }

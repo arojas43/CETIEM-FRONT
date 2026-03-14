@@ -47,9 +47,9 @@ export class QAService {
   ): Promise<QAResult> {
     console.log(`[QA] Pregunta: "${query}"`);
 
-    // 1. Extraer intención de la pregunta (página, sección, párrafo)
+    // 1. Extraer intención de la pregunta (página, sección, párrafo — no exclusivo)
     const intent = this.extractQueryIntent(query);
-    console.log(`[QA] Intención:`, intent);
+    console.log(`[QA] Intención:`, { page: intent.page, section: intent.section, paragraph: intent.paragraph, isSpecific: intent.isSpecific });
 
     // 2. Obtener contexto de PageIndex basado en la intención
     const pageIndexContext = await this.getPageIndexByIntent(intent, documentId, query);
@@ -74,226 +74,196 @@ export class QAService {
   }
 
   /**
-   * Extrae la intención de búsqueda de la pregunta
+   * Extrae TODOS los constraints de la pregunta simultáneamente (página, sección, párrafo).
+   * No es exclusivo: "párrafo 4 de la sección 2 en la página 15" devuelve los tres.
    */
   private extractQueryIntent(query: string): {
-    type: 'page' | 'section' | 'paragraph' | 'general';
     page?: number;
     section?: string;
     paragraph?: number;
+    isSpecific: boolean;
     originalQuery: string;
   } {
     const lowerQuery = query.toLowerCase();
 
-    // Patrón: "página X", "pagina X", "pág X", "pag X" - MEJORADO para detectar números
-    const pageMatch = lowerQuery.match(/páginas?\s+(\d+)|paginas?\s+(\d+)|pág\.?\s*(\d+)|pag\.?\s*(\d+)|página\s+(\d+)|pagina\s+(\d+)/i);
-    if (pageMatch) {
-      const pageNum = pageMatch[1] || pageMatch[2] || pageMatch[3] || pageMatch[4] || pageMatch[5] || pageMatch[6];
-      if (pageNum) {
-        return {
-          type: 'page',
-          page: parseInt(pageNum),
-          originalQuery: query,
-        };
+    // Números ordinales en español
+    const ordinalMap: Record<string, number> = {
+      'primer': 1, 'primero': 1, 'primera': 1,
+      'segundo': 2, 'segunda': 2,
+      'tercer': 3, 'tercero': 3, 'tercera': 3,
+      'cuarto': 4, 'cuarta': 4,
+      'quinto': 5, 'quinta': 5,
+      'sexto': 6, 'sexta': 6,
+      'séptimo': 7, 'septimo': 7, 'séptima': 7,
+      'octavo': 8, 'octava': 8,
+      'noveno': 9, 'novena': 9,
+      'décimo': 10, 'decimo': 10, 'décima': 10,
+    };
+
+    // Página
+    const pageMatch = lowerQuery.match(/p[aá]ginas?\s+(\d+)|p[aá]g\.?\s*(\d+)/i);
+    const page = pageMatch ? parseInt(pageMatch[1] || pageMatch[2]) : undefined;
+
+    // Sección / capítulo (captura el identificador alfanumérico)
+    const sectionMatch = lowerQuery.match(/secc?(?:i[oó]n)?\s+([A-Z0-9][A-Z0-9.-]*)|cap[íi]tulos?\s+([A-Z0-9][A-Z0-9.-]*)/i);
+    const section = sectionMatch ? (sectionMatch[1] || sectionMatch[2]) : undefined;
+
+    // Párrafo — número cardinal o nombre ordinal
+    let paragraph: number | undefined;
+    const paraNumMatch = lowerQuery.match(/p[aá]rrafo?s?\s+(\d+)/i);
+    if (paraNumMatch) {
+      paragraph = parseInt(paraNumMatch[1]);
+    } else {
+      const paraWordMatch = lowerQuery.match(/(\w+)\s+p[aá]rrafo?s?/i);
+      if (paraWordMatch) {
+        paragraph = ordinalMap[paraWordMatch[1].toLowerCase()];
       }
     }
 
-    // Patrón: "sección X", "seccion X", "capítulo X", "capitulo X"
-    const sectionMatch = lowerQuery.match(/secc(?:ión|ion)?\s+([A-Z0-9.-]+)|cap(?:ítulo|itulo)?\s+([A-Z0-9.-]+)/i);
-    if (sectionMatch && (sectionMatch[1] || sectionMatch[2])) {
-      return {
-        type: 'section',
-        section: sectionMatch[1] || sectionMatch[2],
-        originalQuery: query,
-      };
-    }
+    const isSpecific = page !== undefined || section !== undefined || paragraph !== undefined;
 
-    // Patrón: "párrafo X", "parrafo X", "tercer párrafo", "cuarto párrafo", etc.
-    const paragraphNumbers: Record<string, number> = {
-      'primer': 1, 'primero': 1,
-      'segundo': 2,
-      'tercer': 3, 'tercero': 3,
-      'cuarto': 4,
-      'quinto': 5,
-      'sexto': 6,
-      'séptimo': 7, 'septimo': 7,
-      'octavo': 8,
-      'noveno': 9,
-      'décimo': 10, 'decimo': 10,
-    };
-
-    // Buscar "párrafo [número]" o "[número] párrafo"
-    const paragraphMatch = lowerQuery.match(/párrafo?s?\s+(\d+)|parrafo?s?\s+(\d+)|(\w+)\s+párrafo?s?\s+de/i);
-    if (paragraphMatch) {
-      const pageNum = paragraphMatch[1] || paragraphMatch[2];
-      const wordNum = paragraphMatch[3];
-      
-      // Buscar también la página
-      const pageInQuery = lowerQuery.match(/páginas?\s+(\d+)|paginas?\s+(\d+)|pág\.?\s*(\d+)|pag\.?\s*(\d+)/i);
-      
-      return {
-        type: 'paragraph',
-        page: pageInQuery && (pageInQuery[1] || pageInQuery[2]) ? parseInt(pageInQuery[1] || pageInQuery[2]) : undefined,
-        paragraph: pageNum ? parseInt(pageNum) : (paragraphNumbers[wordNum] || 1),
-        originalQuery: query,
-      };
-    }
-
-    // Búsqueda general
-    return {
-      type: 'general',
-      originalQuery: query,
-    };
+    return { page, section, paragraph, isSpecific, originalQuery: query };
   }
 
   /**
-   * Obtiene contexto de PageIndex basado en la intención
+   * Extrae párrafos de un bloque de texto.
+   * Estrategias (en orden de preferencia):
+   *  1. Separación por línea en blanco (\\n\\n)
+   *  2. Separación por punto final + mayúscula siguiente
+   *  3. Separación por \\n simple
+   */
+  private extractParagraphs(text: string): string[] {
+    // Estrategia 1: línea en blanco
+    let parts = text.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 20);
+    if (parts.length >= 2) return parts;
+
+    // Estrategia 2: oración completa (punto + espacio + mayúscula)
+    parts = text.split(/(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ])/).map(p => p.trim()).filter(p => p.length > 20);
+    if (parts.length >= 2) return parts;
+
+    // Estrategia 3: salto de línea
+    parts = text.split(/\n/).map(p => p.trim()).filter(p => p.length > 20);
+    return parts.length >= 1 ? parts : [text];
+  }
+
+  /**
+   * Obtiene contexto de PageIndex manejando múltiples constraints simultáneos.
+   * Orden de prioridad: página → sección → párrafo → búsqueda general
    */
   private async getPageIndexByIntent(
-    intent: { type: string; page?: number; section?: string; paragraph?: number },
+    intent: { page?: number; section?: string; paragraph?: number; isSpecific: boolean },
     documentId: string,
-    originalQuery?: string  // ← Query original para búsqueda inteligente
+    originalQuery?: string
   ): Promise<QAContext[]> {
     const contexts: QAContext[] = [];
 
     try {
-      if (intent.type === 'page' && intent.page) {
-        // Buscar todo el contenido de una página específica
-        const sections = await prisma.pageIndex.findMany({
-          where: { documentId, page: intent.page },
-          orderBy: { level: 'asc' },
+      if (intent.isSpecific) {
+        // Construir filtro de BD según los constraints disponibles
+        const whereClause: any = { documentId };
+
+        if (intent.page) {
+          // Buscar el nodo exacto de esa página (isPageNode) o secciones que cubren esa página
+          whereClause.OR = [
+            { page: intent.page },
+            // Nodo de sección cuyo rango de páginas incluye intent.page
+            {
+              AND: [
+                { page: { lte: intent.page } },
+                {
+                  metadata: {
+                    path: ['endPage'],
+                    gte: intent.page,
+                  },
+                },
+              ],
+            },
+          ];
+        }
+
+        if (intent.section) {
+          // Añadir filtro de sección sobre lo que ya filtramos (título contiene)
+          whereClause.title = { contains: intent.section, mode: 'insensitive' as const };
+          delete whereClause.OR; // título + documentId es suficiente
+        }
+
+        const nodes = await prisma.pageIndex.findMany({
+          where: whereClause,
+          orderBy: [{ level: 'asc' }, { page: 'asc' }],
+          take: 20,
         });
 
-        sections.forEach(s => {
-          contexts.push({
-            text: `${s.title}\n${s.content || ''}`,
-            page: s.page || undefined,
-            section: s.title,
-          });
-        });
-      } else if (intent.type === 'section' && intent.section) {
-        // Buscar sección específica por título
-        const sections = await prisma.pageIndex.findMany({
-          where: {
-            documentId,
-            title: { contains: intent.section, mode: 'insensitive' },
-          },
-          orderBy: { level: 'asc' },
-        });
+        // Si pedimos un párrafo específico, extraerlo del texto combinado
+        if (intent.paragraph !== undefined && nodes.length > 0) {
+          const fullText = nodes.map(n => n.content || '').join('\n\n');
+          const paragraphs = this.extractParagraphs(fullText);
+          const idx = intent.paragraph - 1;
 
-        sections.forEach(s => {
-          contexts.push({
-            text: `${s.title}\n${s.content || ''}`,
-            page: s.page || undefined,
-            section: s.title,
-          });
-        });
-      } else if (intent.type === 'paragraph' && intent.page) {
-        // Buscar página y extraer párrafo
-        const sections = await prisma.pageIndex.findMany({
-          where: { documentId, page: intent.page },
-          orderBy: { level: 'asc' },
-        });
-
-        const fullText = sections.map(s => s.content || '').join('\n\n');
-        const paragraphs = fullText.split(/\n\s*\n/).filter(p => p.trim().length > 0);
-
-        if (intent.paragraph && paragraphs[intent.paragraph - 1]) {
-          contexts.push({
-            text: paragraphs[intent.paragraph - 1],
-            page: intent.page,
-            section: `Párrafo ${intent.paragraph}`,
+          if (idx >= 0 && idx < paragraphs.length) {
+            const refPage = nodes[0]?.page ?? intent.page;
+            const refSection = intent.section
+              ? nodes[0]?.title
+              : `Párrafo ${intent.paragraph}${intent.page ? ` (pág. ${intent.page})` : ''}`;
+            contexts.push({
+              text: paragraphs[idx],
+              page: refPage ?? undefined,
+              section: refSection ?? undefined,
+            });
+          } else {
+            // Párrafo fuera de rango: devolver el texto completo de la página/sección
+            console.warn(`[QA] Párrafo ${intent.paragraph} no encontrado (solo hay ${paragraphs.length}), devolviendo contexto completo`);
+            nodes.forEach(n => {
+              if (n.content && n.content.length > 20) {
+                contexts.push({
+                  text: `${n.title}\n${n.content}`,
+                  page: n.page ?? undefined,
+                  section: n.title,
+                });
+              }
+            });
+          }
+        } else {
+          nodes.forEach(n => {
+            if (n.content && n.content.length > 20) {
+              contexts.push({
+                text: `${n.title}\n${n.content}`,
+                page: n.page ?? undefined,
+                section: n.title,
+              });
+            }
           });
         }
-      } else {
-        // Búsqueda general: buscar términos de la pregunta en PageIndex
+      }
+
+      // Si no hay resultado específico o la pregunta es general → LLM tree search
+      if (contexts.length === 0) {
         if (originalQuery) {
           console.log(`[QA] Búsqueda general en PageIndex: "${originalQuery}"`);
 
-          // Extraer términos clave (ignorar palabras comunes)
-          const stopWords = ['de', 'la', 'el', 'los', 'las', 'un', 'una', 'que', 'en', 'para', 'por', 'con', 'sobre', '?', '¿', 'y', 'es', 'son', 'me', 'mi', 'tu', 'te', 'lo', 'se'];
-          const queryTerms = originalQuery
-            .toLowerCase()
-            .split(/\s+/)
-            .filter(word => word.length > 2 && !stopWords.includes(word));
-
-          console.log(`[QA] Términos clave: ${queryTerms.join(', ')}`);
-
-          if (queryTerms.length > 0) {
-            // Construir condiciones de búsqueda OR
-            const searchConditions = queryTerms.flatMap(term => [
-              { title: { contains: term, mode: 'insensitive' as const } },
-              { content: { contains: term, mode: 'insensitive' as const } },
-            ]);
-
-            let sections = await prisma.pageIndex.findMany({
-              where: { documentId, OR: searchConditions },
-              orderBy: { level: 'asc' },
-              take: 50,
-            });
-
-            console.log(`[QA] Secciones encontradas (búsqueda principal): ${sections.length}`);
-
-            // Si es referencia bíblica (ej: "60:9" o "60:9-22"), buscar específicamente
-            const biblicalRefMatch = originalQuery.match(/(\d+):(\d+)(?:-(\d+))?/);
-            if (biblicalRefMatch) {
-              const chapter = biblicalRefMatch[1];
-              const verseStart = biblicalRefMatch[2];
-              const verseEnd = biblicalRefMatch[3] || verseStart;
-
-              console.log(`[QA] Referencia bíblica detectada: capítulo ${chapter}, versículos ${verseStart}-${verseEnd}`);
-
-              // Buscar contenido que tenga el patrón del capítulo y versículo
-              const biblicalSections = await prisma.pageIndex.findMany({
-                where: {
-                  documentId,
-                  content: {
-                    contains: `${chapter}:${verseStart}`,
-                    mode: 'insensitive',
-                  },
-                },
-                orderBy: { page: 'asc' },
-                take: 20,
-              });
-
-              console.log(`[QA] Secciones bíblicas encontradas: ${biblicalSections.length}`);
-
-              // Combinar y eliminar duplicados
-              const sectionIds = new Set(sections.map(s => s.id));
-              biblicalSections.forEach(s => {
-                if (!sectionIds.has(s.id)) {
-                  sections.push(s);
-                  sectionIds.add(s.id);
-                }
-              });
-
-              console.log(`[QA] Total secciones combinadas: ${sections.length}`);
-            }
-
-            sections.forEach(s => {
-              contexts.push({
-                text: `${s.title}\n${s.content || ''}`,
-                page: s.page || undefined,
-                section: s.title,
-              });
-            });
+          const treeContexts = await this.getPageIndexByLLMTreeSearch(documentId, originalQuery);
+          if (treeContexts.length > 0) {
+            contexts.push(...treeContexts);
+            console.log(`[QA] LLM Tree Search encontró ${treeContexts.length} secciones`);
+          } else {
+            console.log(`[QA] Tree search sin resultados, usando keyword fallback`);
+            const keywordContexts = await this.fallbackKeywordSearch(documentId, originalQuery);
+            contexts.push(...keywordContexts);
           }
         }
-        
-        // Fallback: si no encontró nada, obtener primeras secciones
+
+        // Fallback final
         if (contexts.length === 0) {
-          console.log(`[QA] Fallback: obteniendo primeras secciones`);
+          console.log(`[QA] Fallback final: obteniendo primeras secciones`);
           const sections = await prisma.pageIndex.findMany({
             where: { documentId },
             orderBy: { level: 'asc' },
             take: 20,
           });
-          
           sections.forEach(s => {
             if (s.content && s.content.length > 50) {
               contexts.push({
                 text: `${s.title}\n${s.content}`,
-                page: s.page || undefined,
+                page: s.page ?? undefined,
                 section: s.title,
               });
             }
@@ -322,12 +292,12 @@ export class QAService {
     if (pages.length === 0) return [];
 
     try {
-      // Buscar entidades en las páginas relevantes
-      const pagesClause = pages.map(p => `n.page = ${p}`).join(' OR ');
-      const entitiesResult = await falkorDBService.query(`
+      // Buscar entidades en las páginas relevantes usando IN para mejor rendimiento
+      const pagesIN = pages.join(', ');
+      const entitiesResult = await falkorDBService.roQuery(`
         MATCH (n)
         WHERE n.documentId = "${documentId}"
-          AND (${pagesClause})
+          AND n.page IN [${pagesIN}]
         RETURN labels(n)[0] AS type, n.name AS name, n.description AS desc, n.page AS page, n.section AS section
         LIMIT 50
       `);
@@ -357,10 +327,26 @@ export class QAService {
     verseEnd?: number;
     isBiblical: boolean;
   } | null {
+    // Lista de libros bíblicos conocidos para evitar falsos positivos (ej. "ISO 9001:2015")
+    const biblicalBooks = new Set([
+      'génesis', 'genesis', 'éxodo', 'exodo', 'levítico', 'levitico', 'números', 'numeros',
+      'deuteronomio', 'josué', 'josue', 'jueces', 'rut', 'ruth', 'samuel', 'reyes',
+      'crónicas', 'cronicas', 'esdras', 'nehemías', 'nehemias', 'ester', 'esther',
+      'job', 'salmos', 'proverbios', 'eclesiastés', 'eclesiastes', 'cantares',
+      'isaías', 'isaias', 'jeremías', 'jeremias', 'lamentaciones', 'ezequiel',
+      'daniel', 'oseas', 'joel', 'amós', 'amos', 'abdías', 'abdias', 'jonás', 'jonas',
+      'miqueas', 'nahúm', 'nahum', 'habacuc', 'sofonías', 'sofonias', 'hageo',
+      'zacarías', 'zacarias', 'malaquías', 'malaquias',
+      'mateo', 'marcos', 'lucas', 'juan', 'hechos', 'romanos', 'corintios',
+      'gálatas', 'galatas', 'efesios', 'filipenses', 'colosenses', 'tesalonicenses',
+      'timoteo', 'tito', 'filemón', 'filemon', 'hebreos', 'santiago', 'pedro',
+      'judas', 'apocalipsis',
+    ]);
+
     // Patrones bíblicos comunes en español
     const patterns = [
-      // "ISAÍAS 60:9-22", "Isaías 60:9-22"
-      /([a-zA-ZÁÉÍÓÚáéíóúñÑ]+)\s+(\d+):(\d+)(?:-(\d+))?/i,
+      // "ISAÍAS 60:9-22", "Isaías 60:9-22" — solo números de versículo razonables (1-200)
+      /([a-zA-ZÁÉÍÓÚáéíóúñÑ]+)\s+(\d{1,3}):(\d{1,3})(?:-(\d{1,3}))?/i,
       // "Isaías 60 versículo 9", "Isaías 60 versículos 9 al 22"
       /([a-zA-ZÁÉÍÓÚáéíóúñÑ]+)\s+(\d+)\s+versícul(?:o|os)?\s+(\d+)(?:\s+(?:al|hasta|a)\s+(\d+))?/i,
       // "Capítulo 60 de Isaías"
@@ -381,8 +367,14 @@ export class QAService {
         } else {
           book = match[1];
           chapter = parseInt(match[2]);
-          verseStart = parseInt(match[3]);
+          verseStart = match[3] ? parseInt(match[3]) : undefined;
           verseEnd = match[4] ? parseInt(match[4]) : verseStart;
+        }
+
+        // Validar que el libro es realmente un libro bíblico conocido
+        // para evitar falsos positivos como "ISO 9001:2015" o "versión 2:3"
+        if (book && !biblicalBooks.has(book.toLowerCase())) {
+          continue;
         }
 
         return {
@@ -409,8 +401,6 @@ export class QAService {
     verseEnd?: number
   ): Promise<QAContext[]> {
     try {
-      const { prisma } = await import('./db');
-
       // Construir términos de búsqueda para el libro y capítulo
       const searchTerms = [
         `${book.toUpperCase()} ${chapter}`,
@@ -464,6 +454,167 @@ export class QAService {
   }
 
   /**
+   * LLM Tree Search: envía árbol jerárquico compacto al LLM para identificar
+   * los nodos relevantes, sin necesidad de buscar por keywords.
+   */
+  private async getPageIndexByLLMTreeSearch(
+    documentId: string,
+    query: string
+  ): Promise<QAContext[]> {
+    try {
+      // 1. Obtener árbol compacto (sin content para reducir tokens)
+      const nodes = await prisma.pageIndex.findMany({
+        where: { documentId },
+        select: {
+          id: true,
+          title: true,
+          level: true,
+          page: true,
+          metadata: true,
+        },
+        orderBy: [{ level: 'asc' }, { page: 'asc' }],
+        take: 300, // límite para no saturar el contexto del LLM
+      });
+
+      if (nodes.length === 0) return [];
+
+      // 2. Serializar árbol compacto — excluir nodos "Página N" para reducir tokens
+      //    (son nodos auxiliares de granularidad fina; las secciones detectadas son suficientes)
+      const structureNodes = nodes.filter(n => {
+        const meta = n.metadata as Record<string, unknown> | null;
+        return meta?.isPageNode !== true;
+      });
+      // Si solo hay nodos de página (sin estructura), usarlos igualmente pero limitados
+      const nodesToSerialize = structureNodes.length > 0 ? structureNodes : nodes.slice(0, 50);
+
+      const treeText = nodesToSerialize
+        .map(n => {
+          const indent = '  '.repeat(Math.max(0, (n.level ?? 0) - 1));
+          const meta = n.metadata as Record<string, unknown> | null;
+          const summary = typeof meta?.summary === 'string' ? ` — ${meta.summary.slice(0, 120)}` : '';
+          return `${indent}[${n.id}] L${n.level ?? 0} "${n.title}"${summary}${n.page ? ` (p.${n.page})` : ''}`;
+        })
+        .join('\n');
+
+      // 3. Llamar al LLM para seleccionar nodos relevantes
+      const systemPrompt = `Eres un asistente que analiza índices de documentos.
+Dada una pregunta y un árbol de secciones en formato:
+  [id] Lnivel "título" — resumen (p.página)
+Responde ÚNICAMENTE con un array JSON de IDs de las secciones más relevantes para responder la pregunta.
+Ejemplo: ["cm123", "cm456"]
+Selecciona entre 1 y 8 secciones. Si ninguna es relevante, responde [].`;
+
+      const prompt = `Árbol de secciones del documento:\n${treeText}\n\nPregunta: ${query}\n\nIDs relevantes (JSON array):`;
+
+      const rawResponse = await nimService.generateText({
+        model: process.env.NVIDIA_CHAT_MODEL || 'meta/llama-3.1-70b-instruct',
+        prompt,
+        systemPrompt,
+        maxTokens: 256,
+        temperature: 0.0,
+      });
+
+      // 4. Parsear IDs del response
+      const jsonMatch = rawResponse.match(/\[[\s\S]*?\]/);
+      if (!jsonMatch) {
+        console.log('[QA] LLM Tree Search: no se encontró JSON en respuesta');
+        return [];
+      }
+
+      let nodeIds: string[];
+      try {
+        nodeIds = JSON.parse(jsonMatch[0]);
+        if (!Array.isArray(nodeIds) || nodeIds.length === 0) return [];
+      } catch {
+        console.log('[QA] LLM Tree Search: JSON inválido en respuesta');
+        return [];
+      }
+
+      // 5. Obtener contenido completo de los nodos seleccionados
+      const selectedNodes = await prisma.pageIndex.findMany({
+        where: { id: { in: nodeIds }, documentId },
+        orderBy: { page: 'asc' },
+      });
+
+      return selectedNodes
+        .filter(n => n.content && n.content.length > 20)
+        .map(n => ({
+          text: `${n.title}\n${n.content}`,
+          page: n.page || undefined,
+          section: n.title,
+        }));
+    } catch (error: any) {
+      console.error('[QA] Error en LLM Tree Search:', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Búsqueda por keywords como fallback cuando el LLM Tree Search no encuentra nada.
+   * Incluye detección de referencias bíblicas.
+   */
+  private async fallbackKeywordSearch(
+    documentId: string,
+    query: string
+  ): Promise<QAContext[]> {
+    try {
+      // 1. Verificar si es referencia bíblica
+      const biblicalRef = this.detectBiblicalReference(query);
+      if (biblicalRef?.isBiblical && biblicalRef.book && biblicalRef.chapter) {
+        console.log(`[QA] Keyword fallback: referencia bíblica detectada`);
+        const biblicalResults = await this.searchBiblicalText(
+          documentId,
+          biblicalRef.book,
+          biblicalRef.chapter,
+          biblicalRef.verseStart,
+          biblicalRef.verseEnd
+        );
+        if (biblicalResults.length > 0) return biblicalResults;
+      }
+
+      // 2. Extraer keywords (palabras de 4+ letras, excluyendo stopwords)
+      const stopwords = new Set([
+        'para', 'como', 'sobre', 'donde', 'cuando', 'cuál', 'cual',
+        'qué', 'que', 'cómo', 'como', 'cuáles', 'cuales', 'este', 'esta',
+        'estos', 'estas', 'quen', 'quién', 'quien', 'cuánto', 'cuanto',
+        'dice', 'trata', 'habla', 'tiene', 'hay', 'está', 'esta',
+      ]);
+
+      const keywords = query
+        .toLowerCase()
+        .replace(/[¿?¡!.,;:()]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length >= 4 && !stopwords.has(w));
+
+      if (keywords.length === 0) return [];
+
+      // 3. Buscar OR sobre titles y content
+      const sections = await prisma.pageIndex.findMany({
+        where: {
+          documentId,
+          OR: keywords.flatMap(kw => [
+            { title: { contains: kw, mode: 'insensitive' as const } },
+            { content: { contains: kw, mode: 'insensitive' as const } },
+          ]),
+        },
+        orderBy: { page: 'asc' },
+        take: 15,
+      });
+
+      return sections
+        .filter(s => s.content && s.content.length > 50)
+        .map(s => ({
+          text: `${s.title}\n${s.content}`,
+          page: s.page || undefined,
+          section: s.title,
+        }));
+    } catch (error: any) {
+      console.error('[QA] Error en keyword fallback:', error.message);
+      return [];
+    }
+  }
+
+  /**
    * Genera respuesta contextual con Qwen 3.5 122B (mejor razonamiento)
    */
   private async generateContextualAnswer(
@@ -480,8 +631,6 @@ export class QAService {
       
       // Si hay contexto pero es insuficiente, buscar más
       if (contexts.length === 0 || contexts.every(c => c.text.length < 100)) {
-        const { prisma } = await import('./db');
-        
         // Obtener documento para saber el documentId
         const doc = await prisma.document.findFirst({
           where: { name: { contains: documentName, mode: 'insensitive' } },

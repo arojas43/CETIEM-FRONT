@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { storageService } from "@/lib/storage";
 import { documentProcessingQueue } from "@/lib/queue";
 
 export interface PaginatedResponse<T> {

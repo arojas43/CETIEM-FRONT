@@ -227,10 +227,10 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
               <strong>PageIndex:</strong> Extrajo la estructura jerárquica del documento ({totalSections} secciones)
             </p>
             <p>
-              <strong>Cognee:</strong> Extrae entidades y relaciones del texto médico
+              <strong>Cognee:</strong> Extrae entidades y relaciones del texto del documento
             </p>
             <p>
-              <strong>FalkorDB:</strong> Almacena el grafo de conocimiento de forma aislada por documento
+              <strong>FalkorDB:</strong> Almacena el grafo de conocimiento aislado por documento
             </p>
             <p className="mt-4 text-gray-600">
               Usa la función <strong>&quot;Preguntar al Documento&quot;</strong> para hacer preguntas específicas sobre el contenido.

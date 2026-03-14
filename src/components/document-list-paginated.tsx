@@ -110,6 +110,20 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
     loadDocuments();
   }, [loadDocuments]);
 
+  // Auto-refresh de la lista mientras haya documentos procesándose activamente
+  useEffect(() => {
+    const hasActiveDocuments = documents.some(
+      d => d.status === "PROCESSING" || d.status === "PENDING"
+    );
+    if (!hasActiveDocuments) return;
+
+    const interval = setInterval(() => {
+      loadDocuments();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [documents, loadDocuments]);
+
   // Manejadores de edición
   const handleEdit = (doc: Document) => {
     setEditingId(doc.id);
@@ -177,6 +191,9 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
     }
 
     setProcessingId(docId);
+    // Actualizar estado optimistamente para que aparezca la barra de progreso de inmediato
+    setDocuments(prev => prev.map(d => d.id === docId ? { ...d, status: "PROCESSING" } : d));
+
     try {
       const response = await fetch(`/api/documents/${docId}/process`, {
         method: "POST",
@@ -187,15 +204,16 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
       const result = await response.json();
 
       if (response.ok && result.success) {
-        alert(`✅ Documento procesado exitosamente!\n\nEntidades: ${result.document.entities}\nÍndices: ${result.document.indices}\nTiempo: ${result.document.duration}s`);
         loadDocuments();
         onDocumentDeleted?.();
       } else {
         alert(`❌ Error al procesar: ${result.error || result.message}`);
+        loadDocuments(); // Restaurar estado real desde BD
       }
     } catch (error: any) {
       console.error("Error processing document:", error);
       alert(`Error al procesar documento: ${error.message}`);
+      loadDocuments();
     } finally {
       setProcessingId(null);
     }
@@ -358,11 +376,11 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
                           {new Date(doc.createdAt).toLocaleDateString('es-ES')}
                         </p>
                         
-                        {/* Barra de progreso si está procesando */}
-                        {(doc.status === "PROCESSING" || doc.status === "PENDING") && (
+                        {/* Barra de progreso si está procesando o se acaba de enviar */}
+                        {(doc.status === "PROCESSING" || doc.status === "PENDING" || processingId === doc.id) && (
                           <ProcessingProgress
                             documentId={doc.id}
-                            status={doc.status}
+                            status={processingId === doc.id ? "PROCESSING" : doc.status}
                             className="mt-2"
                           />
                         )}

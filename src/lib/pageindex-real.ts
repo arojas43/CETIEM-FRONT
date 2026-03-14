@@ -83,13 +83,44 @@ export class PageIndexService {
     try {
       const page = await pdfDocument.getPage(pageNum);
       const textContent = await page.getTextContent();
-      const text = textContent.items.map((item: any) => item.str).join(' ');
-      
-      // Limpiar texto
+      const items = textContent.items as any[];
+
+      if (!items.length) return '';
+
+      // Reconstruir texto preservando estructura de párrafos/líneas mediante
+      // análisis de posición Y y la propiedad hasEOL de cada item de pdfjs.
+      let text = '';
+      let prevY: number | null = null;
+
+      for (const item of items) {
+        if (!item.str) continue;
+
+        const curY: number = item.transform?.[5] ?? 0;
+
+        if (prevY === null) {
+          text += item.str;
+        } else {
+          const yGap = Math.abs(curY - prevY);
+
+          if (item.hasEOL || yGap > 20) {
+            // Salto grande → separador de párrafo
+            text += '\n\n' + item.str;
+          } else if (yGap > 8) {
+            // Salto pequeño → nueva línea dentro del mismo párrafo
+            text += '\n' + item.str;
+          } else {
+            text += ' ' + item.str;
+          }
+        }
+
+        prevY = curY;
+      }
+
       return text
         .replace(/\0/g, '')
         .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-        .replace(/\s+/g, ' ')
+        .replace(/[ \t]+/g, ' ')      // Colapsar espacios horizontales sin tocar \n
+        .replace(/\n{3,}/g, '\n\n')   // Máximo un párrafo en blanco
         .trim();
     } catch (error: any) {
       console.error(`[PageIndex] Error extrayendo página ${pageNum}:`, error.message);
@@ -241,35 +272,48 @@ ${text.slice(0, 30000)}`;
       },
     };
 
-    // Paso 4: Crear nodos para cada sección detectada
+    // Paso 4: Crear nodos de sección (si se detectaron) + siempre nodos por página
     const nodes: PageIndexNode[] = [];
-    
+
     if (structure.sections.length > 0) {
-      // Hay secciones detectadas - crear árbol jerárquico
+      // Secciones detectadas → nivel 1
       for (const section of structure.sections) {
         const node = this.createNodeFromSection(section, text, pages, root.id);
         nodes.push(node);
         root.children.push(node);
       }
-      console.log(`[PageIndex] Árbol creado con ${nodes.length} secciones`);
-    } else {
-      // No hay secciones - dividir por páginas (fallback)
-      console.log('[PageIndex] No se detectaron secciones, usando fallback por páginas...');
-      pages.forEach((pageText, index) => {
-        const node: PageIndexNode = {
-          id: crypto.randomUUID(),
-          level: 1,
-          title: `Página ${index + 1}`,
-          page: index + 1,
-          endPage: index + 1,
-          content: pageText.slice(0, 3000),
-          children: [],
-          parentId: root.id,
-        };
-        nodes.push(node);
-        root.children.push(node);
-      });
+      console.log(`[PageIndex] Árbol creado con ${nodes.length} secciones detectadas`);
     }
+
+    // SIEMPRE añadir nodos individuales por página (nivel 2).
+    // Esto garantiza que consultas como "página 15, párrafo 4" encuentren
+    // exactamente el contenido de esa página aunque no haya sección detectada.
+    pages.forEach((pageText, index) => {
+      const pageNum = index + 1;
+      const pageNode: PageIndexNode = {
+        id: crypto.randomUUID(),
+        level: structure.sections.length > 0 ? 2 : 1,
+        title: `Página ${pageNum}`,
+        page: pageNum,
+        endPage: pageNum,
+        // Hasta 10 000 chars para tener texto completo disponible en Q&A
+        content: pageText.slice(0, 10000),
+        children: [],
+        parentId: root.id,
+        metadata: {
+          isPageNode: true,
+          pageNumber: pageNum,
+        },
+      };
+      nodes.push(pageNode);
+      root.children.push(pageNode);
+    });
+
+    if (structure.sections.length === 0) {
+      console.log('[PageIndex] Sin secciones detectadas → usando nodos por página');
+    }
+
+    console.log(`[PageIndex] Total nodos: ${nodes.length} (${structure.sections.length} secciones + ${pages.length} páginas)`);
 
     return {
       id: documentId,
@@ -310,12 +354,13 @@ ${text.slice(0, 30000)}`;
       title: section.title,
       page: startPage,
       endPage,
-      content: sectionContent.slice(0, 5000), // Máximo 5000 chars por nodo
+      content: sectionContent.slice(0, 10000), // 10 000 chars para Q&A preciso
       summary: section.summary,
       children: [],
       parentId,
       metadata: {
         extractedAt: new Date().toISOString(),
+        endPage,   // Guardado explícitamente para búsquedas de rango en Q&A
       },
     };
   }

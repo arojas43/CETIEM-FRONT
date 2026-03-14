@@ -133,10 +133,13 @@ export async function createDocumentProcessingWorker() {
         switch (job.data.type) {
           case "index":
             await processDocumentIndexing(job.data.documentId);
+            // El estado lo gestiona processDocumentIndexing internamente
             break;
           case "analyze":
             await processDocumentAnalysis(job.data.documentId);
-            break;
+            // El estado (ANALYZED/INDEXED) lo gestiona processDocumentAnalysis internamente
+            // No sobreescribir aquí para no perder el estado ANALYZED
+            return { success: true, documentId: job.data.documentId, duration: ((Date.now() - startTime) / 1000).toFixed(2) };
           case "certify":
             await processCertification(job.data.documentId);
             break;
@@ -144,7 +147,7 @@ export async function createDocumentProcessingWorker() {
             throw new Error(`Tipo de trabajo desconocido: ${job.data.type}`);
         }
 
-        // Actualizar estado a completado
+        // Actualizar estado a completado solo para jobs de tipo "index" y "certify"
         await prisma.document.update({
           where: { id: job.data.documentId },
           data: { status: "INDEXED" },
@@ -279,7 +282,7 @@ async function updateProgress(
       data: {
         processingProgress: {
           step,
-          percentage: Math.min(percentage, 99), // Máximo 99% hasta completar
+          percentage: Math.min(percentage, 100),
           details,
           updatedAt: new Date().toISOString(),
         },
@@ -351,7 +354,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
 
     let pdfBuffer: Buffer;
     if (isLargeDocument) {
-      console.log(`[PageIndex] Usando pdftotext para documento grande (>500MB)`);
+      console.log(`[PageIndex] Usando pdftotext para documento grande (>50MB)`);
       await updateProgress(documentId, "Extrayendo texto (documento grande)", 30, { stage: "extracting_large" });
       
       // Para documentos MUY grandes, usar pdftotext (poppler) con streaming real
@@ -499,7 +502,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
                 title: node.title,
                 content: node.content?.slice(0, 10000) || '',
                 page: node.page,
-                metadata: node.metadata || {},
+                metadata: { ...((node.metadata as object) || {}), endPage: node.endPage },
                 parentId: parentId,
               },
             });
@@ -548,7 +551,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`[PageIndex] ✅ Indexación completada en ${duration}s`);
-    await updateProgress(documentId, "✓ Indexación completada", 60, { 
+    await updateProgress(documentId, "✓ Indexación completada", 100, {
       stage: "completed",
       duration,
       nextStep: "Análisis Cognee",
@@ -653,7 +656,8 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
         chunks,
         documentId,
         document.name,
-        onProgress
+        onProgress,
+        (document.domain?.toLowerCase() as any) || 'legal'
       );
       
       console.log(`[AI Worker] ✓ Lotes completados: ${result.chunksProcessed}`);
@@ -670,49 +674,55 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
       });
       
     } else {
-      // Documento pequeño: método tradicional
-      console.log(`[AI Worker] [3/8] Combinando contenido para análisis...`);
-      const content = indices.map(i => `${i.title}: ${i.content?.slice(0, 2000) || ''}`).join("\n\n");
-      console.log(`[AI Worker] ✓ Contenido combinado: ${content.length} caracteres`);
-
-      if (content.length < 100) {
-        console.warn(`[AI Worker] ⚠️  Contenido muy corto, el análisis puede ser limitado`);
-      }
+      // Documento pequeño: procesar cada nodo PageIndex como chunk independiente
+      // Esto preserva la referencia de página/sección por entidad extraída
+      console.log(`[AI Worker] [3/8] Procesando ${indices.length} nodos PageIndex...`);
 
       // Inicializar FalkorDB
       console.log(`[AI Worker] [4/8] Verificando conexión con FalkorDB...`);
       const { checkFalkorDBHealth } = await import('../falkordb');
       const isHealthy = await checkFalkorDBHealth();
-
       console.log(`[AI Worker] FalkorDB: ${isHealthy ? '✅ Disponible' : '❌ No disponible'}`);
+
+      // Filtrar nodos con contenido suficiente
+      const validIndices = indices.filter(i => i.content && i.content.length > 50);
+      if (validIndices.length === 0) {
+        console.warn(`[AI Worker] ⚠️  Sin contenido suficiente en índices`);
+      }
 
       // Procesar con Cognee - Extraer conocimiento del contenido
       console.log(`[AI Worker] [5/8] Extrayendo conocimiento con Cognee...`);
-      
-      // Dividir contenido en chunks para análisis
-      const chunks = content.split(/\n\s*\n/).filter(c => c.trim().length > 100);
-      console.log(`[AI Worker]   - Analizando ${chunks.length} chunks de texto...`);
+      console.log(`[AI Worker]   - Analizando ${validIndices.length} nodos...`);
 
       let totalEntities = 0;
       let totalRelations = 0;
 
-      // Configurar límite máximo de chunks a procesar (CONFIGURABLE)
-      // Documentos pequeños: 50 chunks, Documentos grandes: 500 chunks
       const MAX_CHUNKS_TO_PROCESS = parseInt(process.env.MAX_CHUNKS_TO_PROCESS || '500');
-      const chunksToProcess = chunks.slice(0, MAX_CHUNKS_TO_PROCESS);
+      const indicesToProcess = validIndices.slice(0, MAX_CHUNKS_TO_PROCESS);
 
-      console.log(`[AI Worker]   - Procesando ${chunksToProcess.length}/${chunks.length} chunks (límite: ${MAX_CHUNKS_TO_PROCESS})`);
-      console.log(`[AI Worker]   - Dominio: ${'legal (default)'}`);
+      console.log(`[AI Worker]   - Procesando ${indicesToProcess.length}/${validIndices.length} nodos (límite: ${MAX_CHUNKS_TO_PROCESS})`);
+      console.log(`[AI Worker]   - Dominio: ${(document.domain?.toLowerCase()) || 'legal (default)'}`);
 
-      for (let i = 0; i < chunksToProcess.length; i++) {
-        const chunk = chunksToProcess[i];
-        console.log(`[AI Worker]   - Procesando chunk ${i + 1}/${chunksToProcess.length}...`);
-        
+      for (let i = 0; i < indicesToProcess.length; i++) {
+        const indexNode = indicesToProcess[i];
+        const chunk = `${indexNode.title}: ${indexNode.content?.slice(0, 2000) || ''}`;
+        console.log(`[AI Worker]   - Procesando nodo ${i + 1}/${indicesToProcess.length} (pág. ${indexNode.page ?? '?'})...`);
+
+        // Referencia de página/sección para que las entidades queden geolocalizadas
+        const pageIndexReference = {
+          page: indexNode.page ?? undefined,
+          section: indexNode.title,
+          start_index: (indexNode.metadata as any)?.start_index,
+          end_index: (indexNode.metadata as any)?.end_index,
+        };
+
         try {
           const { entities, relations } = await cogneeService.extractKnowledge(
             chunk,
             documentId,
-            document.name
+            document.name,
+            (document.domain?.toLowerCase() as any) || 'legal',
+            pageIndexReference
           );
           
           if (entities.length > 0) {
@@ -726,8 +736,8 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
           console.warn(`[AI Worker]     • Error en chunk ${i + 1}:`, error.message);
         }
         
-        // Pequeña pausa entre chunks
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Pequeña pausa entre chunks para no saturar la API
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       console.log(`[AI Worker] ✓ Cognee completó procesamiento`);
@@ -741,7 +751,7 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
       // Verificar si se guardó en FalkorDB
       console.log(`[AI Worker] [6/8] Verificando persistencia...`);
       const { falkorDBService } = await import('../falkordb');
-      const graphStats = await falkorDBService.query(
+      const graphStats = await falkorDBService.roQuery(
         `MATCH (n) WHERE n.documentId = "${documentId}" RETURN count(n) AS count`
       );
       const entitiesInGraph = graphStats.rows[0]?.count || 0;
@@ -763,6 +773,10 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
     console.log(`[AI Worker] ====================================`);
     console.log(`[AI Worker] ✓ ANÁLISIS COMPLETADO EN ${duration}s`);
     console.log(`[AI Worker] ====================================\n\n`);
+    await updateProgress(documentId, "✓ Análisis completado", 100, {
+      stage: "completed",
+      duration,
+    });
 
   } catch (error: any) {
     console.error(`[AI Worker] ❌ ERROR en processDocumentAnalysis:`, error.message);

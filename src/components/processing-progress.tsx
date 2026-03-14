@@ -24,11 +24,12 @@ interface ProgressData {
 
 export function ProcessingProgress({ documentId, status, className }: ProcessingProgressProps) {
   const [progress, setProgress] = useState<ProgressData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const isActive = status === "PROCESSING" || status === "PENDING";
+  const [loading, setLoading] = useState(isActive);
 
   useEffect(() => {
-    // Solo hacer polling si está procesando
-    if (status !== "PROCESSING" && status !== "PENDING") {
+    // Solo hacer polling si está procesando activamente
+    if (!isActive) {
       setLoading(false);
       return;
     }
@@ -64,7 +65,23 @@ export function ProcessingProgress({ documentId, status, className }: Processing
     );
   }
 
-  if (!progress || status === "ANALYZED") {
+  if (status === "ANALYZED" || status === "INDEXED") {
+    return (
+      <div className={cn("space-y-2", className)}>
+        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+          <div className="h-full bg-green-500 transition-all duration-500" style={{ width: "100%" }} />
+        </div>
+        <div className="flex items-center gap-2 text-xs text-green-600">
+          <CheckCircle className="h-4 w-4" />
+          <span className="font-medium">
+            {status === "ANALYZED" ? "Análisis completado" : "Indexación completada"}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!progress) {
     return null;
   }
 

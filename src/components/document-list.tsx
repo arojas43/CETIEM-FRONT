@@ -177,7 +177,7 @@ export function DocumentList({ documents, onDocumentDeleted }: DocumentListProps
             <div
               className={cn(
                 "px-3 py-1 rounded-full text-xs font-medium",
-                doc.status === "INDEXED"
+                doc.status === "INDEXED" || doc.status === "ANALYZED"
                   ? "bg-green-100 text-green-700"
                   : doc.status === "PROCESSING"
                   ? "bg-yellow-100 text-yellow-700"
@@ -187,6 +187,7 @@ export function DocumentList({ documents, onDocumentDeleted }: DocumentListProps
               )}
             >
               {doc.status === "INDEXED" && "✓ Listo"}
+              {doc.status === "ANALYZED" && "✓ Analizado"}
               {doc.status === "PROCESSING" && "⏳ Procesando"}
               {doc.status === "FAILED" && "✗ Error"}
               {doc.status === "PENDING" && "⏳ Pendiente"}

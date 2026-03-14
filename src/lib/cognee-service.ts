@@ -8,6 +8,7 @@
 
 import { falkorDBService } from './falkordb';
 import { nimService } from './nim';
+import { prisma } from './db';
 
 export type CogneeDomain = 'medical' | 'legal' | 'technical' | 'academic' | 'custom';
 
@@ -245,34 +246,30 @@ ${content.slice(0, 15000)}`;
   ): Promise<{ saved: number; failed: number }> {
     let saved = 0;
     let failed = 0;
-    
-    // Guardar entidades CON documentId para aislamiento
-    for (const entity of entities) {
+
+    // Guardar entidades en batch agrupado por tipo (UNWIND)
+    if (entities.length > 0) {
       try {
-        const properties: Record<string, any> = {
-          id: entity.id,
-          name: entity.name,
-          documentId, // CLAVE: aísla por documento
-        };
-        
-        if (entity.description) {
-          properties.description = entity.description;
-        }
-        
-        if (entity.properties) {
-          Object.assign(properties, entity.properties);
-        }
-        
-        const created = await falkorDBService.createEntity(entity.type, properties);
-        if (created) saved++;
-        else failed++;
+        const batchInput = entities.map(entity => ({
+          label: entity.type,
+          properties: {
+            id: entity.id,
+            name: entity.name,
+            documentId, // CLAVE: aísla por documento
+            ...(entity.description ? { description: entity.description } : {}),
+            ...(entity.properties ? entity.properties : {}),
+          },
+        }));
+        const created = await falkorDBService.createEntitiesBatch(batchInput);
+        saved += created;
+        failed += entities.length - created;
       } catch (error: any) {
-        console.error('[Cognee] Error guardando entidad:', error.message);
-        failed++;
+        console.error('[Cognee] Error en batch de entidades:', error.message);
+        failed += entities.length;
       }
     }
-    
-    // Guardar relaciones
+
+    // Guardar relaciones (requieren MATCH → siguen siendo individuales)
     for (const relation of relations) {
       try {
         await falkorDBService.createRelation(
@@ -282,11 +279,11 @@ ${content.slice(0, 15000)}`;
           relation.properties
         );
         saved++;
-      } catch (error: any) {
+      } catch {
         failed++;
       }
     }
-    
+
     return { saved, failed };
   }
   
@@ -297,43 +294,49 @@ ${content.slice(0, 15000)}`;
   async search(
     query: string,
     documentId: string,
-    options?: { 
-      limit?: number; 
+    options?: {
+      limit?: number;
       includeRelations?: boolean;
       page?: number;        // Búsqueda por página específica
       section?: string;     // Búsqueda por sección específica
+      domain?: CogneeDomain; // Dominio para fallback de tipos
     }
   ): Promise<CogneeSearchResult> {
     const limit = options?.limit || 20;
     const includeRelations = options?.includeRelations !== false;
-    
+    const domain = options?.domain || this.defaultDomain;
+
     // 1. Buscar entidades en el grafo del documento específico
-    const entitiesResult = await falkorDBService.query(`
+    const entitiesResult = await falkorDBService.roQuery(`
       MATCH (n)
       WHERE n.documentId = "${documentId}"
         AND (n.name CONTAINS "${query}" OR n.description CONTAINS "${query}")
       RETURN labels(n)[0] AS type, n.name AS name, n.description AS desc, n.id AS id
       LIMIT ${limit}
     `);
-    
-    // 2. Si no encuentra por nombre, buscar por tipo
+
+    // 2. Si no encuentra por nombre, buscar por tipos del dominio correspondiente
     let entities: CogneeEntity[] = entitiesResult.rows.map(r => ({
       id: r.id,
       type: r.type,
       name: r.name,
       description: r.desc,
     }));
-    
+
     if (entities.length === 0) {
-      // Búsqueda más amplia por tipo de entidad médica
-      const typeSearch = await falkorDBService.query(`
+      // Obtener tipos de entidad válidos para este dominio
+      const domainEntityTypes = DOMAIN_CONFIGS[domain].entityTypes
+        .map(t => `'${t.split(':')[0].trim()}'`)
+        .join(', ');
+
+      const typeSearch = await falkorDBService.roQuery(`
         MATCH (n)
         WHERE n.documentId = "${documentId}"
-          AND (labels(n)[0] IN ['DISEASE', 'TREATMENT', 'ANATOMY', 'PROCEDURE'])
+          AND labels(n)[0] IN [${domainEntityTypes}]
         RETURN labels(n)[0] AS type, n.name AS name, n.description AS desc, n.id AS id
         LIMIT ${limit}
       `);
-      
+
       entities = typeSearch.rows.map(r => ({
         id: r.id,
         type: r.type,
@@ -346,7 +349,7 @@ ${content.slice(0, 15000)}`;
     let relations: CogneeRelation[] = [];
     if (includeRelations && entities.length > 0) {
       const entityIds = entities.map(e => `"${e.id}"`).join(',');
-      const relationsResult = await falkorDBService.query(`
+      const relationsResult = await falkorDBService.roQuery(`
         MATCH (a)-[r]->(b)
         WHERE a.documentId = "${documentId}" AND b.documentId = "${documentId}"
           AND a.id IN [${entityIds}]
@@ -364,9 +367,9 @@ ${content.slice(0, 15000)}`;
     
     // 4. Obtener contexto de PageIndex
     const context = await this.getPageIndexContext(documentId, query);
-    
-    // 5. Generar respuesta con LLM
-    const answer = await this.generateAnswer(query, entities, relations, context);
+
+    // 5. Generar respuesta con LLM usando el dominio correcto
+    const answer = await this.generateAnswer(query, entities, relations, context, domain);
     
     return {
       answer,
@@ -384,8 +387,6 @@ ${content.slice(0, 15000)}`;
    */
   private async getPageIndexContext(documentId: string, query: string): Promise<string> {
     try {
-      const { prisma } = await import('./db');
-      
       // Buscar secciones relevantes
       const sections = await prisma.pageIndex.findMany({
         where: {
@@ -424,7 +425,8 @@ ${content.slice(0, 15000)}`;
     query: string,
     entities: CogneeEntity[],
     relations: CogneeRelation[],
-    context: string
+    context: string,
+    domain?: CogneeDomain
   ): Promise<string> {
     const entitiesText = entities.length > 0
       ? 'Entidades encontradas:\n' + entities.map(e => `- ${e.type}: ${e.name}${e.description ? ` (${e.description})` : ''}`).join('\n')
@@ -444,11 +446,14 @@ ${content.slice(0, 15000)}`;
       return 'No se encontró información relevante sobre esta consulta en el documento.';
     }
     
+    const selectedDomain = domain || this.defaultDomain;
+    const domainSystemPrompt = DOMAIN_CONFIGS[selectedDomain].systemPrompt;
+
     try {
       const answer = await nimService.generateText({
         model: process.env.NVIDIA_CHAT_MODEL || 'meta/llama-3.1-70b-instruct',
         prompt: `Basándote ÚNICAMENTE en esta información:\n\n${fullContext}\n\nResponde la pregunta: ${query}`,
-        systemPrompt: 'Eres un asistente médico experto. Responde basándote ÚNICAMENTE en la información proporcionada. Si no hay información suficiente, indícalo claramente.',
+        systemPrompt: `${domainSystemPrompt} Responde basándote ÚNICAMENTE en la información proporcionada. Si no hay información suficiente, indícalo claramente.`,
         maxTokens: 500,
         temperature: 0.3,
       });
@@ -528,21 +533,21 @@ ${content.slice(0, 15000)}`;
   }> {
     try {
       // Contar entidades por documento
-      const entityResult = await falkorDBService.query(`
+      const entityResult = await falkorDBService.roQuery(`
         MATCH (n)
         WHERE n.documentId = "${documentId}"
         RETURN count(n) AS count
       `);
-      
+
       // Contar por tipo
-      const typeResult = await falkorDBService.query(`
+      const typeResult = await falkorDBService.roQuery(`
         MATCH (n)
         WHERE n.documentId = "${documentId}"
         RETURN labels(n)[0] AS type, count(n) AS count
       `);
-      
+
       // Contar relaciones
-      const relationResult = await falkorDBService.query(`
+      const relationResult = await falkorDBService.roQuery(`
         MATCH (a)-[r]->(b)
         WHERE a.documentId = "${documentId}" AND b.documentId = "${documentId}"
         RETURN count(r) AS count

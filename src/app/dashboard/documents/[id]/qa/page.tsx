@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, Send, Brain, Network, FileText, ChevronRight, Sparkles } from "lucide-react";
+import { MessageSquare, Send, Brain, Network, FileText, ChevronRight, Sparkles, BookOpen } from "lucide-react";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 
 interface Entity {
   id: string;
@@ -21,14 +22,22 @@ interface Relation {
   type: string;
 }
 
+interface Reference {
+  page?: number;
+  section?: string;
+  title?: string;
+}
+
 interface SearchResponse {
   answer: string;
   entities: Entity[];
   relations: Relation[];
   context: string;
+  references: Reference[];
   stats: {
     entityCount: number;
     relationCount: number;
+    contextPages?: number[];
   };
 }
 
@@ -49,11 +58,11 @@ export default function DocumentQAPage() {
   const [showEntities, setShowEntities] = useState(false);
   const [showRelations, setShowRelations] = useState(false);
 
-  // Cargar estadísticas del grafo
+  // Cargar estadísticas del grafo (GET /api/documents/[id]/search)
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const res = await fetch(`/api/documents/${documentId}/search/stats`);
+        const res = await fetch(`/api/documents/${documentId}/search`);
         if (res.ok) {
           const data = await res.json();
           setStats(data);
@@ -93,6 +102,7 @@ export default function DocumentQAPage() {
           entities: [],
           relations: [],
           context: "",
+          references: [],
           stats: { entityCount: 0, relationCount: 0 },
         });
       }
@@ -102,6 +112,7 @@ export default function DocumentQAPage() {
         entities: [],
         relations: [],
         context: "",
+        references: [],
         stats: { entityCount: 0, relationCount: 0 },
       });
     } finally {
@@ -110,10 +121,10 @@ export default function DocumentQAPage() {
   };
 
   const suggestedQuestions = [
-    "¿Qué enfermedades se mencionan en este documento?",
-    "¿Cuáles son los tratamientos descritos?",
-    "¿Qué anatomía se menciona?",
-    "¿Hay información sobre diagnósticos?",
+    "¿Cuáles son los temas principales de este documento?",
+    "¿Qué dice la página 1?",
+    "¿Qué requisitos o condiciones se mencionan?",
+    "Resume el contenido de la sección 1",
   ];
 
   return (
@@ -234,7 +245,7 @@ export default function DocumentQAPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-800 whitespace-pre-wrap">{response.answer}</p>
+                <MarkdownRenderer content={response.answer} />
               </CardContent>
             </Card>
 
@@ -338,6 +349,37 @@ export default function DocumentQAPage() {
                     </div>
                   </CardContent>
                 )}
+              </Card>
+            )}
+
+            {/* Referencias de página/sección */}
+            {response.references && response.references.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-blue-600" />
+                    Referencias en el Documento
+                  </CardTitle>
+                  <CardDescription>Páginas y secciones consultadas para esta respuesta</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {response.references
+                      .filter((r, i, arr) => {
+                        // Deduplicar por página+sección
+                        const key = `${r.page ?? ''}-${r.section ?? ''}`;
+                        return arr.findIndex(x => `${x.page ?? ''}-${x.section ?? ''}` === key) === i;
+                      })
+                      .map((ref, i) => (
+                        <div key={i} className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-full px-3 py-1 text-sm text-blue-800">
+                          <BookOpen className="h-3 w-3" />
+                          {ref.page && <span className="font-medium">Pág. {ref.page}</span>}
+                          {ref.page && ref.section && <span className="text-blue-400">·</span>}
+                          {ref.section && <span className="truncate max-w-[180px]">{ref.section}</span>}
+                        </div>
+                      ))}
+                  </div>
+                </CardContent>
               </Card>
             )}
 

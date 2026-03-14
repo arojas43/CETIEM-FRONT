@@ -16,6 +16,7 @@ export interface PageIndexNode {
   title: string;
   content?: string;
   page?: number;
+  endPage?: number;        // Página final de la sección (para búsquedas de rango en Q&A)
   start_index?: number;    // Offset de inicio en el documento (compatible con PageIndex oficial)
   end_index?: number;      // Offset de fin en el documento (compatible con PageIndex oficial)
   summary?: string;        // Resumen generado por LLM (compatible con PageIndex oficial)
