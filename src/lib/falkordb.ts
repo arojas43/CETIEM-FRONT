@@ -231,14 +231,16 @@ export class FalkorDBService {
         executionTime: Date.now() - startTime,
       };
     } catch (error: any) {
-      console.error('[FalkorDB] Error en consulta:', error.message);
-      console.error('[FalkorDB] Cypher:', cypher);
-      
-      // Si el error es de conexión, marcar como desconectado
+      // "already indexed" es esperado en ensureIndexes() — no loggear
+      if (!error.message?.includes('already indexed')) {
+        console.error('[FalkorDB] Error en consulta:', error.message);
+        console.error('[FalkorDB] Cypher:', cypher);
+      }
+
       if (error.message.includes('ECONNREFUSED') || error.message.includes('closed')) {
         this.isConnected = false;
       }
-      
+
       throw new Error(`Error consultando FalkorDB: ${error.message}`);
     }
   }
@@ -312,38 +314,20 @@ export class FalkorDBService {
       'CONCEPT', 'TECHNOLOGY', 'FINDING', 'AUTHOR', 'ENTITY',
     ];
 
-    // Obtener índices ya existentes para no intentar crearlos de nuevo
-    const existingIndexed = new Set<string>();
-    try {
-      const indexResult = await this.query('CALL db.indexes()');
-      for (const row of indexResult.rows) {
-        const label = row.label ?? row.entitytype ?? row.type ?? '';
-        const props: string[] = Array.isArray(row.properties) ? row.properties : (row.properties ? [row.properties] : []);
-        if (props.includes('documentId') && label) {
-          existingIndexed.add(String(label).toUpperCase());
-        }
-      }
-    } catch {
-      // db.indexes() puede no estar disponible en versiones antiguas — crear todos
-    }
-
+    // Intentar crear cada índice. Si ya existe FalkorDB devuelve "already indexed",
+    // que query() ya no loggea — es un error esperado e inofensivo.
     let created = 0;
     for (const label of labels) {
-      if (existingIndexed.has(label)) continue;
       try {
         await this.query(`CREATE INDEX FOR (n:${label}) ON (n.documentId)`);
         created++;
       } catch {
-        // Ignorar: puede que la etiqueta aún no tenga nodos
+        // Índice ya existe o label sin nodos — ignorar
       }
     }
 
     _indexesEnsured = true;
-    if (created > 0) {
-      console.log(`[FalkorDB] ${created} índice(s) creado(s)`);
-    } else {
-      console.log('[FalkorDB] Índices verificados (todos existentes)');
-    }
+    console.log(`[FalkorDB] Índices listos (${created} nuevos, ${labels.length - created} existentes)`);
   }
 
   /**
