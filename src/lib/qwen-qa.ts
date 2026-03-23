@@ -111,11 +111,10 @@ Responde usando ÚNICAMENTE la información anterior. Indica la página cuando e
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
-          max_tokens: 16384,
-          temperature: 0.6,
+          max_tokens: 4096,
+          temperature: 0.4,
           top_p: 0.95,
           stream: true,
-          chat_template_kwargs: { enable_thinking: true },
         }),
       });
 
@@ -194,7 +193,6 @@ Proporciona una respuesta completa y bien razonada.`;
           temperature: 0.6,
           top_p: 0.95,
           stream: true,
-          chat_template_kwargs: { enable_thinking: true },
         }),
       });
 

@@ -299,7 +299,8 @@ export class FalkorDBService {
 
   /**
    * Crea índices en FalkorDB para mejorar el rendimiento de consultas por documentId.
-   * Usa un flag de módulo para ejecutarse una sola vez durante el ciclo de vida del proceso.
+   * Primero consulta los índices existentes para evitar errores "already indexed"
+   * que saturan el log en cada reconexión.
    */
   async ensureIndexes(): Promise<void> {
     if (_indexesEnsured) return;
@@ -311,15 +312,38 @@ export class FalkorDBService {
       'CONCEPT', 'TECHNOLOGY', 'FINDING', 'AUTHOR', 'ENTITY',
     ];
 
+    // Obtener índices ya existentes para no intentar crearlos de nuevo
+    const existingIndexed = new Set<string>();
+    try {
+      const indexResult = await this.query('CALL db.indexes()');
+      for (const row of indexResult.rows) {
+        const label = row.label ?? row.entitytype ?? row.type ?? '';
+        const props: string[] = Array.isArray(row.properties) ? row.properties : (row.properties ? [row.properties] : []);
+        if (props.includes('documentId') && label) {
+          existingIndexed.add(String(label).toUpperCase());
+        }
+      }
+    } catch {
+      // db.indexes() puede no estar disponible en versiones antiguas — crear todos
+    }
+
+    let created = 0;
     for (const label of labels) {
+      if (existingIndexed.has(label)) continue;
       try {
         await this.query(`CREATE INDEX FOR (n:${label}) ON (n.documentId)`);
+        created++;
       } catch {
-        // El índice ya existe o la etiqueta no tiene nodos — ignorar
+        // Ignorar: puede que la etiqueta aún no tenga nodos
       }
     }
+
     _indexesEnsured = true;
-    console.log('[FalkorDB] Índices verificados/creados');
+    if (created > 0) {
+      console.log(`[FalkorDB] ${created} índice(s) creado(s)`);
+    } else {
+      console.log('[FalkorDB] Índices verificados (todos existentes)');
+    }
   }
 
   /**

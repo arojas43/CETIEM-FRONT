@@ -28,7 +28,6 @@ export function ProcessingProgress({ documentId, status, className }: Processing
   const [loading, setLoading] = useState(isActive);
 
   useEffect(() => {
-    // Solo hacer polling si está procesando activamente
     if (!isActive) {
       setLoading(false);
       return;
@@ -49,17 +48,14 @@ export function ProcessingProgress({ documentId, status, className }: Processing
     };
 
     fetchProgress();
-
-    // Polling cada 2 segundos
     const interval = setInterval(fetchProgress, 2000);
-
     return () => clearInterval(interval);
   }, [documentId, status]);
 
   if (loading) {
     return (
-      <div className={cn("flex items-center gap-2 text-sm text-gray-500", className)}>
-        <Loader2 className="h-4 w-4 animate-spin" />
+      <div className={cn("flex items-center gap-2 text-xs text-cetiem-gray", className)}>
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-cetiem-teal" />
         <span>Cargando progreso...</span>
       </div>
     );
@@ -67,12 +63,12 @@ export function ProcessingProgress({ documentId, status, className }: Processing
 
   if (status === "ANALYZED" || status === "INDEXED") {
     return (
-      <div className={cn("space-y-2", className)}>
-        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-          <div className="h-full bg-green-500 transition-all duration-500" style={{ width: "100%" }} />
+      <div className={cn("space-y-1.5", className)}>
+        <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+          <div className="h-full bg-cetiem-green transition-all duration-500" style={{ width: "100%" }} />
         </div>
-        <div className="flex items-center gap-2 text-xs text-green-600">
-          <CheckCircle className="h-4 w-4" />
+        <div className="flex items-center gap-1.5 text-xs text-cetiem-green">
+          <CheckCircle className="h-3.5 w-3.5" />
           <span className="font-medium">
             {status === "ANALYZED" ? "Análisis completado" : "Indexación completada"}
           </span>
@@ -81,72 +77,51 @@ export function ProcessingProgress({ documentId, status, className }: Processing
     );
   }
 
-  if (!progress) {
-    return null;
-  }
+  if (!progress) return null;
 
   const { percentage, step, details } = progress;
 
-  // Determinar color basado en el stage
-  const getStageColor = () => {
-    if (details?.stage?.includes("error")) return "bg-red-500";
-    if (details?.stage?.includes("cognee") || details?.stage?.includes("analysis")) return "bg-purple-500";
-    if (details?.stage?.includes("index") || details?.stage?.includes("pageindex")) return "bg-blue-500";
-    return "bg-indigo-500";
+  const getBarColor = () => {
+    if (details?.stage?.includes("error")) return "bg-cetiem-red";
+    if (details?.stage?.includes("cognee") || details?.stage?.includes("analysis")) return "bg-cetiem-lime";
+    if (details?.stage?.includes("index") || details?.stage?.includes("pageindex")) return "bg-cetiem-teal";
+    return "bg-cetiem-green";
   };
 
-  // Determinar ícono basado en el estado
   const getIcon = () => {
-    if (status === "FAILED") return <AlertCircle className="h-4 w-4 text-red-600" />;
-    if (status === "ANALYZED") return <CheckCircle className="h-4 w-4 text-green-600" />;
-    return <Clock className="h-4 w-4 text-indigo-600" />;
+    if (status === "FAILED") return <AlertCircle className="h-3.5 w-3.5 text-cetiem-red" />;
+    if (status === "ANALYZED") return <CheckCircle className="h-3.5 w-3.5 text-cetiem-green" />;
+    return <Clock className="h-3.5 w-3.5 text-cetiem-teal" />;
   };
 
   return (
-    <div className={cn("space-y-2", className)}>
-      {/* Barra de progreso */}
-      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+    <div className={cn("space-y-1.5", className)}>
+      {/* Progress bar */}
+      <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
         <div
-          className={cn(
-            "h-full transition-all duration-500 ease-out",
-            getStageColor()
-          )}
+          className={cn("h-full transition-all duration-500 ease-out", getBarColor())}
           style={{ width: `${percentage}%` }}
         />
       </div>
 
-      {/* Información detallada */}
-      <div className="flex items-center justify-between text-xs text-gray-600">
-        <div className="flex items-center gap-2">
+      {/* Step info */}
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-1.5 text-cetiem-gray">
           {getIcon()}
-          <span className="font-medium">{step}</span>
+          <span>{step}</span>
         </div>
-        <span className="text-gray-500">{percentage.toFixed(0)}%</span>
+        <span className="text-cetiem-gray/60">{percentage.toFixed(0)}%</span>
       </div>
 
-      {/* Detalles adicionales */}
+      {/* Details */}
       {details && (
-        <div className="text-xs text-gray-500 space-y-1">
-          {details.totalIndices && (
-            <div>
-              📑 {details.totalIndices} índices creados
-            </div>
-          )}
+        <div className="text-xs text-cetiem-gray/60 space-y-0.5">
+          {details.totalIndices && <div>📑 {details.totalIndices} índices creados</div>}
           {details.totalChunks && details.processedChunks && (
-            <div>
-              🧩 {details.processedChunks}/{details.totalChunks} chunks procesados
-            </div>
+            <div>🧩 {details.processedChunks}/{details.totalChunks} chunks procesados</div>
           )}
-          {details.fileSize && (
-            <div>
-              📄 {(details.fileSize / 1024 / 1024).toFixed(2)} MB
-            </div>
-          )}
-          {details.duration && (
-            <div>
-              ⏱️  {details.duration}s
-            </div>
-          )}
+          {details.fileSize && <div>📄 {(details.fileSize / 1024 / 1024).toFixed(2)} MB</div>}
+          {details.duration && <div>⏱️ {details.duration}s</div>}
         </div>
       )}
     </div>

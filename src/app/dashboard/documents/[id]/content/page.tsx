@@ -2,37 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { FileText, Download, ChevronLeft, ChevronRight, FolderOpen } from "lucide-react";
 
-interface Section {
-  id: string;
-  level: number;
-  title: string;
-  page?: number | null;
-  content?: string | null;
-  summary?: string | null;
-  hasChildren?: boolean;
-  childrenCount?: number;
-}
-
-interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasMore: boolean;
-  hasPrev: boolean;
-}
-
+interface Section { id: string; level: number; title: string; page?: number | null; content?: string | null; summary?: string | null }
+interface PaginationInfo { page: number; limit: number; total: number; totalPages: number; hasMore: boolean; hasPrev: boolean }
 interface DocumentContent {
-  document: {
-    id: string;
-    name: string;
-    status: string;
-    totalSections: number;
-  };
+  document: { id: string; name: string; status: string; totalSections: number };
   data: Section[];
   pagination: PaginationInfo;
 }
@@ -47,97 +22,72 @@ export default function DocumentContentPage() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        const response = await fetch("/api/documents/" + documentId + "/content");
-        if (response.ok) {
-          const data = await response.json();
-          setContent(data);
-        }
-      } catch (error) {
-        console.error("Error fetching content:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchContent();
+    fetch("/api/documents/" + documentId + "/content")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => data && setContent(data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, [documentId]);
 
-  const toggleSection = (sectionId: string) => {
+  const toggleSection = (id: string) => {
     setExpandedSections(prev => {
       const next = new Set(prev);
-      if (next.has(sectionId)) {
-        next.delete(sectionId);
-      } else {
-        next.add(sectionId);
-      }
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   };
 
   const downloadText = async () => {
     if (!content) return;
-    
-    try {
-      const response = await fetch("/api/documents/" + documentId + "/content?limit=1000");
-      const data = await response.json();
-      
-      const fullText = data.data
-        .filter((s: Section) => s.content)
-        .map((s: Section) => "## " + s.title + "\n\n" + s.content)
-        .join("\n\n");
-      
-      const blob = new Blob([fullText], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = content.document.name.replace(".pdf", "") + "_texto.txt";
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error downloading text:", error);
-    }
+    const response = await fetch("/api/documents/" + documentId + "/content?limit=1000");
+    const data = await response.json();
+    const fullText = data.data.filter((s: Section) => s.content).map((s: Section) => "## " + s.title + "\n\n" + s.content).join("\n\n");
+    const blob = new Blob([fullText], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = content.document.name.replace(".pdf", "") + "_texto.txt";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const getTotalChars = () => {
-    if (!content) return 0;
-    return content.data.reduce((acc, s) => acc + (s.content?.length || 0), 0);
-  };
+  const getTotalChars = () => content?.data.reduce((acc, s) => acc + (s.content?.length || 0), 0) ?? 0;
+  const getFullText = () => content?.data.filter(s => s.content).map(s => "## " + s.title + "\n\n" + s.content).join("\n\n") ?? "";
 
-  const getFullText = () => {
-    if (!content) return "";
-    return content.data
-      .filter(s => s.content)
-      .map(s => "## " + s.title + "\n\n" + s.content)
-      .join("\n\n");
+  const fetchPage = async (page: number) => {
+    setLoading(true);
+    const response = await fetch("/api/documents/" + documentId + "/content?page=" + page);
+    const data = await response.json();
+    setContent(data);
+    setLoading(false);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center py-12">
-            <div className="animate-spin h-8 w-8 border-4 border-blue-600 rounded-full border-t-transparent mx-auto mb-4"></div>
-            <p className="text-gray-600">Cargando contenido...</p>
+      <div className="flex flex-col h-full">
+        <div className="px-8 py-5 border-b border-white/5">
+          <h1 className="font-heading font-bold text-2xl text-white">Contenido Extraído</h1>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin h-8 w-8 border-2 border-cetiem-green rounded-full border-t-transparent mx-auto mb-4" />
+            <p className="text-cetiem-gray text-sm">Cargando contenido...</p>
           </div>
         </div>
       </div>
     );
   }
 
-  if (!content || !content.data) {
+  if (!content?.data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-        <div className="container mx-auto px-4 py-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Error</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">No se pudo cargar el contenido del documento.</p>
-            </CardContent>
-          </Card>
+      <div className="flex flex-col h-full">
+        <div className="px-8 py-5 border-b border-white/5">
+          <h1 className="font-heading font-bold text-2xl text-white">Contenido Extraído</h1>
+        </div>
+        <div className="p-8">
+          <div className="bg-cetiem-card border border-white/5 rounded-2xl p-6">
+            <p className="text-cetiem-gray">No se pudo cargar el contenido del documento.</p>
+          </div>
         </div>
       </div>
     );
@@ -147,173 +97,91 @@ export default function DocumentContentPage() {
   const pagination = content.pagination;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={() => window.history.back()}>
-              ← Volver
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Contenido Extraído</h1>
-              <p className="text-sm text-gray-500">{content.document.name}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFullText(!showFullText)}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              {showFullText ? "Ver Secciones" : "Ver Todo"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={downloadText}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Descargar
-            </Button>
-          </div>
+    <div className="flex flex-col h-full">
+      {/* Page header */}
+      <div className="flex items-center justify-between px-8 py-5 border-b border-white/5">
+        <div>
+          <h1 className="font-heading font-bold text-2xl text-white">Contenido Extraído</h1>
+          <p className="text-cetiem-gray text-sm mt-0.5 truncate max-w-md">{content.document.name}</p>
         </div>
-      </header>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowFullText(!showFullText)}
+            className="flex items-center gap-2 text-xs border border-white/10 hover:border-cetiem-green/40 text-cetiem-gray hover:text-white px-3 py-1.5 rounded-lg transition-colors">
+            <FileText className="h-3.5 w-3.5" />
+            {showFullText ? "Ver Secciones" : "Ver Todo"}
+          </button>
+          <button onClick={downloadText}
+            className="flex items-center gap-2 text-xs border border-white/10 hover:border-cetiem-green/40 text-cetiem-gray hover:text-white px-3 py-1.5 rounded-lg transition-colors">
+            <Download className="h-3.5 w-3.5" /> Descargar
+          </button>
+        </div>
+      </div>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="flex-1 p-8 overflow-auto">
         {showFullText ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Texto Completo Extraído</CardTitle>
-              <CardDescription>
-                {getTotalChars().toLocaleString()} caracteres
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="prose max-w-none">
-                <pre className="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-6 rounded-lg max-h-[70vh] overflow-y-auto">
-                  {getFullText()}
-                </pre>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="bg-cetiem-card border border-white/5 rounded-2xl p-6">
+            <h2 className="font-heading font-semibold text-white mb-1">Texto Completo Extraído</h2>
+            <p className="text-cetiem-gray text-xs mb-4">{getTotalChars().toLocaleString()} caracteres</p>
+            <pre className="whitespace-pre-wrap text-xs text-cetiem-gray font-mono bg-white/5 p-5 rounded-xl max-h-[65vh] overflow-y-auto">
+              {getFullText()}
+            </pre>
+          </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {sections.length === 0 ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sin contenido</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">
-                    Este documento aún no tiene contenido extraído. 
-                    El documento está en estado: <strong>{content.document.status}</strong>
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="bg-cetiem-card border border-white/5 rounded-2xl p-6">
+                <p className="text-cetiem-gray text-sm">
+                  Este documento aún no tiene contenido extraído. Estado: <strong className="text-white">{content.document.status}</strong>
+                </p>
+              </div>
             ) : (
               <>
-                <div className="space-y-4">
-                  {sections.map((section) => (
-                    <Card key={section.id}>
-                      <CardHeader>
-                        <div
-                          className="flex items-center gap-2 cursor-pointer"
-                          onClick={() => toggleSection(section.id)}
-                        >
-                          {section.level === 0 ? (
-                            <FolderOpen className="h-5 w-5 text-blue-600" />
-                          ) : (
-                            <ChevronRight 
-                              className={
-                                "h-4 w-4 text-gray-400 transition-transform " + 
-                                (expandedSections.has(section.id) ? "rotate-90" : "")
-                              } 
-                            />
-                          )}
-                          <div className="flex-1">
-                            <CardTitle className="text-lg">{section.title}</CardTitle>
-                            {section.page && (
-                              <CardDescription>
-                                Página {section.page} • Nivel {section.level}
-                              </CardDescription>
-                            )}
-                          </div>
-                          {section.content && (
-                            <span className="text-xs text-gray-500">
-                              {section.content.length.toLocaleString()} chars
-                            </span>
-                          )}
-                        </div>
-                      </CardHeader>
-                      {expandedSections.has(section.id) && section.content && (
-                        <CardContent>
-                          <div className="prose max-w-none">
-                            <pre className="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded-lg">
-                              {section.content}
-                            </pre>
-                          </div>
-                        </CardContent>
+                {sections.map(section => (
+                  <div key={section.id} className="bg-cetiem-card border border-white/5 rounded-xl overflow-hidden">
+                    <button
+                      className="w-full flex items-center gap-3 p-4 text-left hover:bg-white/5 transition-colors"
+                      onClick={() => toggleSection(section.id)}
+                    >
+                      {section.level === 0
+                        ? <FolderOpen className="h-4 w-4 text-cetiem-green shrink-0" />
+                        : <ChevronRight className={`h-4 w-4 text-cetiem-gray shrink-0 transition-transform ${expandedSections.has(section.id) ? "rotate-90" : ""}`} />
+                      }
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-white text-sm">{section.title}</p>
+                        {section.page && <p className="text-xs text-cetiem-gray">Página {section.page} · Nivel {section.level}</p>}
+                      </div>
+                      {section.content && (
+                        <span className="text-xs text-cetiem-gray shrink-0">{section.content.length.toLocaleString()} chars</span>
                       )}
-                    </Card>
-                  ))}
-                </div>
+                    </button>
+
+                    {expandedSections.has(section.id) && section.content && (
+                      <div className="px-4 pb-4">
+                        <pre className="whitespace-pre-wrap text-xs text-cetiem-gray font-mono bg-white/5 p-4 rounded-xl">
+                          {section.content}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                ))}
 
                 {pagination.totalPages > 1 && (
-                  <Card className="mt-4">
-                    <CardContent className="flex items-center justify-between py-4">
-                      <p className="text-sm text-gray-500">
-                        Mostrando {sections.length} de {pagination.total} secciones
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={async () => {
-                            if (pagination.hasPrev) {
-                              setLoading(true);
-                              const response = await fetch(
-                                "/api/documents/" + documentId + "/content?page=" + (pagination.page - 1)
-                              );
-                              const data = await response.json();
-                              setContent(data);
-                              setLoading(false);
-                            }
-                          }}
-                          disabled={!pagination.hasPrev}
-                        >
-                          <ChevronLeft className="h-4 w-4 mr-1" />
-                          Anterior
-                        </Button>
-                        
-                        <span className="text-sm text-gray-600">
-                          Página {pagination.page} de {pagination.totalPages}
-                        </span>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={async () => {
-                            if (pagination.hasMore) {
-                              setLoading(true);
-                              const response = await fetch(
-                                "/api/documents/" + documentId + "/content?page=" + (pagination.page + 1)
-                              );
-                              const data = await response.json();
-                              setContent(data);
-                              setLoading(false);
-                            }
-                          }}
-                          disabled={!pagination.hasMore}
-                        >
-                          Siguiente
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <div className="flex items-center justify-between pt-2">
+                    <p className="text-xs text-cetiem-gray">
+                      Mostrando {sections.length} de {pagination.total} secciones
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => fetchPage(pagination.page - 1)} disabled={!pagination.hasPrev}
+                        className="flex items-center gap-1 text-xs border border-white/10 hover:border-cetiem-green/40 text-cetiem-gray hover:text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30">
+                        <ChevronLeft className="h-3.5 w-3.5" /> Anterior
+                      </button>
+                      <span className="text-xs text-cetiem-gray">Pág {pagination.page} de {pagination.totalPages}</span>
+                      <button onClick={() => fetchPage(pagination.page + 1)} disabled={!pagination.hasMore}
+                        className="flex items-center gap-1 text-xs border border-white/10 hover:border-cetiem-green/40 text-cetiem-gray hover:text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30">
+                        Siguiente <ChevronRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 )}
               </>
             )}
@@ -321,38 +189,23 @@ export default function DocumentContentPage() {
         )}
 
         {/* Stats */}
-        <Card className="mt-8 bg-blue-50 border-blue-200">
-          <CardHeader>
-            <CardTitle className="text-lg">Estadísticas de Extracción</CardTitle>
-          </CardHeader>
-          <CardContent className="grid md:grid-cols-4 gap-4">
-            <div>
-              <p className="text-sm text-gray-500">Total Caracteres</p>
-              <p className="text-2xl font-bold text-blue-900">
-                {getTotalChars().toLocaleString()}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Secciones (página)</p>
-              <p className="text-2xl font-bold text-blue-900">
-                {sections.length}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total Secciones</p>
-              <p className="text-2xl font-bold text-blue-900">
-                {content.document.totalSections}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Estado</p>
-              <p className="text-2xl font-bold text-blue-900">
-                {content.document.status}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </main>
+        <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5 mt-6">
+          <h3 className="font-heading font-semibold text-white text-sm mb-4">Estadísticas de Extracción</h3>
+          <div className="grid md:grid-cols-4 gap-4">
+            {[
+              ["Total Caracteres", getTotalChars().toLocaleString()],
+              ["Secciones (página)", sections.length.toString()],
+              ["Total Secciones", content.document.totalSections.toString()],
+              ["Estado", content.document.status],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <p className="text-xs text-cetiem-gray mb-0.5">{label}</p>
+                <p className="font-heading font-bold text-xl text-white">{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

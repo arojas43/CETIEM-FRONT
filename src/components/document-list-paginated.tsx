@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Trash2, Edit2, Save, X, ChevronLeft, ChevronRight, Search, Filter, Brain, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FileText, Trash2, Edit2, Save, X, ChevronLeft, ChevronRight, Search, Filter, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProcessingProgress } from "@/components/processing-progress";
 
@@ -37,49 +35,52 @@ interface DocumentListPaginatedProps {
   onDocumentDeleted?: () => void;
 }
 
+const statusColor: Record<string, string> = {
+  ANALYZED:   "bg-cetiem-lime/10 text-cetiem-lime",
+  INDEXED:    "bg-cetiem-teal/10 text-cetiem-teal",
+  FAILED:     "bg-cetiem-red/10 text-cetiem-red",
+  PROCESSING: "bg-cetiem-amber/10 text-cetiem-amber",
+  PENDING:    "bg-white/5 text-cetiem-gray",
+};
+
+const statusLabel: Record<string, string> = {
+  ANALYZED:   "✓ Analizado",
+  INDEXED:    "✓ Indexado",
+  FAILED:     "✗ Error",
+  PROCESSING: "⏳ Procesando",
+  PENDING:    "⏳ Pendiente",
+};
+
 export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginatedProps) {
   const router = useRouter();
-  
-  // Estado de datos
+
   const [documents, setDocuments] = useState<Document[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0,
-    hasMore: false,
-    hasPrev: false,
+    page: 1, limit: 10, total: 0, totalPages: 0, hasMore: false, hasPrev: false,
   });
-  
-  // Estado de UI
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [processingDomain, setProcessingDomain] = useState<Record<string, string>>({});
-  
-  // Estado de filtros
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  // Debounce para búsqueda
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
       setPagination(prev => ({ ...prev, page: 1 }));
     }, 300);
-
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Cargar documentos
   const loadDocuments = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
@@ -89,7 +90,6 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
       });
 
       const response = await fetch(`/api/documents?${params}`);
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Error al cargar documentos");
@@ -106,34 +106,17 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
     }
   }, [pagination.page, pagination.limit, debouncedSearch, statusFilter]);
 
-  useEffect(() => {
-    loadDocuments();
-  }, [loadDocuments]);
+  useEffect(() => { loadDocuments(); }, [loadDocuments]);
 
-  // Auto-refresh de la lista mientras haya documentos procesándose activamente
   useEffect(() => {
-    const hasActiveDocuments = documents.some(
-      d => d.status === "PROCESSING" || d.status === "PENDING"
-    );
+    const hasActiveDocuments = documents.some(d => d.status === "PROCESSING" || d.status === "PENDING");
     if (!hasActiveDocuments) return;
-
-    const interval = setInterval(() => {
-      loadDocuments();
-    }, 5000);
-
+    const interval = setInterval(() => { loadDocuments(); }, 5000);
     return () => clearInterval(interval);
   }, [documents, loadDocuments]);
 
-  // Manejadores de edición
-  const handleEdit = (doc: Document) => {
-    setEditingId(doc.id);
-    setEditingName(doc.name);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditingName("");
-  };
+  const handleEdit = (doc: Document) => { setEditingId(doc.id); setEditingName(doc.name); };
+  const handleCancelEdit = () => { setEditingId(null); setEditingName(""); };
 
   const handleSaveEdit = async (docId: string) => {
     try {
@@ -142,7 +125,6 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: editingName }),
       });
-
       if (response.ok) {
         setEditingId(null);
         loadDocuments();
@@ -152,23 +134,15 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
         alert(`Error al actualizar: ${errorData.error}`);
       }
     } catch (error: any) {
-      console.error("Error updating document:", error);
       alert("Error al actualizar el documento");
     }
   };
 
-  // Manejador de eliminación
   const handleDelete = async (docId: string) => {
-    if (!confirm("¿Estás seguro de eliminar este documento? Esta acción no se puede deshacer.")) {
-      return;
-    }
-
+    if (!confirm("¿Estás seguro de eliminar este documento? Esta acción no se puede deshacer.")) return;
     setDeletingId(docId);
     try {
-      const response = await fetch(`/api/documents/${docId}`, {
-        method: "DELETE",
-      });
-
+      const response = await fetch(`/api/documents/${docId}`, { method: "DELETE" });
       if (response.ok) {
         loadDocuments();
         onDocumentDeleted?.();
@@ -176,42 +150,32 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
         const errorData = await response.json();
         alert(`Error al eliminar: ${errorData.error}`);
       }
-    } catch (error: any) {
-      console.error("Error deleting document:", error);
+    } catch {
       alert("Error al eliminar el documento");
     } finally {
       setDeletingId(null);
     }
   };
 
-  // Manejador de procesamiento manual
   const handleProcess = async (docId: string, domain: string) => {
-    if (!confirm(`¿Procesar documento con dominio ${domain}? Esto puede tomar varios minutos.`)) {
-      return;
-    }
-
+    if (!confirm(`¿Procesar documento con dominio ${domain}? Esto puede tomar varios minutos.`)) return;
     setProcessingId(docId);
-    // Actualizar estado optimistamente para que aparezca la barra de progreso de inmediato
     setDocuments(prev => prev.map(d => d.id === docId ? { ...d, status: "PROCESSING" } : d));
-
     try {
       const response = await fetch(`/api/documents/${docId}/process`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domain }),
       });
-
       const result = await response.json();
-
       if (response.ok && result.success) {
         loadDocuments();
         onDocumentDeleted?.();
       } else {
         alert(`❌ Error al procesar: ${result.error || result.message}`);
-        loadDocuments(); // Restaurar estado real desde BD
+        loadDocuments();
       }
     } catch (error: any) {
-      console.error("Error processing document:", error);
       alert(`Error al procesar documento: ${error.message}`);
       loadDocuments();
     } finally {
@@ -219,7 +183,6 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
     }
   };
 
-  // Manejador de cambio de dominio
   const handleDomainChange = async (docId: string, domain: string) => {
     try {
       const response = await fetch(`/api/documents/${docId}/domain`, {
@@ -227,43 +190,25 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domain }),
       });
-
       if (response.ok) {
-        // Actualizar dominio localmente
         setDocuments(prev => prev.map(d => d.id === docId ? { ...d, domain } : d));
       } else {
         const errorData = await response.json();
         alert(`Error al actualizar dominio: ${errorData.error}`);
       }
-    } catch (error: any) {
-      console.error("Error updating domain:", error);
+    } catch {
       alert("Error al actualizar dominio");
     }
   };
 
-  // Navegación de paginación
-  const goToPage = (page: number) => {
-    setPagination(prev => ({ ...prev, page }));
-  };
+  const goToPrevPage = () => { if (pagination.hasPrev) setPagination(prev => ({ ...prev, page: prev.page - 1 })); };
+  const goToNextPage = () => { if (pagination.hasMore) setPagination(prev => ({ ...prev, page: prev.page + 1 })); };
 
-  const goToPrevPage = () => {
-    if (pagination.hasPrev) {
-      setPagination(prev => ({ ...prev, page: prev.page - 1 }));
-    }
-  };
-
-  const goToNextPage = () => {
-    if (pagination.hasMore) {
-      setPagination(prev => ({ ...prev, page: prev.page + 1 }));
-    }
-  };
-
-  // Render de estado
   if (loading && documents.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
-        <p className="text-gray-500">Cargando documentos...</p>
+        <div className="animate-spin h-8 w-8 border-2 border-cetiem-green rounded-full border-t-transparent mx-auto mb-4" />
+        <p className="text-cetiem-gray text-sm">Cargando documentos...</p>
       </div>
     );
   }
@@ -271,224 +216,198 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
   if (error && documents.length === 0) {
     return (
       <div className="text-center py-12">
-        <FileText className="h-16 w-16 text-red-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Error al cargar</h3>
-        <p className="text-gray-500 mb-4">{error}</p>
-        <Button onClick={loadDocuments}>Reintentar</Button>
+        <FileText className="h-12 w-12 text-cetiem-gray/20 mx-auto mb-4" />
+        <h3 className="font-heading font-semibold text-white mb-1">Error al cargar</h3>
+        <p className="text-cetiem-gray text-sm mb-4">{error}</p>
+        <button onClick={loadDocuments}
+          className="text-sm border border-white/10 hover:border-cetiem-green/40 text-cetiem-gray hover:text-white px-4 py-2 rounded-lg transition-colors">
+          Reintentar
+        </button>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Filtros */}
+      {/* Filters */}
       <div className="flex gap-2 items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cetiem-gray/50" />
+          <input
             placeholder="Buscar documentos..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
+            className="w-full h-10 pl-10 pr-3 border border-white/10 rounded-xl text-sm bg-white/5 text-white placeholder:text-cetiem-gray/40 focus:outline-none focus:border-cetiem-green/40"
           />
         </div>
         <div className="relative">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cetiem-gray/50 pointer-events-none" />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-10 pl-10 pr-8 border rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="h-10 pl-10 pr-8 border border-white/10 rounded-xl bg-white/5 text-white text-sm focus:outline-none focus:border-cetiem-green/40 appearance-none"
           >
-            <option value="all">Todos</option>
-            <option value="PENDING">Pendiente</option>
-            <option value="PROCESSING">Procesando</option>
-            <option value="INDEXED">Indexado</option>
-            <option value="ANALYZED">Analizado</option>
-            <option value="FAILED">Fallido</option>
+            <option value="all" className="bg-cetiem-dark">Todos</option>
+            <option value="PENDING" className="bg-cetiem-dark">Pendiente</option>
+            <option value="PROCESSING" className="bg-cetiem-dark">Procesando</option>
+            <option value="INDEXED" className="bg-cetiem-dark">Indexado</option>
+            <option value="ANALYZED" className="bg-cetiem-dark">Analizado</option>
+            <option value="FAILED" className="bg-cetiem-dark">Fallido</option>
           </select>
         </div>
       </div>
 
-      {/* Lista de documentos */}
+      {/* Document list */}
       {documents.length === 0 ? (
         <div className="text-center py-12">
-          <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No hay documentos
+          <FileText className="h-12 w-12 text-cetiem-gray/20 mx-auto mb-4" />
+          <h3 className="font-heading font-semibold text-white mb-1">
+            {search || statusFilter !== "all" ? "Sin resultados" : "No hay documentos"}
           </h3>
-          <p className="text-gray-500 mb-6">
-            {search || statusFilter !== "all" 
+          <p className="text-cetiem-gray text-sm mb-4">
+            {search || statusFilter !== "all"
               ? "No se encontraron documentos con los filtros actuales"
               : "Sube tu primer documento para comenzar"}
           </p>
           {(search || statusFilter !== "all") && (
-            <Button variant="outline" onClick={() => { setSearch(""); setStatusFilter("all"); }}>
+            <button
+              onClick={() => { setSearch(""); setStatusFilter("all"); }}
+              className="text-sm border border-white/10 hover:border-cetiem-green/40 text-cetiem-gray hover:text-white px-4 py-2 rounded-lg transition-colors"
+            >
               Limpiar filtros
-            </Button>
+            </button>
           )}
         </div>
       ) : (
         <>
-          <div className="space-y-4">
+          <div className="space-y-2">
             {documents.map((doc) => (
               <div
                 key={doc.id}
                 className={cn(
-                  "flex items-center justify-between p-4 border rounded-lg transition-all",
-                  deletingId === doc.id ? "bg-red-50 border-red-200" : "hover:bg-gray-50"
+                  "flex items-center gap-4 p-4 border rounded-xl transition-all",
+                  deletingId === doc.id
+                    ? "bg-cetiem-red/5 border-cetiem-red/20"
+                    : "bg-white/[0.02] border-white/5 hover:bg-white/5 hover:border-white/10"
                 )}
               >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="h-10 w-10 bg-red-100 rounded-lg flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-red-600" />
-                  </div>
-                  <div className="flex-1">
-                    {editingId === doc.id ? (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          className="h-8"
-                          autoFocus
-                        />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleSaveEdit(doc.id)}
-                        >
-                          <Save className="h-4 w-4 text-green-600" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleCancelEdit}
-                        >
-                          <X className="h-4 w-4 text-gray-600" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <p className="font-medium text-gray-900">{doc.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {doc.description || "Sin descripción"}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {new Date(doc.createdAt).toLocaleDateString('es-ES')}
-                        </p>
-                        
-                        {/* Barra de progreso si está procesando o se acaba de enviar */}
-                        {(doc.status === "PROCESSING" || doc.status === "PENDING" || processingId === doc.id) && (
-                          <ProcessingProgress
-                            documentId={doc.id}
-                            status={processingId === doc.id ? "PROCESSING" : doc.status}
-                            className="mt-2"
-                          />
-                        )}
-                      </>
-                    )}
-                  </div>
+                {/* Icon */}
+                <div className="h-9 w-9 bg-cetiem-green/10 rounded-lg flex items-center justify-center shrink-0">
+                  <FileText className="h-4 w-4 text-cetiem-green" />
                 </div>
-                <div className="flex items-center gap-2">
-                  {/* Selector de dominio */}
+
+                {/* Name + meta */}
+                <div className="flex-1 min-w-0">
+                  {editingId === doc.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        className="flex-1 h-8 px-2 border border-cetiem-teal/40 rounded-lg text-sm bg-white/5 text-white focus:outline-none"
+                        autoFocus
+                      />
+                      <button onClick={() => handleSaveEdit(doc.id)} className="text-cetiem-green hover:text-white transition-colors">
+                        <Save className="h-4 w-4" />
+                      </button>
+                      <button onClick={handleCancelEdit} className="text-cetiem-gray hover:text-white transition-colors">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="font-medium text-white text-sm truncate">{doc.name}</p>
+                      <p className="text-xs text-cetiem-gray truncate">
+                        {doc.description || "Sin descripción"} · {new Date(doc.createdAt).toLocaleDateString('es-ES')}
+                      </p>
+                      {(doc.status === "PROCESSING" || doc.status === "PENDING" || processingId === doc.id) && (
+                        <ProcessingProgress
+                          documentId={doc.id}
+                          status={processingId === doc.id ? "PROCESSING" : doc.status}
+                          className="mt-2"
+                        />
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Domain selector */}
                   <select
                     value={doc.domain || "LEGAL"}
                     onChange={(e) => handleDomainChange(doc.id, e.target.value)}
                     disabled={processingId === doc.id}
-                    className="h-8 px-2 border rounded text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-                    title="Seleccionar dominio de análisis"
+                    className="h-8 px-2 border border-white/10 rounded-lg text-xs bg-white/5 text-white focus:outline-none focus:border-cetiem-green/40 disabled:opacity-50"
                   >
-                    <option value="LEGAL">📜 Legal</option>
-                    <option value="MEDICAL">🏥 Médico</option>
-                    <option value="TECHNICAL">⚙️ Técnico</option>
-                    <option value="ACADEMIC">🎓 Académico</option>
-                    <option value="CUSTOM">📝 Custom</option>
+                    <option value="LEGAL" className="bg-cetiem-dark">📜 Legal</option>
+                    <option value="MEDICAL" className="bg-cetiem-dark">🏥 Médico</option>
+                    <option value="TECHNICAL" className="bg-cetiem-dark">⚙️ Técnico</option>
+                    <option value="ACADEMIC" className="bg-cetiem-dark">🎓 Académico</option>
+                    <option value="CUSTOM" className="bg-cetiem-dark">📝 Custom</option>
                   </select>
 
-                  {/* Botón de procesar */}
-                  <Button
-                    size="sm"
-                    variant={doc.status === "FAILED" || doc.status === "PENDING" ? "default" : "outline"}
+                  {/* Process button */}
+                  <button
                     onClick={() => handleProcess(doc.id, doc.domain || "LEGAL")}
                     disabled={processingId === doc.id || doc.status === "PROCESSING"}
-                    title={
-                      doc.status === "FAILED" || doc.status === "PENDING"
-                        ? "Procesar documento"
-                        : "Reprocesar documento"
-                    }
+                    title={doc.status === "FAILED" || doc.status === "PENDING" ? "Procesar" : "Reprocesar"}
                     className={cn(
-                      processingId === doc.id && "animate-pulse"
+                      "h-8 w-8 flex items-center justify-center rounded-lg border transition-colors disabled:opacity-40",
+                      doc.status === "FAILED" || doc.status === "PENDING"
+                        ? "border-cetiem-amber/30 text-cetiem-amber hover:bg-cetiem-amber/10"
+                        : "border-white/10 text-cetiem-gray hover:border-cetiem-green/40 hover:text-white"
                     )}
                   >
-                    <RefreshCw className={cn(
-                      "h-4 w-4",
-                      processingId === doc.id && "animate-spin"
-                    )} />
-                  </Button>
+                    <RefreshCw className={cn("h-3.5 w-3.5", processingId === doc.id && "animate-spin")} />
+                  </button>
 
-                  {/* Botón ver detalles */}
-                  <Button
-                    size="sm"
-                    variant="ghost"
+                  {/* View details */}
+                  <button
                     onClick={() => router.push(`/dashboard/documents/${doc.id}`)}
                     title="Ver detalles"
+                    className="h-8 w-8 flex items-center justify-center rounded-lg border border-white/10 text-cetiem-gray hover:border-cetiem-teal/40 hover:text-white transition-colors"
                   >
-                    <FileText className="h-4 w-4" />
-                  </Button>
+                    <FileText className="h-3.5 w-3.5" />
+                  </button>
 
-                  {/* Editar y eliminar */}
+                  {/* Edit & delete */}
                   {editingId !== doc.id && (
                     <>
-                      <Button
-                        size="sm"
-                        variant="ghost"
+                      <button
                         onClick={() => handleEdit(doc)}
                         title="Editar nombre"
+                        className="h-8 w-8 flex items-center justify-center rounded-lg border border-white/10 text-cetiem-gray hover:border-white/20 hover:text-white transition-colors"
                       >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
+                      <button
                         onClick={() => handleDelete(doc.id)}
                         disabled={deletingId === doc.id}
                         title="Eliminar documento"
-                        className="text-red-600 hover:text-red-700"
+                        className="h-8 w-8 flex items-center justify-center rounded-lg border border-white/10 text-cetiem-red/60 hover:border-cetiem-red/30 hover:text-cetiem-red transition-colors disabled:opacity-40"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </>
                   )}
 
                   {deletingId === doc.id && (
-                    <span className="text-xs text-gray-500">Eliminando...</span>
+                    <span className="text-xs text-cetiem-gray">Eliminando...</span>
                   )}
 
-                  {/* Badge de estado */}
-                  <div
-                    className={cn(
-                      "px-3 py-1 rounded-full text-xs font-medium min-w-[100px] text-center",
-                      doc.status === "INDEXED" || doc.status === "ANALYZED"
-                        ? "bg-green-100 text-green-700"
-                        : doc.status === "PROCESSING"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : doc.status === "FAILED"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-gray-100 text-gray-700"
-                    )}
-                  >
+                  {/* Status badge */}
+                  <div className={cn(
+                    "px-2.5 py-1 rounded-full text-xs font-medium min-w-[90px] text-center",
+                    processingId === doc.id
+                      ? "bg-cetiem-amber/10 text-cetiem-amber"
+                      : statusColor[doc.status] || "bg-white/5 text-cetiem-gray"
+                  )}>
                     {processingId === doc.id ? (
-                      <span className="flex items-center gap-1">
-                        <RefreshCw className="h-3 w-3 animate-spin" />
-                        Procesando...
+                      <span className="flex items-center justify-center gap-1">
+                        <RefreshCw className="h-3 w-3 animate-spin" /> Procesando
                       </span>
                     ) : (
-                      <>
-                        {doc.status === "INDEXED" && "✓ Listo"}
-                        {doc.status === "ANALYZED" && "✓ Analizado"}
-                        {doc.status === "PROCESSING" && "⏳ Procesando"}
-                        {doc.status === "FAILED" && "✗ Error"}
-                        {doc.status === "PENDING" && "⏳ Pendiente"}
-                      </>
+                      statusLabel[doc.status] || doc.status
                     )}
                   </div>
                 </div>
@@ -496,35 +415,29 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
             ))}
           </div>
 
-          {/* Paginación */}
-          <div className="flex items-center justify-between pt-4 border-t">
-            <p className="text-sm text-gray-500">
+          {/* Pagination */}
+          <div className="flex items-center justify-between pt-4 border-t border-white/5">
+            <p className="text-xs text-cetiem-gray">
               Mostrando {documents.length} de {pagination.total} documentos
             </p>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
+              <button
                 onClick={goToPrevPage}
                 disabled={!pagination.hasPrev}
+                className="flex items-center gap-1 text-xs border border-white/10 hover:border-cetiem-green/40 text-cetiem-gray hover:text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30"
               >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Anterior
-              </Button>
-              
-              <span className="text-sm text-gray-600">
-                Página {pagination.page} de {pagination.totalPages || 1}
+                <ChevronLeft className="h-3.5 w-3.5" /> Anterior
+              </button>
+              <span className="text-xs text-cetiem-gray">
+                Pág {pagination.page} de {pagination.totalPages || 1}
               </span>
-              
-              <Button
-                variant="outline"
-                size="sm"
+              <button
                 onClick={goToNextPage}
                 disabled={!pagination.hasMore}
+                className="flex items-center gap-1 text-xs border border-white/10 hover:border-cetiem-green/40 text-cetiem-gray hover:text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30"
               >
-                Siguiente
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
+                Siguiente <ChevronRight className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
         </>

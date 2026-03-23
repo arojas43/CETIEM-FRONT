@@ -1,112 +1,50 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { FileText, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DocumentListPaginated } from "@/components/document-list-paginated";
 
 export default async function DocumentsPage() {
   const session = await auth();
-
-  if (!session?.user) {
-    redirect("/auth/signin");
-  }
+  if (!session?.user) redirect("/auth/signin");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-              <FileText className="h-5 w-5 text-white" />
+    <div className="flex flex-col h-full">
+      {/* Page header */}
+      <div className="flex items-center justify-between px-8 py-5 border-b border-white/5">
+        <div>
+          <h1 className="font-heading font-bold text-2xl text-white">Mis empresas</h1>
+          <p className="text-cetiem-gray text-sm mt-0.5">Gestiona tu biblioteca documental</p>
+        </div>
+        <Link
+          href="/dashboard/upload"
+          className="flex items-center gap-2 bg-cetiem-green hover:bg-cetiem-green/90 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+        >
+          <Upload className="h-4 w-4" />
+          Subir Documento
+        </Link>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 p-8 overflow-auto">
+        <div className="bg-cetiem-card border border-white/5 rounded-2xl p-6">
+          <DocumentListPaginated />
+        </div>
+
+        {/* Info cards */}
+        <div className="grid md:grid-cols-3 gap-4 mt-6">
+          {[
+            { title: "PageIndex", color: "cetiem-green", desc: "Analiza la estructura jerárquica de documentos PDF. Detecta capítulos, secciones y crea índices navegables." },
+            { title: "Cognee", color: "cetiem-teal", desc: "Extrae entidades y relaciones del texto. Identifica normas, requisitos, empresas y fechas importantes." },
+            { title: "FalkorDB", color: "cetiem-lime", desc: "Base de datos de grafos que almacena el conocimiento extraído. Permite consultas complejas de relaciones." },
+          ].map(card => (
+            <div key={card.title} className="bg-cetiem-card border border-white/5 rounded-xl p-4">
+              <h3 className={`font-heading font-semibold text-sm mb-2 text-${card.color}`}>{card.title}</h3>
+              <p className="text-cetiem-gray text-xs leading-relaxed">{card.desc}</p>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Documentos</h1>
-              <p className="text-xs text-gray-500">Gestión de documentos</p>
-            </div>
-          </div>
-          <Link href="/dashboard/upload">
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Upload className="mr-2 h-4 w-4" />
-              Subir Documento
-            </Button>
-          </Link>
+          ))}
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Todos los Documentos
-          </h2>
-          <p className="text-gray-600">
-            Gestiona tu biblioteca documental con búsqueda y filtros
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Documentos</CardTitle>
-            <CardDescription>
-              Busca, filtra y gestiona todos tus documentos
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DocumentListPaginated />
-          </CardContent>
-        </Card>
-
-        {/* Info Section */}
-        <div className="grid md:grid-cols-3 gap-6 mt-8">
-          <Card className="bg-blue-50 border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FileText className="h-5 w-5 text-blue-600" />
-                PageIndex
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Analiza la estructura jerárquica de documentos PDF usando IA.
-                Detecta capítulos, secciones y crea índices navegables.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-indigo-50 border-indigo-200">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FileText className="h-5 w-5 text-indigo-600" />
-                Cognee
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Extrae entidades y relaciones del texto. Identifica normas,
-                requisitos, empresas y fechas importantes.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-purple-50 border-purple-200">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FileText className="h-5 w-5 text-purple-600" />
-                FalkorDB
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Base de datos de grafos que almacena el conocimiento extraído.
-                Permite consultas complejas de relaciones.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

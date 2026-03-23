@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { cogneeService } from "@/lib/cognee-service";
 import { qaService } from "@/lib/qa-service";
 
+export const maxDuration = 120; // segundos
+
 /**
  * POST /api/documents/[id]/search
  * Búsqueda semántica y Q&A mejorado que combina:
@@ -45,50 +47,22 @@ export async function POST(
 
     console.log(`[Search] Query: "${query}", Document: ${id}, Page: ${page || 'any'}, Section: ${section || 'any'}`);
 
-    // Determinar si es una pregunta específica sobre ubicación
-    const isSpecificLocation = page !== undefined || section !== undefined ||
-      /página|pagina|pág|sección|seccion|párrafo|parrafo/i.test(query);
+    const result = await qaService.answerSpecificQuestion(query, id, document.name);
 
-    let result;
-    if (isSpecificLocation) {
-      // Usar Q&A mejorado con PageIndex + FalkorDB
-      console.log('[Search] Usando Q&A mejorado con ubicación específica');
-      result = await qaService.answerSpecificQuestion(query, id, document.name);
-
-      return NextResponse.json({
-        success: true,
-        query,
-        answer: result.answer,
-        entities: result.entities,
-        relations: result.relations,
-        context: result.context.map(c => c.text).join('\n\n'),
-        references: result.references,
-        stats: {
-          entityCount: result.entities.length,
-          relationCount: result.relations.length,
-          contextPages: [...new Set(result.references.map(r => r.page).filter(Boolean))],
-        },
-      });
-    } else {
-      // Búsqueda general: TAMBIÉN usar Q&A mejorado (NO solo grafo)
-      console.log('[Search] Usando Q&A mejorado con búsqueda en PageIndex + FalkorDB');
-      result = await qaService.answerSpecificQuestion(query, id, document.name);
-
-      return NextResponse.json({
-        success: true,
-        query,
-        answer: result.answer,
-        entities: result.entities,
-        relations: result.relations,
-        context: result.context.map(c => c.text).join('\n\n'),
-        references: result.references,
-        stats: {
-          entityCount: result.entities.length,
-          relationCount: result.relations.length,
-          contextPages: [...new Set(result.references.map(r => r.page).filter(Boolean))],
-        },
-      });
-    }
+    return NextResponse.json({
+      success: true,
+      query,
+      answer: result.answer,
+      entities: result.entities,
+      relations: result.relations,
+      context: result.context.map(c => c.text).join('\n\n'),
+      references: result.references,
+      stats: {
+        entityCount: result.entities.length,
+        relationCount: result.relations.length,
+        contextPages: [...new Set(result.references.map(r => r.page).filter(Boolean))],
+      },
+    });
   } catch (error: any) {
     console.error("Error searching document:", error);
     return NextResponse.json(

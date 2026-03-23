@@ -2,50 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageSquare, Send, Brain, Network, FileText, ChevronRight, Sparkles, BookOpen } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 
-interface Entity {
-  id: string;
-  type: string;
-  name: string;
-  description?: string;
-}
-
-interface Relation {
-  id: string;
-  source: string;
-  target: string;
-  type: string;
-}
-
-interface Reference {
-  page?: number;
-  section?: string;
-  title?: string;
-}
-
+interface Entity { id: string; type: string; name: string; description?: string }
+interface Relation { id: string; source: string; target: string; type: string }
+interface Reference { page?: number; section?: string; title?: string }
 interface SearchResponse {
-  answer: string;
-  entities: Entity[];
-  relations: Relation[];
-  context: string;
-  references: Reference[];
-  stats: {
-    entityCount: number;
-    relationCount: number;
-    contextPages?: number[];
-  };
+  answer: string; entities: Entity[]; relations: Relation[];
+  context: string; references: Reference[];
+  stats: { entityCount: number; relationCount: number; contextPages?: number[] };
 }
-
-interface GraphStats {
-  entityCount: number;
-  relationCount: number;
-  entityTypes: Record<string, number>;
-}
+interface GraphStats { entityCount: number; relationCount: number; entityTypes: Record<string, number> }
 
 export default function DocumentQAPage() {
   const params = useParams();
@@ -58,27 +28,16 @@ export default function DocumentQAPage() {
   const [showEntities, setShowEntities] = useState(false);
   const [showRelations, setShowRelations] = useState(false);
 
-  // Cargar estadísticas del grafo (GET /api/documents/[id]/search)
   useEffect(() => {
-    const loadStats = async () => {
-      try {
-        const res = await fetch(`/api/documents/${documentId}/search`);
-        if (res.ok) {
-          const data = await res.json();
-          setStats(data);
-        }
-      } catch (error) {
-        console.error("Error loading stats:", error);
-      }
-    };
-
-    loadStats();
+    fetch(`/api/documents/${documentId}/search`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => data && setStats(data))
+      .catch(console.error);
   }, [documentId]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim()) return;
-
     setLoading(true);
     setResponse(null);
 
@@ -86,41 +45,19 @@ export default function DocumentQAPage() {
       const res = await fetch(`/api/documents/${documentId}/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: question,
-          includeRelations: true,
-        }),
+        body: JSON.stringify({ query: question, includeRelations: true }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setResponse(data);
-      } else {
-        const error = await res.json();
-        setResponse({
-          answer: `Error: ${error.error}`,
-          entities: [],
-          relations: [],
-          context: "",
-          references: [],
-          stats: { entityCount: 0, relationCount: 0 },
-        });
-      }
+      const data = await res.json();
+      setResponse(res.ok ? data : { answer: `Error: ${data.error}`, entities: [], relations: [], context: "", references: [], stats: { entityCount: 0, relationCount: 0 } });
     } catch (error: any) {
-      setResponse({
-        answer: `Error de conexión: ${error.message}`,
-        entities: [],
-        relations: [],
-        context: "",
-        references: [],
-        stats: { entityCount: 0, relationCount: 0 },
-      });
+      setResponse({ answer: `Error de conexión: ${error.message}`, entities: [], relations: [], context: "", references: [], stats: { entityCount: 0, relationCount: 0 } });
     } finally {
       setLoading(false);
     }
   };
 
-  const suggestedQuestions = [
+  const suggested = [
     "¿Cuáles son los temas principales de este documento?",
     "¿Qué dice la página 1?",
     "¿Qué requisitos o condiciones se mencionan?",
@@ -128,295 +65,194 @@ export default function DocumentQAPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <MessageSquare className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Preguntar al Documento</h1>
-              <p className="text-sm text-gray-500">IA + Grafo de Conocimiento</p>
-            </div>
-          </div>
-          <Button variant="outline" onClick={() => window.history.back()}>
-            ← Volver
-          </Button>
+    <div className="flex flex-col h-full">
+      {/* Page header */}
+      <div className="flex items-center justify-between px-8 py-5 border-b border-white/5">
+        <div>
+          <h1 className="font-heading font-bold text-2xl text-white">Preguntar al Documento</h1>
+          <p className="text-cetiem-gray text-sm mt-0.5">IA + Grafo de Conocimiento</p>
         </div>
-      </header>
+        <button onClick={() => window.history.back()} className="text-sm text-cetiem-gray hover:text-white transition-colors px-3 py-1.5 border border-white/10 rounded-lg">
+          ← Volver
+        </button>
+      </div>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 max-w-5xl">
+      <div className="flex-1 p-8 overflow-auto max-w-4xl">
         {/* Stats */}
         {stats && (
           <div className="grid grid-cols-3 gap-4 mb-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Entidades</CardTitle>
-                <Brain className="h-4 w-4 text-indigo-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-gray-900">{stats.entityCount}</div>
-                <p className="text-xs text-gray-500 mt-1">En el grafo</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Relaciones</CardTitle>
-                <Network className="h-4 w-4 text-purple-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-gray-900">{stats.relationCount}</div>
-                <p className="text-xs text-gray-500 mt-1">Conexiones</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Tipos</CardTitle>
-                <Sparkles className="h-4 w-4 text-pink-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
-                  {Object.keys(stats.entityTypes || {}).length}
+            {[
+              { label: "Entidades", value: stats.entityCount, sub: "En el grafo", icon: Brain, color: "cetiem-teal" },
+              { label: "Relaciones", value: stats.relationCount, sub: "Conexiones", icon: Network, color: "cetiem-lime" },
+              { label: "Tipos", value: Object.keys(stats.entityTypes || {}).length, sub: "Categorías", icon: Sparkles, color: "cetiem-amber" },
+            ].map(s => {
+              const Icon = s.icon;
+              return (
+                <div key={s.label} className="bg-cetiem-card border border-white/5 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-cetiem-gray">{s.label}</span>
+                    <Icon className={`h-4 w-4 text-${s.color}`} />
+                  </div>
+                  <div className="text-2xl font-heading font-bold text-white">{s.value}</div>
+                  <p className="text-xs text-cetiem-gray mt-1">{s.sub}</p>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Categorías</p>
-              </CardContent>
-            </Card>
+              );
+            })}
           </div>
         )}
 
-        {/* Search Box */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-indigo-600" />
-              Haz una pregunta sobre este documento
-            </CardTitle>
-            <CardDescription>
-              La IA buscará en el grafo de conocimiento y el contenido extraído
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <Input
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder="Ej: ¿Qué dice sobre liposarcomas?"
-                className="flex-1"
-                disabled={loading}
-              />
-              <Button type="submit" disabled={loading}>
-                <Send className="h-4 w-4 mr-2" />
-                {loading ? "Buscando..." : "Preguntar"}
-              </Button>
-            </form>
+        {/* Search */}
+        <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5 mb-6">
+          <h2 className="font-heading font-semibold text-white mb-1 flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-cetiem-teal" />
+            Haz una pregunta sobre este documento
+          </h2>
+          <p className="text-cetiem-gray text-xs mb-4">La IA buscará en el grafo de conocimiento y el contenido extraído</p>
 
-            {/* Preguntas sugeridas */}
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className="text-sm text-gray-500">Sugerencias:</span>
-              {suggestedQuestions.map((q, i) => (
-                <Button
-                  key={i}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuestion(q)}
-                  className="text-xs"
-                >
-                  {q}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <Input
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="Ej: ¿Qué dice sobre liposarcomas?"
+              className="flex-1 bg-white/5 border-white/10 text-white placeholder:text-cetiem-gray/40"
+              disabled={loading}
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex items-center gap-2 bg-cetiem-teal hover:bg-cetiem-teal/90 text-white text-sm font-medium px-4 rounded-xl transition-colors disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" />
+              {loading ? "Buscando..." : "Preguntar"}
+            </button>
+          </form>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="text-xs text-cetiem-gray self-center">Sugerencias:</span>
+            {suggested.map((q, i) => (
+              <button key={i} onClick={() => setQuestion(q)}
+                className="text-xs border border-white/10 hover:border-cetiem-green/40 text-cetiem-gray hover:text-white px-3 py-1 rounded-lg transition-colors">
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Response */}
         {response && (
-          <div className="space-y-6">
-            {/* Answer */}
-            <Card className="border-indigo-200 bg-indigo-50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-indigo-900">
-                  <Sparkles className="h-5 w-5" />
-                  Respuesta
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+          <div className="space-y-4">
+            <div className="bg-cetiem-teal/5 border border-cetiem-teal/20 rounded-2xl p-5">
+              <h3 className="font-heading font-semibold text-cetiem-teal mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4" /> Respuesta
+              </h3>
+              <div className="text-white text-sm">
                 <MarkdownRenderer content={response.answer} />
-              </CardContent>
-            </Card>
-
-            {/* Stats de la búsqueda */}
-            <div className="flex gap-4 text-sm text-gray-600">
-              <span className="flex items-center gap-1">
-                <Brain className="h-4 w-4" />
-                {response.stats.entityCount} entidades encontradas
-              </span>
-              <span className="flex items-center gap-1">
-                <Network className="h-4 w-4" />
-                {response.stats.relationCount} relaciones
-              </span>
+              </div>
             </div>
 
-            {/* Entities */}
+            <div className="flex gap-4 text-xs text-cetiem-gray">
+              <span className="flex items-center gap-1"><Brain className="h-3 w-3" />{response.stats.entityCount} entidades encontradas</span>
+              <span className="flex items-center gap-1"><Network className="h-3 w-3" />{response.stats.relationCount} relaciones</span>
+            </div>
+
             {response.entities.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-indigo-600" />
-                      Entidades Encontradas
-                    </CardTitle>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowEntities(!showEntities)}
-                    >
-                      <ChevronRight
-                        className={`h-4 w-4 transition-transform ${showEntities ? "rotate-90" : ""}`}
-                      />
-                    </Button>
-                  </div>
-                </CardHeader>
+              <div className="bg-cetiem-card border border-white/5 rounded-2xl overflow-hidden">
+                <button
+                  className="w-full flex items-center justify-between p-5 text-left hover:bg-white/5 transition-colors"
+                  onClick={() => setShowEntities(!showEntities)}
+                >
+                  <span className="font-heading font-semibold text-white flex items-center gap-2">
+                    <Brain className="h-4 w-4 text-cetiem-teal" /> Entidades Encontradas ({response.entities.length})
+                  </span>
+                  <ChevronRight className={`h-4 w-4 text-cetiem-gray transition-transform ${showEntities ? "rotate-90" : ""}`} />
+                </button>
                 {showEntities && (
-                  <CardContent>
-                    <div className="space-y-2">
-                      {response.entities.map((entity) => (
-                        <div
-                          key={entity.id}
-                          className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
-                        >
-                          <div className="h-8 w-8 bg-indigo-100 rounded flex items-center justify-center flex-shrink-0">
-                            <FileText className="h-4 w-4 text-indigo-600" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-900">{entity.name}</span>
-                              <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">
-                                {entity.type}
-                              </span>
-                            </div>
-                            {entity.description && (
-                              <p className="text-sm text-gray-600 mt-1">{entity.description}</p>
-                            )}
-                          </div>
+                  <div className="px-5 pb-5 space-y-2">
+                    {response.entities.map(entity => (
+                      <div key={entity.id} className="flex items-start gap-3 p-3 bg-white/5 rounded-xl">
+                        <div className="h-7 w-7 bg-cetiem-teal/10 rounded-lg flex items-center justify-center shrink-0">
+                          <FileText className="h-3.5 w-3.5 text-cetiem-teal" />
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
+                        <div>
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="font-medium text-white text-sm">{entity.name}</span>
+                            <span className="text-xs bg-cetiem-teal/10 text-cetiem-teal px-2 py-0.5 rounded">{entity.type}</span>
+                          </div>
+                          {entity.description && <p className="text-xs text-cetiem-gray">{entity.description}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </Card>
+              </div>
             )}
 
-            {/* Relations */}
             {response.relations.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Network className="h-5 w-5 text-purple-600" />
-                      Relaciones
-                    </CardTitle>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowRelations(!showRelations)}
-                    >
-                      <ChevronRight
-                        className={`h-4 w-4 transition-transform ${showRelations ? "rotate-90" : ""}`}
-                      />
-                    </Button>
-                  </div>
-                </CardHeader>
+              <div className="bg-cetiem-card border border-white/5 rounded-2xl overflow-hidden">
+                <button
+                  className="w-full flex items-center justify-between p-5 text-left hover:bg-white/5 transition-colors"
+                  onClick={() => setShowRelations(!showRelations)}
+                >
+                  <span className="font-heading font-semibold text-white flex items-center gap-2">
+                    <Network className="h-4 w-4 text-cetiem-lime" /> Relaciones ({response.relations.length})
+                  </span>
+                  <ChevronRight className={`h-4 w-4 text-cetiem-gray transition-transform ${showRelations ? "rotate-90" : ""}`} />
+                </button>
                 {showRelations && (
-                  <CardContent>
-                    <div className="space-y-2">
-                      {response.relations.map((relation, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg text-sm"
-                        >
-                          <span className="font-medium text-gray-900">{relation.source}</span>
-                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
-                            {relation.type}
-                          </span>
-                          <span className="font-medium text-gray-900">{relation.target}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
-            )}
-
-            {/* Referencias de página/sección */}
-            {response.references && response.references.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-blue-600" />
-                    Referencias en el Documento
-                  </CardTitle>
-                  <CardDescription>Páginas y secciones consultadas para esta respuesta</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {response.references
-                      .filter((r, i, arr) => {
-                        // Deduplicar por página+sección
-                        const key = `${r.page ?? ''}-${r.section ?? ''}`;
-                        return arr.findIndex(x => `${x.page ?? ''}-${x.section ?? ''}` === key) === i;
-                      })
-                      .map((ref, i) => (
-                        <div key={i} className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-full px-3 py-1 text-sm text-blue-800">
-                          <BookOpen className="h-3 w-3" />
-                          {ref.page && <span className="font-medium">Pág. {ref.page}</span>}
-                          {ref.page && ref.section && <span className="text-blue-400">·</span>}
-                          {ref.section && <span className="truncate max-w-[180px]">{ref.section}</span>}
-                        </div>
-                      ))}
+                  <div className="px-5 pb-5 space-y-2">
+                    {response.relations.map((rel, i) => (
+                      <div key={i} className="flex items-center gap-2 p-3 bg-white/5 rounded-xl text-sm">
+                        <span className="font-medium text-white">{rel.source}</span>
+                        <span className="text-xs bg-cetiem-lime/10 text-cetiem-lime px-2 py-0.5 rounded">{rel.type}</span>
+                        <span className="font-medium text-white">{rel.target}</span>
+                      </div>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
+                )}
+              </div>
             )}
 
-            {/* Context */}
+            {response.references && response.references.length > 0 && (
+              <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5">
+                <h3 className="font-heading font-semibold text-white mb-3 flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-cetiem-green" /> Referencias en el Documento
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {response.references
+                    .filter((r, i, arr) => arr.findIndex(x => `${x.page ?? ''}-${x.section ?? ''}` === `${r.page ?? ''}-${r.section ?? ''}`) === i)
+                    .map((ref, i) => (
+                      <div key={i} className="flex items-center gap-1.5 bg-cetiem-green/10 border border-cetiem-green/20 rounded-full px-3 py-1 text-xs text-cetiem-green">
+                        <BookOpen className="h-3 w-3" />
+                        {ref.page && <span className="font-medium">Pág. {ref.page}</span>}
+                        {ref.page && ref.section && <span className="opacity-40">·</span>}
+                        {ref.section && <span className="truncate max-w-[180px]">{ref.section}</span>}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
             {response.context && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-green-600" />
-                    Contexto del Documento
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <pre className="whitespace-pre-wrap text-sm text-gray-700 bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
-                    {response.context}
-                  </pre>
-                </CardContent>
-              </Card>
+              <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5">
+                <h3 className="font-heading font-semibold text-white mb-3 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-cetiem-gray" /> Contexto del Documento
+                </h3>
+                <pre className="whitespace-pre-wrap text-xs text-cetiem-gray bg-white/5 p-4 rounded-xl max-h-72 overflow-y-auto">
+                  {response.context}
+                </pre>
+              </div>
             )}
           </div>
         )}
 
-        {/* Empty State */}
         {!response && !loading && (
-          <Card className="border-dashed">
-            <CardContent className="text-center py-12">
-              <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Haz una pregunta sobre este documento
-              </h3>
-              <p className="text-gray-500">
-                La IA buscará en el grafo de conocimiento y el contenido extraído para responderte
-              </p>
-            </CardContent>
-          </Card>
+          <div className="bg-cetiem-card border border-dashed border-white/10 rounded-2xl p-12 text-center">
+            <MessageSquare className="h-14 w-14 text-cetiem-gray/20 mx-auto mb-4" />
+            <h3 className="font-heading font-semibold text-white mb-2">Haz una pregunta sobre este documento</h3>
+            <p className="text-cetiem-gray text-sm">La IA buscará en el grafo de conocimiento y el contenido extraído para responderte</p>
+          </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

@@ -66,10 +66,14 @@ export class PageIndexService {
       }
     }
     
-    // Crear páginas (una por página del PDF)
+    // Crear páginas dividiendo el texto proporcionalmente
+    // (pdf-parse entrega texto concatenado sin separación por página)
     const pages = [];
+    const charsPerPage = Math.ceil(result.text.length / Math.max(result.numpages, 1));
     for (let i = 0; i < result.numpages; i++) {
-      pages.push(`Página ${i + 1} de ${result.numpages}\n\n${result.text.slice(0, 1000)}`);
+      const start = i * charsPerPage;
+      const end = Math.min((i + 1) * charsPerPage, result.text.length);
+      pages.push(`Página ${i + 1} de ${result.numpages}\n\n${result.text.slice(start, end)}`);
     }
 
     return {
