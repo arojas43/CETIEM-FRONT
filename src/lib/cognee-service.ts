@@ -71,7 +71,7 @@ const DOMAIN_CONFIGS: Record<CogneeDomain, {
       'PRESCRIBED_FOR: Prescrito para condición',
     ],
     systemPrompt: 'Eres un experto en extracción de conocimiento médico de documentos. Identifica enfermedades, tratamientos, anatomía, procedimientos, síntomas y diagnósticos.',
-    exampleOutput: `{"entities": [{"id": "1", "type": "DISEASE", "name": "Liposarcoma", "description": "Tumor maligno del tejido adiposo"}], "relations": []}`,
+    exampleOutput: `{"entities": [{"id": "1", "type": "DISEASE", "name": "Liposarcoma", "description": "Tumor maligno del tejido adiposo"}, {"id": "2", "type": "ANATOMY", "name": "Tejido adiposo", "description": "Tejido graso del organismo"}, {"id": "3", "type": "TREATMENT", "name": "Cirugía resectiva", "description": "Extirpación quirúrgica del tumor"}], "relations": [{"source": "1", "target": "2", "type": "ORIGINATES_FROM"}, {"source": "3", "target": "1", "type": "TREATS"}]}`,
   },
   legal: {
     entityTypes: [
@@ -95,7 +95,7 @@ const DOMAIN_CONFIGS: Record<CogneeDomain, {
       'RESPONSIBLE_FOR: Responsable de procedimiento/área',
     ],
     systemPrompt: 'Eres un experto en extracción de conocimiento de documentos legales y normativos. Identifica normas, requisitos, organizaciones, fechas y procedimientos.',
-    exampleOutput: `{"entities": [{"id": "1", "type": "REGULATION", "name": "ISO 9001", "description": "Estándar de gestión de calidad"}], "relations": []}`,
+    exampleOutput: `{"entities": [{"id": "1", "type": "ORGANIZATION", "name": "Empresa XYZ", "description": "Empresa certificadora"}, {"id": "2", "type": "REGULATION", "name": "ISO 9001", "description": "Estándar de gestión de calidad"}, {"id": "3", "type": "PROCEDURE", "name": "Auditoría interna", "description": "Proceso de verificación interna"}], "relations": [{"source": "1", "target": "2", "type": "COMPLIES_WITH"}, {"source": "3", "target": "2", "type": "IMPLEMENTS"}]}`,
   },
   technical: {
     entityTypes: [
@@ -119,7 +119,7 @@ const DOMAIN_CONFIGS: Record<CogneeDomain, {
       'PRODUCES: Produce resultado/subproducto',
     ],
     systemPrompt: 'Eres un experto en extracción de conocimiento de documentos técnicos. Identifica sistemas, equipos, especificaciones, materiales y procesos.',
-    exampleOutput: `{"entities": [{"id": "1", "type": "EQUIPMENT", "name": "Compresor centrífugo", "description": "Equipo de compresión de gas"}], "relations": []}`,
+    exampleOutput: `{"entities": [{"id": "1", "type": "EQUIPMENT", "name": "Compresor centrífugo", "description": "Equipo de compresión de gas"}, {"id": "2", "type": "SYSTEM", "name": "Sistema de refrigeración", "description": "Sistema principal"}, {"id": "3", "type": "STANDARD", "name": "ISO 1940", "description": "Norma de balanceo"}], "relations": [{"source": "1", "target": "2", "type": "PART_OF"}, {"source": "1", "target": "3", "type": "COMPLIES_WITH"}]}`,
   },
   academic: {
     entityTypes: [
@@ -143,7 +143,7 @@ const DOMAIN_CONFIGS: Record<CogneeDomain, {
       'EXTENDS: Extiende teoría/método',
     ],
     systemPrompt: 'Eres un experto en extracción de conocimiento de documentos académicos. Identifica conceptos, teorías, métodos, hallazgos y autores.',
-    exampleOutput: `{"entities": [{"id": "1", "type": "THEORY", "name": "Teoría del Aprendizaje Social", "description": "Teoría sobre aprendizaje observacional"}], "relations": []}`,
+    exampleOutput: `{"entities": [{"id": "1", "type": "THEORY", "name": "Teoría del Aprendizaje Social", "description": "Teoría sobre aprendizaje observacional"}, {"id": "2", "type": "AUTHOR", "name": "Albert Bandura", "description": "Psicólogo canadiense"}, {"id": "3", "type": "CONCEPT", "name": "Modelado conductual", "description": "Aprendizaje por observación"}], "relations": [{"source": "1", "target": "2", "type": "PROPOSED_BY"}, {"source": "3", "target": "1", "type": "BASED_ON"}]}`,
   },
   custom: {
     entityTypes: [
@@ -159,7 +159,7 @@ const DOMAIN_CONFIGS: Record<CogneeDomain, {
       'ASSOCIATED_WITH: Asociado con',
     ],
     systemPrompt: 'Eres un experto en extracción de conocimiento de documentos. Identifica entidades y relaciones importantes.',
-    exampleOutput: `{"entities": [{"id": "1", "type": "ENTITY", "name": "Entidad ejemplo"}], "relations": []}`,
+    exampleOutput: `{"entities": [{"id": "1", "type": "ORGANIZATION", "name": "Empresa A"}, {"id": "2", "type": "PERSON", "name": "Juan Pérez", "description": "Director general"}, {"id": "3", "type": "CONCEPT", "name": "Gestión de calidad"}], "relations": [{"source": "2", "target": "1", "type": "PART_OF"}, {"source": "1", "target": "3", "type": "ASSOCIATED_WITH"}]}`,
   },
 };
 
