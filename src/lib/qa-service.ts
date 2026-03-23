@@ -104,8 +104,11 @@ export class QAService {
     const pageMatch = lowerQuery.match(/p[aá]ginas?\s+(\d+)|p[aá]g\.?\s*(\d+)/i);
     const page = pageMatch ? parseInt(pageMatch[1] || pageMatch[2]) : undefined;
 
-    // Sección / capítulo (captura el identificador alfanumérico)
-    const sectionMatch = lowerQuery.match(/secc?(?:i[oó]n)?\s+([A-Z0-9][A-Z0-9.-]*)|cap[íi]tulos?\s+([A-Z0-9][A-Z0-9.-]*)/i);
+    // Sección / capítulo: solo matchea identificadores numéricos o romanos (ej: "1", "1.2", "II-A")
+    // Evita falsos positivos con adjetivos españoles ("exacta", "actual", etc.)
+    const sectionMatch = lowerQuery.match(
+      /secc?(?:i[oó]n)?\s+(\d[A-Z0-9.-]*|[IVX]{1,6}(?:[.-][A-Z0-9]+)*)|cap[íi]tulos?\s+(\d[A-Z0-9.-]*|[IVX]{1,6}(?:[.-][A-Z0-9]+)*)/i
+    );
     const section = sectionMatch ? (sectionMatch[1] || sectionMatch[2]) : undefined;
 
     // Párrafo — número cardinal o nombre ordinal
@@ -497,14 +500,15 @@ export class QAService {
         .join('\n');
 
       // 3. Llamar al LLM para seleccionar nodos relevantes
-      const systemPrompt = `Eres un asistente que analiza índices de documentos.
-Dada una pregunta y un árbol de secciones en formato:
-  [id] Lnivel "título" — resumen (p.página)
-Responde ÚNICAMENTE con un array JSON de IDs de las secciones más relevantes para responder la pregunta.
-Ejemplo: ["cm123", "cm456"]
-Selecciona entre 1 y 8 secciones. Si ninguna es relevante, responde [].`;
+      const systemPrompt = `You are a document index analyzer. Given a question and a section tree, output ONLY a JSON array of relevant section IDs.
+Format: ["id1", "id2", ...]
+Rules:
+- Output ONLY the JSON array, nothing else
+- Select 1 to 8 most relevant sections
+- If none are relevant, output: []
+- Do NOT explain, do NOT add text before or after the array`;
 
-      const prompt = `Árbol de secciones del documento:\n${treeText}\n\nPregunta: ${query}\n\nIDs relevantes (JSON array):`;
+      const prompt = `Document sections:\n${treeText}\n\nQuestion: ${query}\n\n["`;
 
       const rawResponse = await nimService.generateText({
         model: process.env.NVIDIA_CHAT_MODEL || 'meta/llama-3.1-70b-instruct',
@@ -514,10 +518,12 @@ Selecciona entre 1 y 8 secciones. Si ninguna es relevante, responde [].`;
         temperature: 0.0,
       });
 
-      // 4. Parsear IDs del response
-      const jsonMatch = rawResponse.match(/\[[\s\S]*?\]/);
+      // 4. Parsear IDs — buscar array JSON en cualquier parte de la respuesta
+      // El prompt termina con `["` para inducir al modelo a completar el array
+      const fullText = '["' + rawResponse;
+      const jsonMatch = fullText.match(/\[[\s\S]*?\]/) ?? rawResponse.match(/\[[\s\S]*?\]/);
       if (!jsonMatch) {
-        console.log('[QA] LLM Tree Search: no se encontró JSON en respuesta');
+        console.log('[QA] LLM Tree Search: sin JSON en respuesta, usando keyword fallback');
         return [];
       }
 
@@ -525,8 +531,10 @@ Selecciona entre 1 y 8 secciones. Si ninguna es relevante, responde [].`;
       try {
         nodeIds = JSON.parse(jsonMatch[0]);
         if (!Array.isArray(nodeIds) || nodeIds.length === 0) return [];
+        // Filtrar solo strings que parezcan IDs de Prisma (cuid: 25 chars aprox)
+        nodeIds = nodeIds.filter(id => typeof id === 'string' && id.length > 5);
       } catch {
-        console.log('[QA] LLM Tree Search: JSON inválido en respuesta');
+        console.log('[QA] LLM Tree Search: JSON inválido, usando keyword fallback');
         return [];
       }
 
