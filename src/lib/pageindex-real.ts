@@ -16,6 +16,33 @@
 
 import { nimService } from "./nim";
 
+/**
+ * Extrae el primer objeto JSON válido de un string de texto libre.
+ * Usa conteo de llaves balanceadas — más robusto que un regex greedy.
+ */
+function extractFirstJSON(text: string): any | null {
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const c = text[i];
+    if (escaped) { escaped = false; continue; }
+    if (c === '\\' && inString) { escaped = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth === 0) {
+        try { return JSON.parse(text.slice(start, i + 1)); } catch { return null; }
+      }
+    }
+  }
+  return null;
+}
+
 export interface PageIndexNode {
   id: string;
   level: number;
@@ -215,10 +242,9 @@ ${text.slice(0, 30000)}`;
         temperature: 0.3, // Bajo para mayor precisión
       });
 
-      // Extraer JSON
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
+      // Extraer JSON con extractor robusto de llaves balanceadas
+      const parsed = extractFirstJSON(response);
+      if (parsed) {
         console.log(`[PageIndex] Estructura detectada: ${parsed.sections?.length || 0} secciones`);
         return parsed;
       }

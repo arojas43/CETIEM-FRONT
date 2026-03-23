@@ -5,7 +5,7 @@
 
 import { prisma } from './db';
 import { localStorageService } from './local-storage';
-import { pageIndexService } from './pageindex-local';
+import { pageIndexService } from './pageindex';
 import { cogneeService, type CogneeDomain } from './cognee-service';
 import { checkFalkorDBHealth } from './falkordb';
 import { checkRedisHealth } from './queue';
@@ -136,10 +136,7 @@ export async function processDocument(documentId: string, domain?: CogneeDomain)
             page: node.page,
             metadata: {
               ...node.metadata,
-              start_index: node.start_index,
-              end_index: node.end_index,
               summary: node.summary,
-              node_id: node.node_id,
               endPage: node.endPage,
             },
             parentId,

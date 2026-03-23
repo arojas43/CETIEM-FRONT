@@ -10,6 +10,33 @@ import { falkorDBService } from './falkordb';
 import { nimService } from './nim';
 import { prisma } from './db';
 
+/**
+ * Extrae el primer objeto JSON válido de un string de texto libre.
+ * Más robusto que un regex greedy: usa conteo de llaves balanceadas.
+ */
+function extractFirstJSON(text: string): any | null {
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const c = text[i];
+    if (escaped) { escaped = false; continue; }
+    if (c === '\\' && inString) { escaped = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth === 0) {
+        try { return JSON.parse(text.slice(start, i + 1)); } catch { return null; }
+      }
+    }
+  }
+  return null;
+}
+
 export type CogneeDomain = 'medical' | 'legal' | 'technical' | 'academic' | 'custom';
 
 export interface CogneeEntity {
@@ -482,12 +509,10 @@ ${content.slice(0, 15000)}`;
     relations: CogneeRelation[];
   } {
     try {
-      const jsonMatch = response.match(/\{[\s\S]*"entities"[\s\S]*\}/);
-      if (!jsonMatch) {
+      const parsed = extractFirstJSON(response);
+      if (!parsed || !Array.isArray(parsed.entities)) {
         return { entities: [], relations: [] };
       }
-
-      const parsed = JSON.parse(jsonMatch[0]);
 
       const entities: CogneeEntity[] = (parsed.entities || []).map((e: any, idx: number) => ({
         id: `${documentId}-entity-${e.id || idx}`,

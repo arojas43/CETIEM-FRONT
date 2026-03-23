@@ -58,7 +58,7 @@ export class QAService {
     const entities = await this.getRelatedEntities(documentId, pageIndexContext);
 
     // 4. Generar respuesta contextual con LLM
-    const answer = await this.generateContextualAnswer(query, pageIndexContext, entities, documentName);
+    const answer = await this.generateContextualAnswer(query, pageIndexContext, entities, documentName, documentId);
 
     return {
       answer,
@@ -629,35 +629,25 @@ Rules:
     query: string,
     contexts: QAContext[],
     entities: any[],
-    documentName: string
+    documentName: string,
+    documentId: string
   ): Promise<string> {
-    // Detectar referencia bíblica
-    const biblicalRef = this.detectBiblicalReference(query);
-    
-    if (biblicalRef && biblicalRef.isBiblical) {
-      console.log(`[QA] Referencia bíblica detectada: ${biblicalRef.book} ${biblicalRef.chapter}:${biblicalRef.verseStart || ''}-${biblicalRef.verseEnd || ''}`);
-      
-      // Si hay contexto pero es insuficiente, buscar más
-      if (contexts.length === 0 || contexts.every(c => c.text.length < 100)) {
-        // Obtener documento para saber el documentId
-        const doc = await prisma.document.findFirst({
-          where: { name: { contains: documentName, mode: 'insensitive' } },
-          select: { id: true },
-        });
-        
-        if (doc?.id) {
-          const biblicalContext = await this.searchBiblicalText(
-            doc.id,
-            biblicalRef.book || '',
-            biblicalRef.chapter || 0,
-            biblicalRef.verseStart,
-            biblicalRef.verseEnd
-          );
-          
-          if (biblicalContext.length > 0) {
-            console.log(`[QA] Texto bíblico encontrado: ${biblicalContext.length} secciones`);
-            contexts.push(...biblicalContext);
-          }
+    // Detectar referencia bíblica — solo si el contexto aún está vacío o insuficiente
+    // (si ya vino de fallbackKeywordSearch, el contexto bíblico ya está incluido)
+    if (contexts.length === 0 || contexts.every(c => c.text.length < 100)) {
+      const biblicalRef = this.detectBiblicalReference(query);
+      if (biblicalRef?.isBiblical && biblicalRef.book && biblicalRef.chapter) {
+        console.log(`[QA] Referencia bíblica detectada: ${biblicalRef.book} ${biblicalRef.chapter}:${biblicalRef.verseStart || ''}-${biblicalRef.verseEnd || ''}`);
+        const biblicalContext = await this.searchBiblicalText(
+          documentId,
+          biblicalRef.book,
+          biblicalRef.chapter,
+          biblicalRef.verseStart,
+          biblicalRef.verseEnd
+        );
+        if (biblicalContext.length > 0) {
+          console.log(`[QA] Texto bíblico encontrado: ${biblicalContext.length} secciones`);
+          contexts.push(...biblicalContext);
         }
       }
     }
