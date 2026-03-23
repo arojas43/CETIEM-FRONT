@@ -65,7 +65,7 @@ else
         -p 6380:6379 \
         -p 3001:3000 \
         -v "$DATA_DIR:/var/lib/falkordb/data" \
-        falkordb/falkordb > /dev/null 2>&1
+        falkordb/falkordb --stop-writes-on-bgsave-error no > /dev/null 2>&1
     
     # Esperar a que FalkorDB esté listo
     echo "  Esperando a que FalkorDB esté listo..."
