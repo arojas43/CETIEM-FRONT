@@ -10,7 +10,7 @@ export class QwenQAService {
 
   constructor() {
     this.apiKey = process.env.NVIDIA_QA_API_KEY || "";
-    this.model = "qwen/qwen3.5-122b-a10b";
+    this.model = "z-ai/glm4.7";
   }
 
   /**
@@ -110,10 +110,11 @@ Responde usando ÚNICAMENTE la información anterior. Indica la página cuando e
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: 4096,
-        temperature: 0.4,
-        top_p: 0.95,
+        max_tokens: 16384,
+        temperature: 1,
+        top_p: 1,
         stream: true,
+        chat_template_kwargs: { enable_thinking: true, clear_thinking: false },
       }),
     });
 
@@ -197,9 +198,10 @@ Proporciona una respuesta completa y bien razonada.`;
             { role: "user", content: userPrompt },
           ],
           max_tokens: 16384,
-          temperature: 0.6,
-          top_p: 0.95,
+          temperature: 1,
+          top_p: 1,
           stream: true,
+          chat_template_kwargs: { enable_thinking: true, clear_thinking: false },
         }),
       });
 
