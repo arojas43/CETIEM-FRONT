@@ -1,331 +1,217 @@
-# 🏗️ Arquitectura del Sistema
+# Arquitectura del Sistema
 
-## Vista General
+---
+
+## Visión general
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                            USUARIO FINAL                                 │
-│                         (Navegador Web)                                  │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    │ http://localhost:3000
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           CAPA WEB (Next.js)                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                  │
-│  │   Dashboard  │  │  Subida PDF  │  │  Certificados│                  │
-│  └──────────────┘  └──────────────┘  └──────────────┘                  │
-│                                                                          │
-│  ┌────────────────────────────────────────────────────────────┐         │
-│  │                    API Routes (Backend)                     │         │
-│  │  /api/documents  │  /api/auth  │  /api/files               │         │
-│  └────────────────────────────────────────────────────────────┘         │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                    ┌───────────────┴───────────────┐
-                    │                               │
-                    ▼                               ▼
-┌──────────────────────────┐          ┌──────────────────────────┐
-│   COLA DE TRABAJOS       │          │   BASE DE DATOS          │
-│      (Redis)             │          │   (PostgreSQL)           │
-│   Puerto: 6379           │          │   Puerto: 5432           │
-│                          │          │                          │
-│  ┌────────────────────┐  │          │  ┌────────────────────┐  │
-│  │ document-processing│  │          │  │ users              │  │
-│  │ ai-analysis        │  │          │  │ documents          │  │
-│  │ report-generation  │  │          │  │ page_indices       │  │
-│  └────────────────────┘  │          │  │ certifications     │  │
-│                          │          │  └────────────────────┘  │
-└──────────────────────────┘          └──────────────────────────┘
-            │                                     │
-            ▼                                     ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                        WORKERS (Procesamiento)                        │
-│                                                                       │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐       │
-│  │  Document Worker│  │   AI Worker     │  │  Report Worker  │       │
-│  │                 │  │                 │  │                 │       │
-│  │  • Lee PDF      │  │  • Analiza con  │  │  • Genera PDF   │       │
-│  │  • Extrae texto │  │    NVIDIA NIM   │  │  • Exporta      │       │
-│  │  • Crea índice  │  │  • Extrae       │  │  • Formatea     │       │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘       │
-└──────────────────────────────────────────────────────────────────────┘
-                                    │
-                    ┌───────────────┴───────────────┐
-                    │                               │
-                    ▼                               ▼
-┌──────────────────────────┐          ┌──────────────────────────┐
-│   GRAFO DE CONOCIMIENTO  │          │   SERVICIOS EXTERNOS     │
-│     (FalkorDB)           │          │     (NVIDIA NIM)         │
-│   Puerto: 6380           │          │   API HTTPS              │
-│   UI: 3001               │          │                          │
-│                          │          │  ┌────────────────────┐  │
-│  ┌────────────────────┐  │          │  │ Llama 3.1 70B      │  │
-│  │  Nodos:            │  │          │  │ • Análisis texto   │  │
-│  │  • ORGANIZATION    │  │          │  │ • Estructura PDF   │  │
-│  │  • REGULATION      │  │          │  │ • Extracción       │  │
-│  │  • REQUIREMENT     │  │          │  └────────────────────┘  │
-│  │  • DOCUMENT        │  │          │                          │
-│  └────────────────────┘  │          └──────────────────────────┘
-│                          │
-│  ┌────────────────────┐  │
-│  │  Relaciones:       │  │
-│  │  • COMPLIES_WITH   │  │
-│  │  • IMPLEMENTS      │  │
-│  │  • REQUIRES        │  │
-│  └────────────────────┘  │
-└──────────────────────────┘
+Usuario
+  │
+  ▼
+Next.js 15 (App Router)
+  ├── API Routes (/api/*)
+  └── UI Dashboard
+        │
+        ├── PostgreSQL (Prisma)   ← documentos, índices PageIndex, usuarios
+        ├── FalkorDB :6380        ← grafo de entidades y relaciones
+        └── Redis :6379           ← colas BullMQ para workers
+```
+
+Los **workers** corren como proceso separado (`npm run workers`) y consumen las colas Redis. Next.js y los workers comparten acceso a PostgreSQL y FalkorDB pero no comparten memoria.
+
+---
+
+## Flujo 1 — Subida de documento
+
+```
+POST /api/documents (multipart/form-data)
+  │
+  ├── Validar auth (NextAuth)
+  ├── Validar tipo PDF
+  ├── prisma.document.create (status: PENDING)
+  ├── localStorageService.saveFileWithId → ./uploads/{id}/{id}.pdf
+  └── documentProcessingQueue.add("index") → Redis/BullMQ
+        │
+        └── [si Redis no disponible] → queda en PENDING para procesar manualmente
 ```
 
 ---
 
-## Flujo de Datos: Subida de Documento
+## Flujo 2 — Procesamiento de documento
+
+Hay dos caminos que llegan al mismo pipeline:
+
+**A) Automático vía worker BullMQ** (al subir):
+```
+Worker → processDocumentIndexing() → [encola análisis]
+       → Worker AI → processDocumentAnalysis()
+```
+
+**B) Manual vía botón "Procesar"** en la UI:
+```
+POST /api/documents/[id]/process
+  → processDocument() en process-document-service.ts
+  → Ejecuta PageIndex + Cognee en secuencia directa
+```
+
+### Pipeline PageIndex (extracción de estructura)
 
 ```
-┌──────────┐
-│ USUARIO  │
-└────┬─────┘
-     │ 1. Selecciona PDF
-     ▼
-┌─────────────────────────────────────────┐
-│  NEXT.JS (Puerto 3000)                  │
-│  • Recibe archivo                       │
-│  • Valida tipo (PDF)                    │
-│  • Genera ID único                      │
-└────┬────────────────────────────────────┘
-     │ 2. Guarda archivo
-     ▼
-┌─────────────────────────────────────────┐
-│  SISTEMA DE ARCHIVOS LOCAL              │
-│  uploads/[document-id]/archivo.pdf      │
-└────┬────────────────────────────────────┘
-     │ 3. Crea registro
-     ▼
-┌─────────────────────────────────────────┐
-│  POSTGRESQL (Puerto 5432)               │
-│  documents:                             │
-│  {                                      │
-│    id: "abc123",                        │
-│    name: "manual.pdf",                  │
-│    status: "PENDING",                   │
-│    storageUrl: "/api/files/abc123/..."  │
-│  }                                      │
-│  }                                      │
-└────┬────────────────────────────────────┘
-     │ 4. Encola trabajo
-     ▼
-┌─────────────────────────────────────────┐
-│  REDIS (Puerto 6379)                    │
-│  Cola: document-processing              │
-│  [{                                     │
-│    documentId: "abc123",                │
-│    type: "index"                        │
-│  }]                                     │
-└────┬────────────────────────────────────┘
-     │ 5. Worker toma trabajo
-     ▼
-┌─────────────────────────────────────────┐
-│  WORKER                                 │
-│  • Descarga PDF de uploads/             │
-│  • Extrae texto con pdf-parse           │
-└────┬────────────────────────────────────┘
-     │ 6. Analiza con IA
-     ▼
-┌─────────────────────────────────────────┐
-│  NVIDIA NIM (HTTPS)                     │
-│  Prompt: "¿Cuál es la estructura        │
-│         de este documento?"             │
-│                                         │
-│  Response: {                            │
-│    title: "Manual ISO 9001",            │
-│    sections: [                          │
-│      {title: "Alcance", page: 1},       │
-│      {title: "Referencias", page: 3}    │
-│    ]                                    │
-│  }                                      │
-└────┬────────────────────────────────────┘
-     │ 7. Guarda índice
-     ▼
-┌─────────────────────────────────────────┐
-│  POSTGRESQL                             │
-│  page_indices:                          │
-│  [                                      │
-│    {                                    │
-│      documentId: "abc123",              │
-│      level: 1,                          │
-│      title: "Alcance",                  │
-│      page: 1                            │
-│    },                                   │
-│    ...                                  │
-│  ]                                      │
-└────┬────────────────────────────────────┘
-     │ 8. Extrae conocimiento
-     ▼
-┌─────────────────────────────────────────┐
-│  WORKER (Cognee)                        │
-│  • Analiza texto con IA                 │
-│  • Identifica entidades:                │
-│    - "ISO 9001" → NORMA                 │
-│    - "Control de documentos" → REQ      │
-│  • Identifica relaciones:               │
-│    - "ISO 9001" → requiere → "Control"  │
-└────┬────────────────────────────────────┘
-     │ 9. Guarda grafo
-     ▼
-┌─────────────────────────────────────────┐
-│  FALKORDB (Puerto 6380)                 │
-│                                         │
-│  CREATE (:NORMA {                      │
-│    id: "iso9001",                       │
-│    name: "ISO 9001"                     │
-│  })                                     │
-│                                         │
-│  CREATE (:REQUISITO {                   │
-│    id: "ctrl-doc",                      │
-│    name: "Control de documentos"        │
-│  })                                     │
-│                                         │
-│  MATCH (a:NORMA), (b:REQUISITO)         │
-│  CREATE (a)-[:REQUIERE]->(b)            │
-└────┬────────────────────────────────────┘
-     │ 10. Actualiza estado
-     ▼
-┌─────────────────────────────────────────┐
-│  POSTGRESQL                             │
-│  UPDATE documents                       │
-│  SET status = 'INDEXED'                 │
-│  WHERE id = 'abc123'                    │
-└────┬────────────────────────────────────┘
-     │ 11. Notifica
-     ▼
-┌─────────────────────────────────────────┐
-│  USUARIO                                │
-│  Dashboard muestra:                     │
-│  "✓ Documento procesado"                │
-│  "45 entidades encontradas"             │
-└─────────────────────────────────────────┘
+pageIndexService.buildIndex(id, pdfBuffer, name)
+  │
+  ├── extractFullText(pdfBuffer)                 ← pdfjs-dist, extracción real por página
+  │     └── [si vacío] → Tesseract OCR           ← para PDFs escaneados
+  │
+  ├── detectStructure(text)
+  │     ├── LLM (Llama 3.1 70B) → JSON {title, sections[]}
+  │     └── Fallback: estructura plana si LLM falla
+  │
+  └── buildIndex()
+        ├── Nodo raíz (título del documento)
+        ├── Nodos de sección (level 1) — del LLM
+        └── Nodos de página (level 2, isPageNode:true) — siempre creados
+
+→ flattenNodes() → prisma.pageIndex.create × N nodos
+→ document.status = INDEXED
+```
+
+Para documentos >50MB usa `pdftotext` (poppler) con streaming en lugar de pdfjs.
+
+### Pipeline Cognee (extracción de conocimiento)
+
+```
+Por cada nodo PageIndex con content > 50 chars:
+  │
+  ├── chunk = "${title}: ${content.slice(0, 2000)}"
+  │
+  ├── cogneeService.extractKnowledge(chunk, documentId, domain)
+  │     ├── buildDomainPrompt() — prompt específico por dominio con exampleOutput
+  │     ├── nimService.generateText (Llama 3.1, temp=0.2, max_tokens=4000)
+  │     └── parseKnowledgeGraph(response)
+  │           ├── extractFirstJSON() — extractor con llaves balanceadas
+  │           └── Mapear entities[] + relations[]
+  │
+  └── cogneeService.persistToGraph(entities, relations, documentId)
+        ├── createEntitiesBatch() → UNWIND [...] CREATE (n:LABEL {props})
+        └── createRelation() → MATCH (a {id}), (b {id}) CREATE (a)-[r:TYPE]->(b)
+
+→ document.status = ANALYZED (si hay entidades) | INDEXED
+```
+
+**Dominios soportados:** `medical`, `legal`, `technical`, `academic`, `custom`
+
+Cada entidad guarda `documentId`, `page`, `section` para trazabilidad.
+
+---
+
+## Flujo 3 — Q&A
+
+```
+POST /api/documents/[id]/search { query }
+  │  maxDuration: 120s
+  │
+  └── qaService.answerSpecificQuestion(query, documentId, documentName)
+```
+
+### Paso 1 — Extracción de intención
+
+```
+extractQueryIntent(query)
+  ├── page:      /p[áa]ginas?\s+(\d+)/
+  ├── section:   /secc?...\s+(\d[A-Z0-9.-]*|[IVX]{1,6}...)/ (solo IDs numéricos/romanos)
+  └── paragraph: /p[áa]rrafo?\s+(\d+)/ + mapa de ordinales en español
+```
+
+### Paso 2 — Búsqueda en PageIndex
+
+```
+Si isSpecific (page/section/paragraph):
+  → prisma.pageIndex.findMany con filtros exactos
+  → Si paragraph: extractParagraphs() + índice
+
+Si sin resultados → LLM Tree Search:
+  → Serializar árbol de nodos (sin content, excluye isPageNode)
+  → nimService.generateText (Llama 3.1, temp=0.0, max_tokens=256)
+    prompt: "[\"  ← inducción de completion
+  → Parsear JSON array de IDs → prisma.pageIndex.findMany(ids)
+
+Si sin resultados → keyword fallback:
+  → detectBiblicalReference() — allowlist de libros bíblicos
+  → OR search sobre title/content en PageIndex
+```
+
+### Paso 3 — Enriquecer con FalkorDB
+
+```
+MATCH (n) WHERE n.documentId = "..." AND n.page IN [páginas_del_contexto]
+RETURN labels(n)[0], n.name, n.description, n.page
+LIMIT 50
+```
+
+### Paso 4 — Generar respuesta
+
+```
+qwenQAService.generateAnswer(question, pageIndexContext, entities)
+  → POST https://integrate.api.nvidia.com/v1/chat/completions
+     model: qwen/qwen3.5-122b-a10b
+     max_tokens: 4096, temperature: 0.4, stream: true
+  → consumeStream() → SSE reader → filtra <think>...</think>
+  → [si falla] fallback → nimService (Llama 3.1 70B)
 ```
 
 ---
 
-## Componentes por Capa
+## Dual LLM
 
-### Capa 1: Frontend (Next.js)
-```
-┌─────────────────────────────────────────┐
-│  Componentes React                      │
-│  • Dashboard                            │
-│  • UploadWizard                         │
-│  • DocumentViewer                       │
-│  • CertificationList                    │
-└─────────────────────────────────────────┘
-            │
-            │ Server Components
-            ▼
-┌─────────────────────────────────────────┐
-│  API Routes                             │
-│  • POST /api/documents                  │
-│  • GET /api/documents                   │
-│  • GET /api/files/[id]                  │
-└─────────────────────────────────────────┘
+| Modelo | Rol | Cuándo se usa |
+|--------|-----|--------------|
+| Llama 3.1 70B (`NVIDIA_API_KEY`) | Procesamiento | Extracción de estructura, extracción de entidades, LLM Tree Search |
+| Qwen 3.5 122B (`NVIDIA_QA_API_KEY`) | Respuestas | Generación de respuestas Q&A (streaming) |
+
+Usar dos API keys separadas permite distribuir la carga y facturación por función.
+
+---
+
+## Aislamiento de grafos
+
+Todos los nodos en FalkorDB llevan la propiedad `documentId`. Las consultas siempre filtran por ella:
+
+```cypher
+MATCH (n) WHERE n.documentId = "doc-id-especifico" RETURN n
 ```
 
-### Capa 2: Procesamiento (Workers)
-```
-┌─────────────────────────────────────────┐
-│  BullMQ Workers                         │
-│                                         │
-│  Document Worker:                       │
-│  ┌─────────────────────────────────┐   │
-│  │ 1. downloadFile()               │   │
-│  │ 2. extractText()                │   │
-│  │ 3. detectStructure()            │   │
-│  │ 4. saveIndex()                  │   │
-│  └─────────────────────────────────┘   │
-│                                         │
-│  AI Worker:                             │
-│  ┌─────────────────────────────────┐   │
-│  │ 1. processDocument()            │   │
-│  │ 2. extractEntities()            │   │
-│  │ 3. extractRelations()           │   │
-│  │ 4. saveToGraph()                │   │
-│  └─────────────────────────────────┘   │
-└─────────────────────────────────────────┘
-```
+Esto permite que múltiples documentos coexistan en el mismo grafo `certificacion` sin interferencia.
 
-### Capa 3: Almacenamiento
-```
-┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│ PostgreSQL  │  │ FalkorDB    │  │ Redis       │
-│             │  │             │  │             │
-│ • Users     │  │ • Normas    │  │ • Colas     │
-│ • Documents │  │ • Requisitos│  │ • Jobs      │
-│ • Indices   │  │ • Empresas  │  │ • Locks     │
-│ • Certs     │  │ • Relaciones│  │             │
-└─────────────┘  └─────────────┘  └─────────────┘
-```
+Los índices en FalkorDB sobre `documentId` se crean automáticamente al conectar:
 
-### Capa 4: Servicios Externos
-```
-┌─────────────────────────────────────────┐
-│  NVIDIA NIM API                         │
-│                                         │
-│  Endpoints:                             │
-│  • /v1/embeddings → Vector embeddings   │
-│  • /v1/chat/completions → LLM chat      │
-│                                         │
-│  Modelos:                               │
-│  • llama-3_2-nemoretriever-300m         │
-│  • meta/llama-3.1-70b-instruct          │
-└─────────────────────────────────────────┘
+```cypher
+CREATE INDEX FOR (n:ORGANIZATION) ON (n.documentId)
+-- repite para los 20 tipos de entidad definidos
 ```
 
 ---
 
-## Tecnologías por Función
+## Progreso de procesamiento
 
-| Función | Tecnología | Alternativa |
-|---------|------------|-------------|
-| Frontend | Next.js 15 | Vite + React |
-| UI Components | shadcn/ui | Material UI |
-| ORM | Prisma | Drizzle |
-| BD Relacional | PostgreSQL | MySQL |
-| BD Grafos | FalkorDB | Neo4j |
-| Cache/Colas | Redis | RabbitMQ |
-| Workers | BullMQ | Agenda |
-| PDF Parsing | pdf-parse | pdfjs-dist |
-| IA/LLM | NVIDIA NIM | OpenAI API |
-| Auth | NextAuth | Auth0 |
-| Storage | Local FS | AWS S3 |
+`process-document-service.ts` actualiza `document.processingProgress` en PostgreSQL cada 5 chunks:
 
----
+```json
+{
+  "step": "Analizando chunk 45/200",
+  "percentage": 67,
+  "details": { "stage": "cognee", "entitiesExtracted": 312 },
+  "updatedAt": "2026-03-23T..."
+}
+```
 
-## Decisiones de Arquitectura
-
-### ¿Por qué Workers Separados?
-- **Procesamiento pesado** no bloquea la UI
-- **Escalabilidad**: más workers = más throughput
-- **Reintentos**: trabajos fallidos se reintentan automáticamente
-- **Prioridades**: colas separadas para diferentes tipos de trabajo
-
-### ¿Por qué FalkorDB?
-- **Nativo en Redis**: mismo protocolo, fácil integración
-- **Cypher**: lenguaje de consulta estándar
-- **Performance**: grafos en memoria
-- **Open Source**: sin costos de licencia
-
-### ¿Por qué Almacenamiento Local?
-- **Desarrollo**: más simple, sin configuración cloud
-- **Testing**: no hay costos por API calls
-- **Producción**: fácil migrar a GCS/S3
-
-### ¿Por qué NVIDIA NIM?
-- **Modelos abiertos**: Llama, Mistral, etc.
-- **Precio**: más económico que OpenAI
-- **Privacidad**: datos no entrenan modelos
-- **Performance**: GPUs optimizadas
+La UI hace polling a `GET /api/documents/[id]/progress` y muestra barras de progreso en tiempo real.
 
 ---
 
-**Documento técnico para el equipo de desarrollo**  
-Última actualización: Marzo 2026
+## Decisiones de diseño relevantes
+
+- **pdfjs-dist** en lugar de pdf-parse: extracción real por página con coordenadas Y para detectar párrafos
+- **UNWIND batch** en FalkorDB: agrupa entidades por label y hace una sola query por tipo (órdenes de magnitud más rápido que un CREATE por entidad)
+- **`extractFirstJSON()`**: extractor con conteo de llaves balanceadas en lugar de regex greedy — robusto cuando el LLM añade texto después del JSON
+- **`stop-writes-on-bgsave-error no`** en FalkorDB: evita que un fallo de snapshot RDB bloquee todas las escrituras
+- **`maxDuration = 120`** en la route de search: evita que Next.js corte la conexión antes de que Qwen termine
