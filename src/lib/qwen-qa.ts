@@ -77,7 +77,7 @@ export class QwenQAService {
       ? "\n## Contenido del Documento (PageIndex):\n" + pageIndexContext
       : "";
 
-    const systemPrompt = `Eres un asistente experto en análisis documental. Responde preguntas sobre documentos utilizando ÚNICAMENTE la información proporcionada.
+    const systemPrompt = `Eres un asistente experto en análisis documental. Responde SIEMPRE en español. No uses ningún otro idioma ni caracteres de otros alfabetos.
 
 Instrucciones:
 1. Basate EXCLUSIVAMENTE en el contexto dado (PageIndex + Grafo de Conocimiento)
@@ -159,7 +159,7 @@ Responde usando ÚNICAMENTE la información anterior. Indica la página cuando e
   }): Promise<string> {
     const { question, context, documentName, followUp } = options;
 
-    const systemPrompt = `Eres un asistente experto en análisis de documentos técnicos y científicos.
+    const systemPrompt = `Eres un asistente experto en análisis de documentos técnicos y científicos. Responde SIEMPRE en español. No uses ningún otro idioma ni caracteres de otros alfabetos.
 
 Capacidades:
 - Razonamiento complejo sobre información técnica
