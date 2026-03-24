@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RefreshCw, Brain } from "lucide-react";
+import { RefreshCw, Brain, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ProcessDocumentButtonProps {
@@ -10,6 +10,14 @@ interface ProcessDocumentButtonProps {
   currentStatus: string;
 }
 
+type ExtractionMode = 'auto' | 'directed' | 'mixed';
+
+const MODE_LABELS: Record<ExtractionMode, { icon: string; label: string; desc: string }> = {
+  auto:     { icon: '🤖', label: 'Automático',  desc: 'El LLM decide qué extraer según el dominio' },
+  mixed:    { icon: '🔀', label: 'Mixto',        desc: 'Dominio base + temas/tipos que especifiques' },
+  directed: { icon: '🎯', label: 'Dirigido',     desc: 'Solo extrae lo que especifiques tú' },
+};
+
 export default function ProcessDocumentButton({
   documentId,
   currentDomain,
@@ -17,16 +25,37 @@ export default function ProcessDocumentButton({
 }: ProcessDocumentButtonProps) {
   const [processing, setProcessing] = useState(false);
   const [domain, setDomain] = useState(currentDomain || "LEGAL");
+  const [mode, setMode] = useState<ExtractionMode>('auto');
+  const [showConfig, setShowConfig] = useState(false);
+
+  // Campos de configuración dirigida / mixta
+  const [focusTopics, setFocusTopics] = useState('');
+  const [customEntityTypes, setCustomEntityTypes] = useState('');
+  const [customRelationTypes, setCustomRelationTypes] = useState('');
+  const [instructions, setInstructions] = useState('');
 
   const handleProcess = async () => {
-    if (!confirm(`¿Procesar documento con dominio ${domain}? Esto puede tomar varios minutos.`)) return;
+    const modeInfo = MODE_LABELS[mode];
+    const summary = mode === 'auto'
+      ? `dominio ${domain}, modo automático`
+      : `dominio ${domain}, modo ${modeInfo.label}`;
+
+    if (!confirm(`¿Procesar documento con ${summary}? Esto puede tomar varios minutos.`)) return;
 
     setProcessing(true);
     try {
+      const extractionConfig = mode === 'auto' ? { mode } : {
+        mode,
+        ...(focusTopics.trim() ? { focusTopics: focusTopics.trim() } : {}),
+        ...(customEntityTypes.trim() ? { customEntityTypes: customEntityTypes.trim() } : {}),
+        ...(customRelationTypes.trim() ? { customRelationTypes: customRelationTypes.trim() } : {}),
+        ...(instructions.trim() ? { instructions: instructions.trim() } : {}),
+      };
+
       const response = await fetch(`/api/documents/${documentId}/process`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain }),
+        body: JSON.stringify({ domain, extractionConfig }),
       });
 
       const result = await response.json();
@@ -45,6 +74,7 @@ export default function ProcessDocumentButton({
   };
 
   const isPendingOrFailed = currentStatus === "PENDING" || currentStatus === "FAILED";
+  const needsConfig = mode !== 'auto';
 
   return (
     <div className={cn(
@@ -61,6 +91,7 @@ export default function ProcessDocumentButton({
       <p className="text-cetiem-gray text-xs mb-4 flex-1">Ejecuta PageIndex + Cognee manualmente</p>
 
       <div className="space-y-3">
+        {/* Dominio */}
         <div>
           <label className="text-xs text-cetiem-gray mb-1 block">Dominio de análisis:</label>
           <select
@@ -76,6 +107,107 @@ export default function ProcessDocumentButton({
             <option value="CUSTOM">📝 Custom</option>
           </select>
         </div>
+
+        {/* Modo de extracción */}
+        <div>
+          <label className="text-xs text-cetiem-gray mb-1 block">Modo de extracción del grafo:</label>
+          <div className="grid grid-cols-3 gap-1">
+            {(Object.keys(MODE_LABELS) as ExtractionMode[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => { setMode(m); if (m !== 'auto') setShowConfig(true); }}
+                disabled={processing}
+                title={MODE_LABELS[m].desc}
+                className={cn(
+                  "py-1.5 px-1 rounded-lg text-xs font-medium transition-colors border",
+                  mode === m
+                    ? "bg-cetiem-green/20 border-cetiem-green/50 text-cetiem-green"
+                    : "bg-white/5 border-white/10 text-cetiem-gray hover:border-white/20"
+                )}
+              >
+                {MODE_LABELS[m].icon} {MODE_LABELS[m].label}
+              </button>
+            ))}
+          </div>
+          <p className="text-cetiem-gray/60 text-[10px] mt-1">{MODE_LABELS[mode].desc}</p>
+        </div>
+
+        {/* Config expandible para directed/mixed */}
+        {needsConfig && (
+          <div className="border border-white/10 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowConfig(!showConfig)}
+              className="w-full flex items-center justify-between px-3 py-2 text-xs text-cetiem-gray hover:text-white transition-colors"
+            >
+              <span>Configuración de extracción</span>
+              {showConfig ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+
+            {showConfig && (
+              <div className="px-3 pb-3 space-y-2.5 border-t border-white/10 pt-2.5">
+                {/* Temas de enfoque */}
+                <div>
+                  <label className="text-[10px] text-cetiem-gray mb-1 block">
+                    Temas a enfocar <span className="text-white/30">(separados por coma)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={focusTopics}
+                    onChange={(e) => setFocusTopics(e.target.value)}
+                    disabled={processing}
+                    placeholder="ej: diagnóstico de piel, rituales de pureza"
+                    className="w-full h-7 px-2 text-xs border border-white/10 rounded-lg bg-white/5 text-white placeholder-white/20 focus:outline-none focus:border-cetiem-green disabled:opacity-50"
+                  />
+                </div>
+
+                {/* Tipos de entidad personalizados */}
+                <div>
+                  <label className="text-[10px] text-cetiem-gray mb-1 block">
+                    Tipos de entidad extra <span className="text-white/30">(uno por línea: TIPO: descripción)</span>
+                  </label>
+                  <textarea
+                    value={customEntityTypes}
+                    onChange={(e) => setCustomEntityTypes(e.target.value)}
+                    disabled={processing}
+                    placeholder={"RITUAL: Ritual o ceremonia religiosa\nPRIEST: Sacerdote o líder religioso"}
+                    rows={3}
+                    className="w-full px-2 py-1.5 text-xs border border-white/10 rounded-lg bg-white/5 text-white placeholder-white/20 focus:outline-none focus:border-cetiem-green disabled:opacity-50 resize-none font-mono"
+                  />
+                </div>
+
+                {/* Tipos de relación personalizados */}
+                <div>
+                  <label className="text-[10px] text-cetiem-gray mb-1 block">
+                    Tipos de relación extra <span className="text-white/30">(uno por línea: TIPO: descripción)</span>
+                  </label>
+                  <textarea
+                    value={customRelationTypes}
+                    onChange={(e) => setCustomRelationTypes(e.target.value)}
+                    disabled={processing}
+                    placeholder={"PURIFIES: Purifica a persona\nDIAGNOSES: Diagnóstica condición"}
+                    rows={2}
+                    className="w-full px-2 py-1.5 text-xs border border-white/10 rounded-lg bg-white/5 text-white placeholder-white/20 focus:outline-none focus:border-cetiem-green disabled:opacity-50 resize-none font-mono"
+                  />
+                </div>
+
+                {/* Instrucciones adicionales */}
+                <div>
+                  <label className="text-[10px] text-cetiem-gray mb-1 block">
+                    Instrucciones adicionales <span className="text-white/30">(texto libre)</span>
+                  </label>
+                  <textarea
+                    value={instructions}
+                    onChange={(e) => setInstructions(e.target.value)}
+                    disabled={processing}
+                    placeholder="ej: presta especial atención a los procedimientos descritos en cada versículo"
+                    rows={2}
+                    className="w-full px-2 py-1.5 text-xs border border-white/10 rounded-lg bg-white/5 text-white placeholder-white/20 focus:outline-none focus:border-cetiem-green disabled:opacity-50 resize-none"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <button
           onClick={handleProcess}

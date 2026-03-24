@@ -17,7 +17,7 @@ export async function POST(
     const session = await auth();
     const { id } = await params;
     const body = await request.json();
-    const { domain } = body || {};
+    const { domain, extractionConfig } = body || {};
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -63,7 +63,7 @@ export async function POST(
     // Pero esperamos a que termine para dar feedback al usuario
     try {
       const domainLower = selectedDomain.toLowerCase() as 'medical' | 'legal' | 'technical' | 'academic' | 'custom';
-      const result = await processDocument(id, domainLower);
+      const result = await processDocument(id, domainLower, extractionConfig ?? undefined);
 
       if (result.success) {
         return NextResponse.json({

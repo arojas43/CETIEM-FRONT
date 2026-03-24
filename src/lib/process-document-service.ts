@@ -6,7 +6,7 @@
 import { prisma } from './db';
 import { localStorageService } from './local-storage';
 import { pageIndexService } from './pageindex';
-import { cogneeService, type CogneeDomain } from './cognee-service';
+import { cogneeService, type CogneeDomain, type ExtractionConfig } from './cognee-service';
 import { checkFalkorDBHealth } from './falkordb';
 import { checkRedisHealth } from './queue';
 import { readFileSync } from 'fs';
@@ -49,7 +49,7 @@ async function updateProgress(
 /**
  * Procesa un documento completo: PageIndex + Cognee
  */
-export async function processDocument(documentId: string, domain?: CogneeDomain): Promise<ProcessResult> {
+export async function processDocument(documentId: string, domain?: CogneeDomain, extractionConfig?: ExtractionConfig): Promise<ProcessResult> {
   const startTime = Date.now();
   console.log(`\n${'='.repeat(60)}`);
   console.log(`📄 Procesando documento: ${documentId}`);
@@ -182,7 +182,7 @@ export async function processDocument(documentId: string, domain?: CogneeDomain)
 
     for (let i = 0; i < indicesToProcess.length; i++) {
       const indexNode = indicesToProcess[i];
-      const chunk = `${indexNode.title}: ${indexNode.content?.slice(0, 2000) || ''}`;
+      const chunk = `${indexNode.title}: ${indexNode.content?.slice(0, 3500) || ''}`;
 
       process.stdout.write(`   - Procesando chunk ${i + 1}/${indicesToProcess.length}...\r`);
 
@@ -210,7 +210,8 @@ export async function processDocument(documentId: string, domain?: CogneeDomain)
           documentId,
           document.name,
           domain,
-          pageIndexReference
+          pageIndexReference,
+          extractionConfig
         );
 
         if (entities.length > 0) {

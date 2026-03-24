@@ -38,6 +38,19 @@ function extractFirstJSON(text: string): any | null {
 }
 
 export type CogneeDomain = 'medical' | 'legal' | 'technical' | 'academic' | 'custom';
+export type ExtractionMode = 'auto' | 'directed' | 'mixed';
+
+export interface ExtractionConfig {
+  mode: ExtractionMode;
+  /** Temas específicos en los que enfocarse, ej: "diagnóstico de piel, rituales de pureza" */
+  focusTopics?: string;
+  /** Tipos de entidad personalizados, uno por línea: "RITUAL: Ritual o ceremonia religiosa" */
+  customEntityTypes?: string;
+  /** Tipos de relación personalizados, uno por línea: "PURIFIES: Purifica a persona" */
+  customRelationTypes?: string;
+  /** Instrucciones adicionales libres para el LLM */
+  instructions?: string;
+}
 
 export interface CogneeEntity {
   id: string;
@@ -211,10 +224,11 @@ export class CogneeService {
       section?: string;
       start_index?: number;
       end_index?: number;
-    }
+    },
+    extractionConfig?: ExtractionConfig
   ): Promise<{ entities: CogneeEntity[]; relations: CogneeRelation[] }> {
     const selectedDomain = domain || this.defaultDomain;
-    const prompt = this.buildDomainPrompt(content, documentName, selectedDomain);
+    const prompt = this.buildDomainPrompt(content, documentName, selectedDomain, extractionConfig);
 
     try {
       const config = DOMAIN_CONFIGS[selectedDomain];
@@ -236,27 +250,73 @@ export class CogneeService {
   /**
    * Construye prompt específico por dominio
    */
-  private buildDomainPrompt(content: string, documentName: string, domain: CogneeDomain): string {
+  private buildDomainPrompt(
+    content: string,
+    documentName: string,
+    domain: CogneeDomain,
+    extractionConfig?: ExtractionConfig
+  ): string {
     const config = DOMAIN_CONFIGS[domain];
+    const mode = extractionConfig?.mode ?? 'auto';
+
+    // Construir lista de tipos de entidad según el modo
+    let entityTypes: string[];
+    let relationTypes: string[];
+
+    const customEntities = extractionConfig?.customEntityTypes
+      ?.split('\n').map(l => l.trim()).filter(Boolean) ?? [];
+    const customRelations = extractionConfig?.customRelationTypes
+      ?.split('\n').map(l => l.trim()).filter(Boolean) ?? [];
+
+    if (mode === 'directed') {
+      // Solo usar los tipos definidos por el usuario
+      entityTypes = customEntities.length > 0 ? customEntities : config.entityTypes;
+      relationTypes = customRelations.length > 0 ? customRelations : config.relationTypes;
+    } else if (mode === 'mixed') {
+      // Combinar dominio + tipos del usuario
+      entityTypes = [...config.entityTypes, ...customEntities];
+      relationTypes = [...config.relationTypes, ...customRelations];
+    } else {
+      // auto: solo dominio
+      entityTypes = config.entityTypes;
+      relationTypes = config.relationTypes;
+    }
+
+    // Sección de foco temático (directed / mixed)
+    const focusSection = extractionConfig?.focusTopics
+      ? `\n## ENFOQUE TEMÁTICO:\nPresta especial atención a los siguientes temas: ${extractionConfig.focusTopics}\n`
+      : '';
+
+    // Instrucciones adicionales libres
+    const extraInstructions = extractionConfig?.instructions
+      ? `\n## INSTRUCCIONES ADICIONALES:\n${extractionConfig.instructions}\n`
+      : '';
+
+    const modeLabel = mode === 'directed'
+      ? 'DIRIGIDO (extrae solo lo especificado)'
+      : mode === 'mixed'
+        ? 'MIXTO (dominio + tipos personalizados)'
+        : 'AUTOMÁTICO';
 
     return `Analiza el siguiente fragmento de documento y extrae TODAS las entidades y relaciones importantes.
 
 Documento: ${documentName}
-Dominio: ${domain.toUpperCase()}
-
+Dominio: ${domain.toUpperCase()} — Modo: ${modeLabel}
+${focusSection}${extraInstructions}
 ## INSTRUCCIONES:
-1. Identifica entidades del dominio específico
-2. Identifica relaciones entre entidades
-3. Responde ÚNICAMENTE con JSON válido
+1. Identifica entidades de los tipos listados
+2. Identifica TODAS las relaciones entre entidades encontradas
+3. Asigna IDs simples: "1", "2", "3"...
+4. Responde ÚNICAMENTE con JSON válido, sin texto adicional
 
 ## FORMATO DE SALIDA:
 ${config.exampleOutput}
 
 ## TIPOS DE ENTIDAD VÁLIDOS:
-${config.entityTypes.map(t => `- ${t}`).join('\n')}
+${entityTypes.map(t => `- ${t}`).join('\n')}
 
 ## TIPOS DE RELACIÓN VÁLIDOS:
-${config.relationTypes.map(t => `- ${t}`).join('\n')}
+${relationTypes.map(t => `- ${t}`).join('\n')}
 
 ## FRAGMENTO A ANALIZAR:
 ${content.slice(0, 15000)}`;
