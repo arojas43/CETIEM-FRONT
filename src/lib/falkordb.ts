@@ -149,8 +149,10 @@ export class FalkorDBService {
 
         this.isConnected = true;
         console.log(`✅ [FalkorDB] Conectado exitosamente en ${this.config.host}:${this.config.port}`);
-        // Crear índices en background sin bloquear
-        this.ensureIndexes().catch(() => {});
+        // Await ensureIndexes antes de liberar la conexión.
+        // Si corre en background, los GRAPH.RO_QUERY que llegan inmediatamente
+        // después se bloquean esperando el lock exclusivo de CREATE INDEX → timeout.
+        await this.ensureIndexes().catch(() => {});
         return true;
       } catch (error: any) {
         console.warn(`[FalkorDB] Intento ${attempt} fallido:`, error.message);

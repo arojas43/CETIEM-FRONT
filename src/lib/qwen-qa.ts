@@ -97,25 +97,32 @@ Pregunta: ${question}
 
 Responde usando ÚNICAMENTE la información anterior. Indica la página cuando esté disponible.`;
 
+    const doFetch = () => fetch(`${this.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+      },
+      body: JSON.stringify({
+        model: this.model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: 4096,
+        temperature: 0.4,
+        top_p: 0.95,
+        stream: true,
+      }),
+    });
+
     try {
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-          Accept: "text/event-stream",
-        },
-        body: JSON.stringify({
-          model: this.model,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          max_tokens: 4096,
-          temperature: 0.4,
-          top_p: 0.95,
-          stream: true,
-        }),
+      let response = await doFetch().catch(async (e) => {
+        // Reintento único ante errores de red (fetch failed, ECONNRESET, etc.)
+        console.warn("[QwenQA] Error de red, reintentando en 2s...", e.message);
+        await new Promise(r => setTimeout(r, 2000));
+        return doFetch();
       });
 
       if (!response.ok) {
