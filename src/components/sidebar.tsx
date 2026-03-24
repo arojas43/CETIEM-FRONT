@@ -3,49 +3,79 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
+import { useRole } from '@/lib/role-context'
+import { RoleSwitcher } from '@/components/role-switcher'
 import {
-  LayoutDashboard,
-  Building2,
-  CheckSquare,
-  Calendar,
-  FolderOpen,
-  TrendingUp,
-  User,
-  Settings,
-  LogOut,
-  HelpCircle,
+  LayoutDashboard, FileText, Upload, Award, Building2,
+  ClipboardList, Users, BarChart3, ScrollText, Settings,
+  LogOut, HelpCircle, MessageSquare, Network,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-const navItems = [
-  { href: '/dashboard',           label: 'Dashboard',     icon: LayoutDashboard },
-  { href: '/dashboard/documents', label: 'Mis empresas',  icon: Building2 },
-  { href: '#',                    label: 'Tareas',         icon: CheckSquare,  disabled: true },
-  { href: '#',                    label: 'Calendario',     icon: Calendar,     disabled: true },
-  { href: '/dashboard/upload',    label: 'Archivos',       icon: FolderOpen },
-  { href: '/dashboard/graph',     label: 'Progreso',       icon: TrendingUp },
-]
+type NavItem = {
+  href: string
+  label: string
+  icon: React.ElementType
+  badge?: string
+  disabled?: boolean
+}
 
-const bottomItems = [
-  { label: 'Perfil',          icon: User },
-  { label: 'Ajustes',         icon: Settings },
-  { label: 'Ayuda y soporte', icon: HelpCircle },
-]
+const NAV_BY_ROLE: Record<string, NavItem[]> = {
+  company: [
+    { href: '/dashboard',             label: 'Dashboard',          icon: LayoutDashboard },
+    { href: '/dashboard/documents',   label: 'Mis Documentos',     icon: FileText },
+    { href: '/dashboard/upload',      label: 'Subir Documento',    icon: Upload },
+    { href: '/dashboard/certificate', label: 'Mi Certificación',   icon: Award, disabled: true },
+    { href: '/dashboard/graph',       label: 'Grafo de Datos',     icon: Network },
+    { href: '/dashboard/support',     label: 'Soporte',            icon: HelpCircle, disabled: true },
+  ],
+  assessor: [
+    { href: '/dashboard',             label: 'Dashboard',          icon: LayoutDashboard },
+    { href: '/dashboard/queue',       label: 'Cola de Revisión',   icon: ClipboardList, badge: 'NEW' },
+    { href: '/dashboard/companies',   label: 'Empresas Asignadas', icon: Building2 },
+    { href: '/dashboard/documents',   label: 'Documentos',         icon: FileText },
+    { href: '/dashboard/graph',       label: 'Grafo Global',       icon: Network },
+    { href: '/dashboard/history',     label: 'Historial',          icon: ScrollText, disabled: true },
+  ],
+  admin: [
+    { href: '/dashboard',             label: 'Dashboard',          icon: LayoutDashboard },
+    { href: '/dashboard/companies',   label: 'Empresas',           icon: Building2 },
+    { href: '/dashboard/assessors',   label: 'Assessors',          icon: Users },
+    { href: '/dashboard/documents',   label: 'Documentos',         icon: FileText },
+    { href: '/dashboard/graph',       label: 'Grafo Global',       icon: Network },
+    { href: '/dashboard/analytics',   label: 'Métricas',           icon: BarChart3, disabled: true },
+    { href: '/dashboard/logs',        label: 'Logs de Auditoría',  icon: ScrollText, disabled: true },
+    { href: '/dashboard/settings',    label: 'Configuración',      icon: Settings, disabled: true },
+  ],
+}
+
+const ROLE_HEADER: Record<string, { label: string; color: string }> = {
+  company:  { label: 'Portal Empresa',  color: 'text-cetiem-teal' },
+  assessor: { label: 'Panel Assessor',  color: 'text-cetiem-amber' },
+  admin:    { label: 'Super Admin',     color: 'text-cetiem-lime' },
+}
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { role } = useRole()
+  const navItems = NAV_BY_ROLE[role] ?? NAV_BY_ROLE.company
+  const header = ROLE_HEADER[role]
 
   return (
     <aside className="w-60 bg-cetiem-card border-r border-white/5 flex flex-col h-screen sticky top-0 shrink-0">
-      {/* Logo */}
-      <div className="px-6 py-5 border-b border-white/5">
-        <div className="flex items-baseline gap-1.5">
+      {/* Logo + role label */}
+      <div className="px-5 py-4 border-b border-white/5">
+        <div className="flex items-baseline gap-1.5 mb-0.5">
           <span className="font-heading font-bold text-xl text-white tracking-tight">CETIEM</span>
           <span className="text-cetiem-gray text-xs font-medium">S.C.</span>
         </div>
+        <span className={cn('text-[10px] font-semibold uppercase tracking-widest', header.color)}>
+          {header.label}
+        </span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon
           const exactMatch = item.href === '/dashboard'
@@ -57,7 +87,7 @@ export function Sidebar() {
             return (
               <div
                 key={item.label}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-cetiem-gray/30 cursor-not-allowed select-none"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-cetiem-gray/25 cursor-not-allowed select-none"
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 {item.label}
@@ -69,33 +99,41 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                 isActive
                   ? 'bg-cetiem-green text-white font-medium'
                   : 'text-cetiem-gray hover:text-white hover:bg-white/5'
-              }`}
+              )}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.badge && (
+                <span className="text-[9px] font-bold bg-cetiem-amber text-black px-1.5 py-0.5 rounded-full">
+                  {item.badge}
+                </span>
+              )}
             </Link>
           )
         })}
       </nav>
 
-      {/* Bottom items */}
-      <div className="px-3 py-4 border-t border-white/5 space-y-0.5">
-        {bottomItems.map((item) => {
-          const Icon = item.icon
-          return (
-            <div
-              key={item.label}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-cetiem-gray/40 cursor-not-allowed select-none"
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              {item.label}
-            </div>
-          )
-        })}
+      {/* IA hint */}
+      <div className="px-3 pb-3">
+        <div className="bg-cetiem-green/10 border border-cetiem-green/20 rounded-xl p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <MessageSquare className="h-3.5 w-3.5 text-cetiem-green" />
+            <span className="text-xs font-medium text-white">IA Asistente</span>
+          </div>
+          <p className="text-[10px] text-cetiem-gray/70 leading-relaxed">
+            Consulta documentos en lenguaje natural con GLM4.7.
+          </p>
+        </div>
+      </div>
+
+      {/* Role switcher + logout */}
+      <div className="px-3 pb-4 border-t border-white/5 pt-3 space-y-2">
+        <RoleSwitcher />
         <button
           onClick={() => signOut({ callbackUrl: '/auth/signin' })}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-cetiem-gray hover:text-white hover:bg-white/5 transition-colors"

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
+import { RoleProvider } from "@/lib/role-context";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap", preload: false });
 const bricolage = Bricolage_Grotesque({
@@ -25,9 +26,11 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${inter.variable} ${bricolage.variable} font-sans`}>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <RoleProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </RoleProvider>
       </body>
     </html>
   );
