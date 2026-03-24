@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useRole } from "@/lib/role-context";
 import Link from "next/link";
 import {
@@ -35,7 +36,7 @@ interface Props {
   allDocsGlobal: GlobalDoc[];
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: typeof CheckCircle }> = {
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ComponentType<{ className?: string }> }> = {
   PENDING:    { label: 'Pendiente',   color: 'text-cetiem-gray',  bg: 'bg-cetiem-gray/10',  icon: Clock },
   PROCESSING: { label: 'Procesando', color: 'text-cetiem-amber', bg: 'bg-cetiem-amber/10', icon: RefreshCw },
   INDEXED:    { label: 'Indexado',   color: 'text-cetiem-teal',  bg: 'bg-cetiem-teal/10',  icon: Search },

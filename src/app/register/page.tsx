@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Building2, Mail, Lock, User, Phone, Globe, CheckCircle, ArrowRight, Shield } from "lucide-react";
+import { Building2, Mail, Lock, User, Phone, CheckCircle, ArrowRight, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const CERT_TYPES = [

@@ -4,6 +4,39 @@ import { prisma } from "@/lib/db";
 import { storageService } from "@/lib/storage";
 
 /**
+ * GET /api/documents/[id]
+ * Devuelve los datos de un documento (accesible por el dueño o cualquier usuario autenticado para la consola de revisión)
+ */
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const { id } = await params;
+    const document = await prisma.document.findUnique({
+      where: { id },
+      select: {
+        id: true, name: true, description: true, status: true,
+        domain: true, size: true, mimeType: true, storageUrl: true,
+        createdAt: true, updatedAt: true,
+        user: { select: { name: true, email: true } },
+      },
+    });
+    if (!document) {
+      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+    }
+    return NextResponse.json(document);
+  } catch (error) {
+    console.error("Error fetching document:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+/**
  * DELETE /api/documents/[id]
  * Elimina un documento
  */
