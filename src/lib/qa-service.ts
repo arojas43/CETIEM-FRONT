@@ -243,15 +243,21 @@ export class QAService {
         if (originalQuery) {
           console.log(`[QA] Búsqueda general en PageIndex: "${originalQuery}"`);
 
-          const treeContexts = await this.getPageIndexByLLMTreeSearch(documentId, originalQuery);
-          if (treeContexts.length > 0) {
-            contexts.push(...treeContexts);
-            console.log(`[QA] LLM Tree Search encontró ${treeContexts.length} secciones`);
-          } else {
-            console.log(`[QA] Tree search sin resultados, usando keyword fallback`);
-            const keywordContexts = await this.fallbackKeywordSearch(documentId, originalQuery);
-            contexts.push(...keywordContexts);
+          const [treeContexts, keywordContexts] = await Promise.all([
+            this.getPageIndexByLLMTreeSearch(documentId, originalQuery),
+            this.fallbackKeywordSearch(documentId, originalQuery),
+          ]);
+
+          // Combinar tree search + keyword search, deduplicando por section+page
+          const seen = new Set<string>();
+          for (const ctx of [...treeContexts, ...keywordContexts]) {
+            const key = `${ctx.section ?? ''}|${ctx.page ?? ''}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              contexts.push(ctx);
+            }
           }
+          console.log(`[QA] Tree search: ${treeContexts.length} | Keyword: ${keywordContexts.length} | Total combinado: ${contexts.length}`);
         }
 
         // Fallback final
@@ -504,7 +510,8 @@ export class QAService {
 Format: ["id1", "id2", ...]
 Rules:
 - Output ONLY the JSON array, nothing else
-- Select 1 to 8 most relevant sections
+- Select ALL sections that are relevant to the question (up to 20)
+- Include sections that partially cover the topic, not just the most obvious one
 - If none are relevant, output: []
 - Do NOT explain, do NOT add text before or after the array`;
 
@@ -514,7 +521,7 @@ Rules:
         model: process.env.NVIDIA_CHAT_MODEL || 'meta/llama-3.1-70b-instruct',
         prompt,
         systemPrompt,
-        maxTokens: 256,
+        maxTokens: 512,
         temperature: 0.0,
       });
 
@@ -606,7 +613,7 @@ Rules:
           ]),
         },
         orderBy: { page: 'asc' },
-        take: 15,
+        take: 25,
       });
 
       return sections
