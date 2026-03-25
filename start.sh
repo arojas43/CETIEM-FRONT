@@ -59,16 +59,9 @@ if [ ! -f "$SCRIPT_DIR/.env" ]; then
   if [ -f "$SCRIPT_DIR/.env.example" ]; then
     cp "$SCRIPT_DIR/.env.example" "$SCRIPT_DIR/.env"
     echo -e "${YELLOW}  → .env creado desde .env.example${NC}"
-    echo -e "${YELLOW}  → IMPORTANTE: edita .env y agrega tus API keys antes de continuar:${NC}"
+    echo -e "${YELLOW}  → IMPORTANTE: agrega tus API keys en .env:${NC}"
     echo -e "${YELLOW}      NVIDIA_API_KEY y NVIDIA_QA_API_KEY → https://build.nvidia.com${NC}"
-    echo -e "${YELLOW}      NEXTAUTH_SECRET / AUTH_SECRET → openssl rand -base64 32${NC}"
     echo ""
-    # Generar NEXTAUTH_SECRET automáticamente si openssl está disponible
-    if command -v openssl &>/dev/null; then
-      SECRET=$(openssl rand -base64 32)
-      sed -i "s|REEMPLAZA_CON_CLAVE_ALEATORIA|$SECRET|g" "$SCRIPT_DIR/.env" 2>/dev/null || true
-      echo -e "${GREEN}  ✓ NEXTAUTH_SECRET generado automáticamente${NC}"
-    fi
   else
     echo -e "${RED}✗ No se encontró .env ni .env.example${NC}"
     exit 1
@@ -76,6 +69,46 @@ if [ ! -f "$SCRIPT_DIR/.env" ]; then
 else
   echo -e "${GREEN}✓ .env existente detectado${NC}"
 fi
+
+# Corregir siempre los valores que deben coincidir con docker-compose
+# (aplica aunque .env ya exista, para evitar valores obsoletos)
+ENV_FILE="$SCRIPT_DIR/.env"
+
+patch_env() {
+  local key="$1" val="$2"
+  if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+    sed -i "s|^${key}=.*|${key}=${val}|" "$ENV_FILE"
+  else
+    echo "${key}=${val}" >> "$ENV_FILE"
+  fi
+}
+
+patch_env "DATABASE_URL"       '"postgresql://postgres:cetiem@localhost:5432/cetiem_db?schema=certificacion_ia"'
+patch_env "LOCAL_STORAGE_PATH" "./uploads"
+patch_env "REDIS_HOST"         "localhost"
+patch_env "REDIS_PORT"         "6379"
+patch_env "FALKORDB_HOST"      "localhost"
+patch_env "FALKORDB_PORT"      "6380"
+patch_env "NEXTAUTH_URL"       "http://localhost:3000"
+patch_env "NEXT_PUBLIC_APP_URL" "http://localhost:3000"
+
+# Generar secrets si todavía tienen el placeholder
+if grep -q "REEMPLAZA_CON_CLAVE_ALEATORIA" "$ENV_FILE" 2>/dev/null; then
+  if command -v openssl &>/dev/null; then
+    SECRET=$(openssl rand -base64 32)
+    sed -i "s|REEMPLAZA_CON_CLAVE_ALEATORIA|$SECRET|g" "$ENV_FILE"
+    echo -e "${GREEN}  ✓ NEXTAUTH_SECRET / AUTH_SECRET generados automáticamente${NC}"
+  fi
+fi
+
+# Asegurar que AUTH_SECRET exista (NextAuth v5 lo requiere)
+if ! grep -q "^AUTH_SECRET=" "$ENV_FILE" 2>/dev/null; then
+  NSECRET=$(grep "^NEXTAUTH_SECRET=" "$ENV_FILE" | cut -d'=' -f2-)
+  echo "AUTH_SECRET=${NSECRET}" >> "$ENV_FILE"
+  echo -e "${GREEN}  ✓ AUTH_SECRET sincronizado desde NEXTAUTH_SECRET${NC}"
+fi
+
+echo -e "${GREEN}✓ Variables de entorno listas${NC}"
 
 ###############################################################################
 # 3. Levantar infraestructura con Docker Compose
