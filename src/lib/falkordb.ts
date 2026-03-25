@@ -310,10 +310,17 @@ export class FalkorDBService {
     if (_indexesEnsured) return;
 
     const labels = [
+      // Comunes a todos los dominios
       'ORGANIZATION', 'REGULATION', 'REQUIREMENT', 'PERSON', 'DATE',
-      'DOCUMENT', 'PROCEDURE', 'LOCATION', 'DISEASE', 'TREATMENT',
-      'ANATOMY', 'MEDICATION', 'SYMPTOM', 'SYSTEM', 'EQUIPMENT',
-      'CONCEPT', 'TECHNOLOGY', 'FINDING', 'AUTHOR', 'ENTITY',
+      'DOCUMENT', 'PROCEDURE', 'LOCATION', 'CONCEPT', 'ENTITY',
+      // Dominio: INDUSTRIA (ISO 9001/14001/45001, SST)
+      'HAZARD', 'INDICATOR', 'PROCESS',
+      // Dominio: CONSTRUCCION (NOM-031, obra civil)
+      'PROJECT', 'MATERIAL', 'WORKER',
+      // Dominio: TECNOLOGIA (LGPDPPSO, ISO 27001)
+      'SYSTEM', 'DATA', 'RISK',
+      // Legacy / otros (pueden aparecer en documentos procesados antes)
+      'EQUIPMENT', 'FINDING', 'AUTHOR', 'TECHNOLOGY',
     ];
 
     // Intentar crear cada índice. Si ya existe FalkorDB devuelve "already indexed",
@@ -533,13 +540,17 @@ export class FalkorDBService {
    * Elimina entidades por documentId
    */
   async deleteEntitiesByDocumentId(documentId: string): Promise<number> {
-    const cypher = `MATCH (n {documentId: "${documentId}"}) DETACH DELETE n`;
-
     try {
-      const result = await this.query(cypher);
-      // El resultado típico es: { "Labels added": 0, "Nodes deleted": X, ... }
-      const deleted = result.rows.find(r => r['Nodes deleted'])?.['Nodes deleted'] as number || 0;
-      return deleted;
+      // Contar antes de borrar (DETACH DELETE no devuelve filas via ioredis)
+      const countResult = await this.roQuery(
+        `MATCH (n {documentId: "${documentId}"}) RETURN count(n) AS count`
+      );
+      const count = countResult.rows[0]?.count as number || 0;
+
+      if (count > 0) {
+        await this.query(`MATCH (n {documentId: "${documentId}"}) DETACH DELETE n`);
+      }
+      return count;
     } catch (error: any) {
       console.error('[FalkorDB] Error eliminando entidades:', error.message);
       return 0;
