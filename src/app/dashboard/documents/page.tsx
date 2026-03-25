@@ -7,14 +7,20 @@ import { DocumentListPaginated } from "@/components/document-list-paginated";
 export default async function DocumentsPage() {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin");
+  const role = (session.user as any).role as string;
+  const isCompany = role === "COMPANY";
 
   return (
     <div className="flex flex-col h-full">
       {/* Page header */}
       <div className="flex items-center justify-between px-8 py-5 border-b border-white/5">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-white">Mis empresas</h1>
-          <p className="text-cetiem-gray text-sm mt-0.5">Gestiona tu biblioteca documental</p>
+          <h1 className="font-heading font-bold text-2xl text-white">Mis Documentos</h1>
+          <p className="text-cetiem-gray text-sm mt-0.5">
+            {isCompany
+              ? "Sube y gestiona los documentos de tu empresa para la certificación ESG."
+              : "Biblioteca documental global — todos los documentos del sistema."}
+          </p>
         </div>
         <Link
           href="/dashboard/upload"
@@ -27,22 +33,18 @@ export default async function DocumentsPage() {
 
       {/* Content */}
       <div className="flex-1 p-8 overflow-auto">
+        {/* Aviso para empresa */}
+        {isCompany && (
+          <div className="mb-4 px-4 py-3 bg-cetiem-teal/5 border border-cetiem-teal/10 rounded-xl text-xs text-cetiem-gray leading-relaxed">
+            <strong className="text-cetiem-teal">¿Cómo funciona?</strong>{" "}
+            Sube todos los documentos relevantes para tu certificación ESG (políticas, manuales, certificados, etc.).
+            El sistema los analiza automáticamente con IA. Una vez que tu assessor asignado los revise,
+            recibirás el dictamen y, si aplica, tu Certificado ESG.
+          </div>
+        )}
+
         <div className="bg-cetiem-card border border-white/5 rounded-2xl p-6">
           <DocumentListPaginated />
-        </div>
-
-        {/* Info cards */}
-        <div className="grid md:grid-cols-3 gap-4 mt-6">
-          {[
-            { title: "PageIndex", color: "cetiem-green", desc: "Analiza la estructura jerárquica de documentos PDF. Detecta capítulos, secciones y crea índices navegables." },
-            { title: "Cognee", color: "cetiem-teal", desc: "Extrae entidades y relaciones del texto. Identifica normas, requisitos, empresas y fechas importantes." },
-            { title: "FalkorDB", color: "cetiem-lime", desc: "Base de datos de grafos que almacena el conocimiento extraído. Permite consultas complejas de relaciones." },
-          ].map(card => (
-            <div key={card.title} className="bg-cetiem-card border border-white/5 rounded-xl p-4">
-              <h3 className={`font-heading font-semibold text-sm mb-2 text-${card.color}`}>{card.title}</h3>
-              <p className="text-cetiem-gray text-xs leading-relaxed">{card.desc}</p>
-            </div>
-          ))}
         </div>
       </div>
     </div>

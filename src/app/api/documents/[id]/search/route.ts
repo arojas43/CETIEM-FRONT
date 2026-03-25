@@ -41,11 +41,13 @@ export async function POST(
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
-    if (document.userId !== session.user.id) {
+    const userRole = (session.user as any).role;
+    const canAccessAll = userRole === "ASSESSOR" || userRole === "ADMIN";
+    if (!canAccessAll && document.userId !== session.user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    console.log(`[Search] Query: "${query}", Document: ${id}, Page: ${page || 'any'}, Section: ${section || 'any'}`);
+    console.log(`[Search] Query: "${query}", Document: ${id}, Page: ${page || 'any'}, Section: ${section || 'any'}`);;
 
     const result = await qaService.answerSpecificQuestion(query, id, document.name);
 
@@ -101,7 +103,9 @@ export async function GET(
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
-    if (document.userId !== session.user.id) {
+    const userRole = (session.user as any).role;
+    const canAccessAll = userRole === "ASSESSOR" || userRole === "ADMIN";
+    if (!canAccessAll && document.userId !== session.user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

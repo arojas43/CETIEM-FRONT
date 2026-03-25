@@ -35,15 +35,19 @@ export default async function DashboardPage() {
       })
     : null
 
+  // Company cert stats ahora usan CompanyCertification (dictamen por empresa, no por doc)
   const certStats = role === 'company'
-    ? await prisma.certification.aggregate({
-        where: { document: { userId } },
-        _count: true,
-      }).then(async r => ({
-        total: r._count,
-        approved: await prisma.certification.count({ where: { document: { userId }, status: 'APPROVED' } }),
-        rejected: await prisma.certification.count({ where: { document: { userId }, status: 'REJECTED' } }),
+    ? await prisma.companyCertification.findFirst({
+        where: { companyId: userId },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, status: true, esgScore: true },
+      }).then(async cert => ({
+        total:    cert ? 1 : 0,
+        approved: cert?.status === 'APPROVED' ? 1 : 0,
+        rejected: cert?.status === 'REJECTED' ? 1 : 0,
         capaOpen: await prisma.capaTicket.count({ where: { userId, status: { in: ['OPEN', 'IN_PROGRESS', 'OVERDUE'] } } }),
+        esgScore: cert?.esgScore ?? null,
+        certStatus: cert?.status ?? null,
       }))
     : null
 
@@ -76,7 +80,7 @@ export default async function DashboardPage() {
       prisma.document.count({ where: { status: 'ANALYZED' } }),
       prisma.document.count({ where: { status: 'FAILED' } }),
       prisma.user.count({ where: { role: 'COMPANY' } }),
-      prisma.certification.count({ where: { status: 'APPROVED' } }),
+      prisma.companyCertification.count({ where: { status: 'APPROVED' } }),
       prisma.capaTicket.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS', 'OVERDUE'] } } }),
     ])
 

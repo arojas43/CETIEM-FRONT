@@ -1,39 +1,49 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { falkorDBService, checkFalkorDBHealth } from "@/lib/falkordb";
 
 /**
  * POST /api/graph/query
- * Consulta el grafo de conocimiento en FalkorDB
+ * Consulta el grafo de conocimiento en FalkorDB (solo ASSESSOR y ADMIN).
+ * Ejecuta siempre como read-only (roQuery) para prevenir modificaciones.
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userRole = (session.user as any).role;
+    if (userRole !== "ASSESSOR" && userRole !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await request.json();
     const { query } = body;
 
-    if (!query) {
+    if (!query || typeof query !== "string") {
       return NextResponse.json(
         { error: "Query is required" },
         { status: 400 }
       );
     }
 
-    // Validar que no sea una consulta peligrosa
-    const upperQuery = query.toUpperCase();
-    const dangerousPatterns = ['DROP', 'DELETE ALL', 'DETACH DELETE ALL'];
-    for (const pattern of dangerousPatterns) {
-      if (upperQuery.includes(pattern)) {
-        return NextResponse.json(
-          { error: "Consulta no permitida: operaciones masivas de eliminación están restringidas" },
-          { status: 403 }
-        );
-      }
+    // Allowlist: solo se permiten consultas de lectura
+    const trimmed = query.trimStart().toUpperCase();
+    const allowedPrefixes = ["MATCH", "WITH", "CALL", "RETURN", "UNWIND"];
+    const isReadOnly = allowedPrefixes.some(p => trimmed.startsWith(p));
+    if (!isReadOnly) {
+      return NextResponse.json(
+        { error: "Solo se permiten consultas de lectura (MATCH, WITH, CALL, RETURN, UNWIND)" },
+        { status: 403 }
+      );
     }
 
     // Verificar salud de FalkorDB
     const isHealthy = await checkFalkorDBHealth();
     if (!isHealthy) {
       return NextResponse.json(
-        { 
+        {
           error: "FalkorDB no está disponible",
           details: "Verifica que el contenedor falkordb-dev esté corriendo (puerto 6380)",
           hint: "Ejecuta: docker ps | grep falkor"
@@ -42,8 +52,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Ejecutar consulta con el servicio mejorado
-    const result = await falkorDBService.query(query);
+    // roQuery garantiza read-only a nivel de BD (FalkorDB rechaza escrituras)
+    const result = await falkorDBService.roQuery(query);
 
     return NextResponse.json({
       success: true,
@@ -76,10 +86,19 @@ export async function POST(request: Request) {
 
 /**
  * GET /api/graph/stats
- * Obtiene estadísticas del grafo con verificación de salud
+ * Obtiene estadísticas del grafo con verificación de salud (solo ASSESSOR y ADMIN).
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userRole = (session.user as any).role;
+    if (userRole !== "ASSESSOR" && userRole !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     // Verificar salud primero
     const isHealthy = await checkFalkorDBHealth();
     

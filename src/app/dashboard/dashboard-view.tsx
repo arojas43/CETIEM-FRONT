@@ -36,6 +36,7 @@ interface CompanyMeta {
 }
 interface CertStats {
   total: number; approved: number; rejected: number; capaOpen: number;
+  esgScore?: number | null; certStatus?: string | null;
 }
 
 interface Props {

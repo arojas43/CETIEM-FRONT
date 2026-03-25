@@ -45,11 +45,12 @@ model User {
   assessor      User?            @relation("AssessorCompanies", fields: [assessorId], references: [id])
   companies     User[]           @relation("AssessorCompanies")
 
-  accounts      Account[]
-  sessions      Session[]
-  documents     Document[]
-  auditLogs     AuditLog[]
-  capaTickets   CapaTicket[]
+  accounts               Account[]
+  sessions               Session[]
+  documents              Document[]
+  auditLogs              AuditLog[]
+  capaTickets            CapaTicket[]
+  companyCertifications  CompanyCertification[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -216,21 +217,24 @@ enum FindingStatus {
 }
 
 model CapaTicket {
-  id          String   @id @default(cuid())
-  documentId  String
-  document    Document @relation(fields: [documentId], references: [id])
-  findingId   String?  @unique
-  finding     Finding? @relation(fields: [findingId], references: [id])
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  title       String
-  description String   @db.Text
-  dueDate     DateTime  // 30 days from creation
-  status      CapaStatus @default(OPEN)
-  resolution  String?   @db.Text
-  closedAt    DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                     String                @id @default(cuid())
+  documentId             String
+  document               Document              @relation(fields: [documentId], references: [id])
+  findingId              String?               @unique
+  finding                Finding?              @relation(fields: [findingId], references: [id])
+  userId                 String
+  user                   User                  @relation(fields: [userId], references: [id])
+  /// Certificación de empresa a la que pertenece este ticket (cuando aplica)
+  companyCertificationId String?
+  companyCertification   CompanyCertification? @relation(fields: [companyCertificationId], references: [id])
+  title                  String
+  description            String                @db.Text
+  dueDate                DateTime
+  status                 CapaStatus            @default(OPEN)
+  resolution             String?               @db.Text
+  closedAt               DateTime?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
 }
 
 enum CapaStatus {
@@ -238,6 +242,30 @@ enum CapaStatus {
   IN_PROGRESS
   CLOSED
   OVERDUE
+}
+
+/**
+ * CompanyCertification — Dictamen ESG emitido por empresa completa.
+ * Un solo certificado por empresa que cubre la totalidad de sus documentos analizados.
+ * Los hallazgos y el V.L.A.P. se almacenan en el campo `requirements` (JSON).
+ */
+model CompanyCertification {
+  id           String              @id @default(cuid())
+  companyId    String
+  company      User                @relation(fields: [companyId], references: [id])
+  status       CertificationStatus @default(DRAFT)
+  /// Contiene: { verdict, notes, assessorId, assessorEmail, assessedAt,
+  ///             vlap, confidenceScore, findings[], documentIds[] }
+  requirements Json
+  esgScore     Float?
+  sha256Hash   String?
+  publicToken  String?             @unique
+  revokedAt    DateTime?
+  revokedBy    String?
+  revokeReason String?
+  capaTickets  CapaTicket[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 }
 
 model AuditLog {
