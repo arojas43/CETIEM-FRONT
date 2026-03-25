@@ -1,0 +1,59 @@
+# ============================================================
+# CETIEM — Servicios de infraestructura para desarrollo
+# Levanta PostgreSQL, Redis y FalkorDB con un solo comando:
+#   docker compose up -d
+# ============================================================
+
+services:
+
+  # ── PostgreSQL ─────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: cetiem-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: cetiem
+      POSTGRES_DB: cetiem_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - cetiem_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis (BullMQ) ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: cetiem-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - cetiem_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── FalkorDB (grafo de conocimiento) ───────────────────────
+  falkordb:
+    image: falkordb/falkordb:latest
+    container_name: cetiem-falkordb
+    restart: unless-stopped
+    command: ["--stop-writes-on-bgsave-error", "no"]
+    ports:
+      - "6380:6379"   # FalkorDB en 6380 para no chocar con Redis
+      - "3001:3000"   # FalkorDB Browser UI en localhost:3001
+    volumes:
+      - cetiem_falkordb_data:/var/lib/falkordb/data
+
+volumes:
+  cetiem_postgres_data:
+  cetiem_redis_data:
+  cetiem_falkordb_data:
