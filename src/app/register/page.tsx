@@ -6,12 +6,22 @@ import Link from "next/link";
 import { Building2, Mail, Lock, User, Phone, CheckCircle, ArrowRight, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const CERT_TYPES = [
-  { id: "ISO_9001",  label: "ISO 9001",  desc: "Gestión de Calidad" },
-  { id: "ISO_14001", label: "ISO 14001", desc: "Gestión Ambiental" },
-  { id: "ISO_45001", label: "ISO 45001", desc: "Seguridad y Salud" },
-  { id: "LEGAL",     label: "Legal",     desc: "Cumplimiento Legal" },
-  { id: "CUSTOM",    label: "Custom",    desc: "Certificación Personalizada" },
+const TRACKS = [
+  {
+    id: "A", label: "Track A — Industria",
+    desc: "Manufactura, agroindustria, minería, automotriz",
+    docs: ["Política ambiental", "Reportes NOM-035", "Permisos LAU", "Declaraciones SAT"],
+  },
+  {
+    id: "B", label: "Track B — Construcción",
+    desc: "Inmobiliaria, infraestructura, obra civil",
+    docs: ["Permisos de construcción", "Estudio de impacto", "Contratos colectivos", "Reportes de seguridad"],
+  },
+  {
+    id: "C", label: "Track C — Tecnología / Servicios",
+    desc: "Software, consultoría, fintech, educación",
+    docs: ["Política de privacidad", "Aviso de privacidad LFPDPPP", "Contratos de servicio", "Reportes ESG"],
+  },
 ];
 
 export default function RegisterPage() {
@@ -30,18 +40,13 @@ export default function RegisterPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    certTypes: [] as string[],
+    track: "" as "A" | "B" | "C" | "",
     acceptTerms: false,
   });
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(p => ({ ...p, [k]: e.target.value }));
 
-  const toggleCert = (id: string) =>
-    setForm(p => ({
-      ...p,
-      certTypes: p.certTypes.includes(id) ? p.certTypes.filter(c => c !== id) : [...p.certTypes, id],
-    }));
 
   const handleStep1 = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,8 +67,22 @@ export default function RegisterPage() {
     if (!form.acceptTerms) { setError("Debes aceptar los términos y condiciones."); return; }
     setLoading(true); setError("");
     try {
-      // Simulate registration (connect to real API in production)
-      await new Promise(r => setTimeout(r, 1200));
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+          contactName: form.contactName,
+          companyName: form.companyName,
+          rfc: form.rfc,
+          industry: form.industry,
+          phone: form.phone,
+          track: form.track || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Error al registrar."); return; }
       setStep(3);
     } catch {
       setError("Error al registrar. Intenta de nuevo.");
@@ -236,35 +255,40 @@ export default function RegisterPage() {
             </form>
           )}
 
-          {/* Step 2 — Certification type */}
+          {/* Step 2 — Track sectorial */}
           {step === 2 && (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <h1 className="font-heading font-bold text-2xl text-white mb-1">Tipo de certificación</h1>
-                <p className="text-cetiem-gray text-sm">Selecciona las normas que deseas certificar (puedes elegir más de una).</p>
+                <h1 className="font-heading font-bold text-2xl text-white mb-1">Track Sectorial ESG</h1>
+                <p className="text-cetiem-gray text-sm">Selecciona el track que corresponde al giro de tu empresa. Esto determina los documentos requeridos.</p>
               </div>
 
               <div className="grid grid-cols-1 gap-3">
-                {CERT_TYPES.map(ct => (
+                {TRACKS.map(track => (
                   <button
-                    key={ct.id} type="button"
-                    onClick={() => toggleCert(ct.id)}
+                    key={track.id} type="button"
+                    onClick={() => setForm(p => ({ ...p, track: track.id as "A"|"B"|"C" }))}
                     className={cn(
-                      "flex items-center gap-4 p-4 rounded-xl border text-left transition-all",
-                      form.certTypes.includes(ct.id)
+                      "flex items-start gap-4 p-4 rounded-xl border text-left transition-all",
+                      form.track === track.id
                         ? "bg-cetiem-green/10 border-cetiem-green/40 text-white"
                         : "bg-white/3 border-white/10 text-cetiem-gray hover:border-white/20 hover:text-white"
                     )}
                   >
                     <div className={cn(
-                      "h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 transition-all",
-                      form.certTypes.includes(ct.id) ? "bg-cetiem-green border-cetiem-green" : "border-white/20"
+                      "h-8 w-8 rounded-xl border-2 flex items-center justify-center shrink-0 font-bold text-sm transition-all",
+                      form.track === track.id ? "bg-cetiem-green border-cetiem-green text-white" : "border-white/20 text-cetiem-gray/40"
                     )}>
-                      {form.certTypes.includes(ct.id) && <CheckCircle className="h-3 w-3 text-white" />}
+                      {track.id}
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">{ct.label}</p>
-                      <p className="text-xs opacity-60">{ct.desc}</p>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{track.label}</p>
+                      <p className="text-xs opacity-60 mb-2">{track.desc}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {track.docs.map(d => (
+                          <span key={d} className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-cetiem-gray/60">{d}</span>
+                        ))}
+                      </div>
                     </div>
                   </button>
                 ))}

@@ -24,7 +24,7 @@ export default function ProcessDocumentButton({
   currentStatus,
 }: ProcessDocumentButtonProps) {
   const [processing, setProcessing] = useState(false);
-  const [domain, setDomain] = useState(currentDomain || "LEGAL");
+  const [domain, setDomain] = useState(currentDomain || "INDUSTRIA");
   const [mode, setMode] = useState<ExtractionMode>('auto');
   const [showConfig, setShowConfig] = useState(false);
 
@@ -100,11 +100,9 @@ export default function ProcessDocumentButton({
             disabled={processing}
             className="w-full h-8 px-2 border border-white/10 rounded-lg text-sm bg-white/5 text-white focus:outline-none focus:border-cetiem-green disabled:opacity-50"
           >
-            <option value="LEGAL">📜 Legal</option>
-            <option value="MEDICAL">🏥 Médico</option>
-            <option value="TECHNICAL">⚙️ Técnico</option>
-            <option value="ACADEMIC">🎓 Académico</option>
-            <option value="CUSTOM">📝 Custom</option>
+            <option value="INDUSTRIA">🏭 Industria</option>
+            <option value="CONSTRUCCION">🏗️ Construcción</option>
+            <option value="TECNOLOGIA">💻 Tecnología / Servicios</option>
           </select>
         </div>
 

@@ -7,15 +7,49 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  COMPANY
+  ASSESSOR
+  ADMIN
+}
+
+enum TrackSectorial {
+  A  // Industria
+  B  // Construcción
+  C  // Tecnología / Servicios
+}
+
+enum SprintLevel {
+  STARTUP   // Sprint 1
+  PEQUENA   // Sprint 2
+  MEDIANA   // Sprint 3
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
   name          String?
   image         String?
   emailVerified DateTime?
+  password      String?
+  role          UserRole  @default(COMPANY)
+  // Company extra fields
+  companyName   String?
+  rfc           String?
+  industry      String?
+  phone         String?
+  // ESG fields
+  track         TrackSectorial?
+  sprintLevel   SprintLevel @default(STARTUP)
+  assessorId    String?          // Assessor assigned to this company
+  assessor      User?            @relation("AssessorCompanies", fields: [assessorId], references: [id])
+  companies     User[]           @relation("AssessorCompanies")
+
   accounts      Account[]
   sessions      Session[]
   documents     Document[]
+  auditLogs     AuditLog[]
+  capaTickets   CapaTicket[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -62,14 +96,16 @@ model Document {
   size        Int
   storageUrl  String
   status      DocumentStatus @default(PENDING)
-  domain      DocumentDomain @default(LEGAL)
+  domain      DocumentDomain @default(INDUSTRIA)
+  sha256      String?        // Hash SHA-256 del archivo
   userId      String
   user        User     @relation(fields: [userId], references: [id])
   certifications Certification[]
   pageIndices PageIndex[]
-  
+  capaTickets CapaTicket[]
+
   processingProgress Json?
-  
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -83,11 +119,9 @@ enum DocumentStatus {
 }
 
 enum DocumentDomain {
-  MEDICAL
-  LEGAL
-  TECHNICAL
-  ACADEMIC
-  CUSTOM
+  INDUSTRIA
+  CONSTRUCCION
+  TECNOLOGIA
 }
 
 model PageIndex {
@@ -106,16 +140,23 @@ model PageIndex {
 }
 
 model Certification {
-  id          String   @id @default(cuid())
-  name        String
-  type        CertificationType
-  status      CertificationStatus @default(DRAFT)
-  requirements Json
-  documentId  String
-  document    Document @relation(fields: [documentId], references: [id])
-  findings    Finding[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  type           CertificationType
+  status         CertificationStatus @default(DRAFT)
+  requirements   Json     // { verdict, notes, assessorId, assessorEmail, assessedAt, vlap, confidenceScore, aiRecommendation }
+  documentId     String
+  document       Document @relation(fields: [documentId], references: [id])
+  findings       Finding[]
+  // ESG Certificate fields
+  esgScore       Float?
+  sha256Hash     String?  // Hash SHA-256 del certificado generado
+  publicToken    String?  @unique  // UUID para verificación pública
+  revokedAt      DateTime?
+  revokedBy      String?
+  revokeReason   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 enum CertificationType {
@@ -125,6 +166,7 @@ enum CertificationType {
   FINANCIAL
   LEGAL
   CUSTOM
+  ESG
 }
 
 enum CertificationStatus {
@@ -132,6 +174,8 @@ enum CertificationStatus {
   IN_REVIEW
   APPROVED
   REJECTED
+  REVOKED
+  CAPA_OPEN
 }
 
 model Finding {
@@ -145,6 +189,7 @@ model Finding {
   evidence        String?  @db.Text
   recommendation  String?  @db.Text
   status          FindingStatus @default(OPEN)
+  capaTicket      CapaTicket?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -168,4 +213,42 @@ enum FindingStatus {
   IN_PROGRESS
   RESOLVED
   CLOSED
+}
+
+model CapaTicket {
+  id          String   @id @default(cuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id])
+  findingId   String?  @unique
+  finding     Finding? @relation(fields: [findingId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  title       String
+  description String   @db.Text
+  dueDate     DateTime  // 30 days from creation
+  status      CapaStatus @default(OPEN)
+  resolution  String?   @db.Text
+  closedAt    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum CapaStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+  OVERDUE
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String   // e.g. DOCUMENT_UPLOADED, CERT_ISSUED, CERT_REVOKED, CAPA_CREATED
+  entityType  String   // Document, Certification, User, etc.
+  entityId    String
+  payload     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
 }

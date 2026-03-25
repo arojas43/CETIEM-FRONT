@@ -130,6 +130,10 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
+    // Compute SHA-256 hash for forensic integrity
+    const { createHash } = await import("crypto");
+    const sha256 = createHash("sha256").update(buffer).digest("hex");
+
     // Primero crear registro en BD para obtener el ID
     const document = await prisma.document.create({
       data: {
@@ -139,6 +143,7 @@ export async function POST(request: NextRequest) {
         size: file.size,
         storageUrl: "/pending", // Temporal, se actualiza después
         status: "PENDING",
+        sha256,
         userId: session.user.id,
       },
     });
@@ -156,6 +161,16 @@ export async function POST(request: NextRequest) {
     await prisma.document.update({
       where: { id: document.id },
       data: { storageUrl: result.url },
+    });
+
+    // Audit log
+    const { logAudit } = await import("@/lib/audit");
+    await logAudit({
+      userId: session.user.id,
+      action: "DOCUMENT_UPLOADED",
+      entityType: "Document",
+      entityId: document.id,
+      payload: { name: file.name, size: file.size, sha256 },
     });
 
     // Encolar trabajo de procesamiento (opcional, si Redis está disponible)

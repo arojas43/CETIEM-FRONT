@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageSquare, Send, Brain, Network, FileText, ChevronRight, Sparkles, BookOpen } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { useRole } from "@/lib/role-context";
 
 interface Entity { id: string; type: string; name: string; description?: string }
 interface Relation { id: string; source: string; target: string; type: string }
@@ -20,6 +21,10 @@ interface GraphStats { entityCount: number; relationCount: number; entityTypes: 
 export default function DocumentQAPage() {
   const params = useParams();
   const documentId = params.id as string;
+  const { role } = useRole();
+  const router = useRouter();
+  useEffect(() => { if (role === "company") router.replace(`/dashboard/documents/${documentId}`); }, [role, router, documentId]);
+  if (role === "company") return null;
 
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);

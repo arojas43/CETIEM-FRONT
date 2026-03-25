@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Database, Network, RefreshCw, Link, Bug } from "lucide-react";
+import { useRole } from "@/lib/role-context";
 
 interface Entity { id: string; type: string; name: string; description?: string }
 interface Relation { source: string; type: string; target: string; sourceId?: string; targetId?: string }
@@ -15,6 +16,10 @@ interface DebugInfo {
 export default function DocumentGraphPage() {
   const params = useParams();
   const documentId = params.id as string;
+  const { role } = useRole();
+  const router = useRouter();
+  useEffect(() => { if (role === "company") router.replace(`/dashboard/documents/${documentId}`); }, [role, router, documentId]);
+  if (role === "company") return null;
 
   const [loading, setLoading] = useState(true);
   const [entities, setEntities] = useState<Entity[]>([]);

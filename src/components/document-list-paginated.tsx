@@ -2,9 +2,17 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Trash2, Edit2, Save, X, ChevronLeft, ChevronRight, Search, Filter, RefreshCw } from "lucide-react";
+import { FileText, Trash2, Edit2, Save, X, ChevronLeft, ChevronRight, Search, Filter, RefreshCw, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProcessingProgress } from "@/components/processing-progress";
+import { useRole } from "@/lib/role-context";
+
+interface Certification {
+  id: string;
+  status: string;
+  createdAt: string;
+  requirements?: { verdict?: string; notes?: string } | null;
+}
 
 interface Document {
   id: string;
@@ -12,9 +20,10 @@ interface Document {
   description?: string | null;
   status: string;
   domain?: string;
+  storageUrl: string;
   createdAt: string;
   pageIndices?: { length: number };
-  certifications?: { length: number };
+  certifications?: Certification[];
 }
 
 interface PaginationInfo {
@@ -51,8 +60,26 @@ const statusLabel: Record<string, string> = {
   PENDING:    "⏳ Pendiente",
 };
 
+const certStatusColor: Record<string, string> = {
+  APPROVED:  "bg-cetiem-lime/10 text-cetiem-lime border border-cetiem-lime/20",
+  IN_REVIEW: "bg-cetiem-amber/10 text-cetiem-amber border border-cetiem-amber/20",
+  REJECTED:  "bg-cetiem-red/10 text-cetiem-red border border-cetiem-red/20",
+};
+const certStatusLabel: Record<string, string> = {
+  APPROVED:  "✓ Aprobado",
+  IN_REVIEW: "↩ Cambios",
+  REJECTED:  "✗ Rechazado",
+};
+
+function getLatestCert(certs?: Certification[]) {
+  if (!certs || certs.length === 0) return null;
+  return certs.reduce((a, b) => new Date(a.createdAt) > new Date(b.createdAt) ? a : b);
+}
+
 export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginatedProps) {
   const router = useRouter();
+  const { role } = useRole();
+  const isCompany = role === 'company';
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -332,23 +359,23 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 shrink-0">
-                  {/* Domain selector */}
+                  {/* Domain selector — assessor/admin only */}
+                  {!isCompany && (
                   <select
-                    value={doc.domain || "LEGAL"}
+                    value={doc.domain || "INDUSTRIA"}
                     onChange={(e) => handleDomainChange(doc.id, e.target.value)}
                     disabled={processingId === doc.id}
                     className="h-8 px-2 border border-white/10 rounded-lg text-xs bg-white/5 text-white focus:outline-none focus:border-cetiem-green/40 disabled:opacity-50"
                   >
-                    <option value="LEGAL" className="bg-cetiem-dark">📜 Legal</option>
-                    <option value="MEDICAL" className="bg-cetiem-dark">🏥 Médico</option>
-                    <option value="TECHNICAL" className="bg-cetiem-dark">⚙️ Técnico</option>
-                    <option value="ACADEMIC" className="bg-cetiem-dark">🎓 Académico</option>
-                    <option value="CUSTOM" className="bg-cetiem-dark">📝 Custom</option>
+                    <option value="INDUSTRIA" className="bg-cetiem-dark">🏭 Industria</option>
+                    <option value="CONSTRUCCION" className="bg-cetiem-dark">🏗️ Construcción</option>
+                    <option value="TECNOLOGIA" className="bg-cetiem-dark">💻 Tecnología</option>
                   </select>
+                  )}
 
-                  {/* Process button */}
-                  <button
-                    onClick={() => handleProcess(doc.id, doc.domain || "LEGAL")}
+                  {/* Process button — assessor/admin only; company must upload new doc */}
+                  {!isCompany && <button
+                    onClick={() => handleProcess(doc.id, doc.domain || "INDUSTRIA")}
                     disabled={processingId === doc.id || doc.status === "PROCESSING"}
                     title={doc.status === "FAILED" || doc.status === "PENDING" ? "Procesar" : "Reprocesar"}
                     className={cn(
@@ -359,7 +386,18 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
                     )}
                   >
                     <RefreshCw className={cn("h-3.5 w-3.5", processingId === doc.id && "animate-spin")} />
-                  </button>
+                  </button>}
+
+                  {/* View PDF */}
+                  <a
+                    href={doc.storageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Ver PDF"
+                    className="h-8 w-8 flex items-center justify-center rounded-lg border border-white/10 text-cetiem-gray hover:border-cetiem-green/40 hover:text-cetiem-green transition-colors"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </a>
 
                   {/* View details */}
                   <button
@@ -410,6 +448,17 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
                       statusLabel[doc.status] || doc.status
                     )}
                   </div>
+
+                  {/* Certification status badge */}
+                  {(() => {
+                    const cert = getLatestCert(doc.certifications);
+                    if (!cert) return null;
+                    return (
+                      <div className={cn("px-2.5 py-1 rounded-full text-xs font-medium min-w-[90px] text-center", certStatusColor[cert.status])}>
+                        {certStatusLabel[cert.status] || cert.status}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             ))}

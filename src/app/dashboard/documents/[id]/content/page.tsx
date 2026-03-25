@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { FileText, Download, ChevronLeft, ChevronRight, FolderOpen } from "lucide-react";
+import { useRole } from "@/lib/role-context";
 
 interface Section { id: string; level: number; title: string; page?: number | null; content?: string | null; summary?: string | null }
 interface PaginationInfo { page: number; limit: number; total: number; totalPages: number; hasMore: boolean; hasPrev: boolean }
@@ -15,6 +16,10 @@ interface DocumentContent {
 export default function DocumentContentPage() {
   const params = useParams();
   const documentId = params.id as string;
+  const { role } = useRole();
+  const router = useRouter();
+  useEffect(() => { if (role === "company") router.replace(`/dashboard/documents/${documentId}`); }, [role, router, documentId]);
+  if (role === "company") return null;
 
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState<DocumentContent | null>(null);

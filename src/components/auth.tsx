@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -31,8 +32,8 @@ export function AuthButton() {
 
 export function SignInPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@local.dev");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -88,7 +89,7 @@ export function SignInPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@local.dev"
+                placeholder="correo@empresa.com"
                 required
                 className="bg-white/5 border-white/10 text-white placeholder:text-cetiem-gray/40 focus:border-cetiem-green focus:ring-cetiem-green"
               />
@@ -122,11 +123,10 @@ export function SignInPage() {
             </button>
           </form>
 
-          <div className="mt-6 p-3 bg-white/5 rounded-xl border border-white/5">
-            <p className="text-xs text-cetiem-gray mb-1.5 font-medium">Credenciales de desarrollo:</p>
-            <code className="text-xs text-white/60 block">Email: admin@local.dev</code>
-            <code className="text-xs text-white/60 block">Password: admin123</code>
-          </div>
+          <p className="text-center text-xs text-cetiem-gray mt-6">
+            ¿No tienes cuenta?{" "}
+            <Link href="/register" className="text-cetiem-green hover:underline">Registra tu empresa</Link>
+          </p>
         </div>
       </div>
     </div>

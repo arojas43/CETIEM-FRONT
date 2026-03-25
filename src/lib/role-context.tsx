@@ -14,15 +14,27 @@ const RoleContext = createContext<RoleContextType>({
   setRole: () => {},
 });
 
-export function RoleProvider({ children }: { children: ReactNode }) {
-  const [role, setRoleState] = useState<UserRole>("company");
+export function RoleProvider({
+  children,
+  defaultRole,
+}: {
+  children: ReactNode;
+  defaultRole?: UserRole;
+}) {
+  const [role, setRoleState] = useState<UserRole>(defaultRole ?? "company");
 
   useEffect(() => {
+    if (defaultRole) {
+      // Session role takes precedence — always sync
+      setRoleState(defaultRole);
+      localStorage.setItem("cetiem_role", defaultRole);
+      return;
+    }
     const saved = localStorage.getItem("cetiem_role") as UserRole | null;
     if (saved && ["company", "assessor", "admin"].includes(saved)) {
       setRoleState(saved);
     }
-  }, []);
+  }, [defaultRole]);
 
   const setRole = (r: UserRole) => {
     setRoleState(r);
