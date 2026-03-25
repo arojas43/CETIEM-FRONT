@@ -302,14 +302,15 @@ export class QAService {
 
     try {
       // Buscar entidades en las páginas relevantes usando IN para mejor rendimiento
-      const pagesIN = pages.join(', ');
-      const entitiesResult = await falkorDBService.roQuery(`
-        MATCH (n)
-        WHERE n.documentId = "${documentId}"
-          AND n.page IN [${pagesIN}]
-        RETURN labels(n)[0] AS type, n.name AS name, n.description AS desc, n.page AS page, n.section AS section
-        LIMIT 50
-      `);
+      const pagesIN = pages.join(", ");
+      const entitiesResult = await falkorDBService.roQuery(
+        `MATCH (n)
+         WHERE n.documentId = $docId
+           AND n.page IN [${pagesIN}]
+         RETURN labels(n)[0] AS type, n.name AS name, n.description AS desc, n.page AS page, n.section AS section
+         LIMIT 50`,
+        { docId: documentId }
+      );
 
       return entitiesResult.rows.map(r => ({
         id: r.id,

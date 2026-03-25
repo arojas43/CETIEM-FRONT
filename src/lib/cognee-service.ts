@@ -354,13 +354,14 @@ ${content.slice(0, 15000)}`;
     const domain = options?.domain || this.defaultDomain;
 
     // 1. Buscar entidades en el grafo del documento específico
-    const entitiesResult = await falkorDBService.roQuery(`
-      MATCH (n)
-      WHERE n.documentId = "${documentId}"
-        AND (n.name CONTAINS "${query}" OR n.description CONTAINS "${query}")
-      RETURN labels(n)[0] AS type, n.name AS name, n.description AS desc, n.id AS id
-      LIMIT ${limit}
-    `);
+    const entitiesResult = await falkorDBService.roQuery(
+      `MATCH (n)
+       WHERE n.documentId = $docId
+         AND (n.name CONTAINS $q OR n.description CONTAINS $q)
+       RETURN labels(n)[0] AS type, n.name AS name, n.description AS desc, n.id AS id
+       LIMIT $lim`,
+      { docId: documentId, q: query, lim: limit }
+    );
 
     // 2. Si no encuentra por nombre, buscar por tipos del dominio correspondiente
     let entities: CogneeEntity[] = entitiesResult.rows.map(r => ({
@@ -376,13 +377,14 @@ ${content.slice(0, 15000)}`;
         .map(t => `'${t.split(':')[0].trim()}'`)
         .join(', ');
 
-      const typeSearch = await falkorDBService.roQuery(`
-        MATCH (n)
-        WHERE n.documentId = "${documentId}"
-          AND labels(n)[0] IN [${domainEntityTypes}]
-        RETURN labels(n)[0] AS type, n.name AS name, n.description AS desc, n.id AS id
-        LIMIT ${limit}
-      `);
+      const typeSearch = await falkorDBService.roQuery(
+        `MATCH (n)
+         WHERE n.documentId = $docId
+           AND labels(n)[0] IN [${domainEntityTypes}]
+         RETURN labels(n)[0] AS type, n.name AS name, n.description AS desc, n.id AS id
+         LIMIT $lim`,
+        { docId: documentId, lim: limit }
+      );
 
       entities = typeSearch.rows.map(r => ({
         id: r.id,
@@ -396,13 +398,14 @@ ${content.slice(0, 15000)}`;
     let relations: CogneeRelation[] = [];
     if (includeRelations && entities.length > 0) {
       const entityIds = entities.map(e => `"${e.id}"`).join(',');
-      const relationsResult = await falkorDBService.roQuery(`
-        MATCH (a)-[r]->(b)
-        WHERE a.documentId = "${documentId}" AND b.documentId = "${documentId}"
-          AND a.id IN [${entityIds}]
-        RETURN a.name AS source, type(r) AS type, b.name AS target
-        LIMIT 50
-      `);
+      const relationsResult = await falkorDBService.roQuery(
+        `MATCH (a)-[r]->(b)
+         WHERE a.documentId = $docId AND b.documentId = $docId
+           AND a.id IN [${entityIds}]
+         RETURN a.name AS source, type(r) AS type, b.name AS target
+         LIMIT 50`,
+        { docId: documentId }
+      );
       
       relations = relationsResult.rows.map(r => ({
         id: `rel-${r.source}-${r.target}`,
@@ -577,26 +580,20 @@ ${content.slice(0, 15000)}`;
     entityTypes: Record<string, number>;
   }> {
     try {
-      // Contar entidades por documento
-      const entityResult = await falkorDBService.roQuery(`
-        MATCH (n)
-        WHERE n.documentId = "${documentId}"
-        RETURN count(n) AS count
-      `);
-
-      // Contar por tipo
-      const typeResult = await falkorDBService.roQuery(`
-        MATCH (n)
-        WHERE n.documentId = "${documentId}"
-        RETURN labels(n)[0] AS type, count(n) AS count
-      `);
-
-      // Contar relaciones
-      const relationResult = await falkorDBService.roQuery(`
-        MATCH (a)-[r]->(b)
-        WHERE a.documentId = "${documentId}" AND b.documentId = "${documentId}"
-        RETURN count(r) AS count
-      `);
+      const [entityResult, typeResult, relationResult] = await Promise.all([
+        falkorDBService.roQuery(
+          "MATCH (n) WHERE n.documentId = $docId RETURN count(n) AS count",
+          { docId: documentId }
+        ),
+        falkorDBService.roQuery(
+          "MATCH (n) WHERE n.documentId = $docId RETURN labels(n)[0] AS type, count(n) AS count",
+          { docId: documentId }
+        ),
+        falkorDBService.roQuery(
+          "MATCH (a)-[r]->(b) WHERE a.documentId = $docId AND b.documentId = $docId RETURN count(r) AS count",
+          { docId: documentId }
+        ),
+      ]);
       
       const entityTypes: Record<string, number> = {};
       typeResult.rows.forEach((r: any) => {

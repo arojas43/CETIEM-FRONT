@@ -237,7 +237,8 @@ export async function processDocument(documentId: string, domain?: CogneeDomain,
 
     const { falkorDBService } = await import('./falkordb');
     const graphStats = await falkorDBService.roQuery(
-      `MATCH (n) WHERE n.documentId = "${documentId}" RETURN count(n) AS count`
+      "MATCH (n) WHERE n.documentId = $docId RETURN count(n) AS count",
+      { docId: documentId }
     );
     const entitiesInGraph = graphStats.rows[0]?.count || 0;
     const finalStatus = entitiesInGraph > 0 ? 'ANALYZED' : 'INDEXED';

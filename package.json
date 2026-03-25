@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -20,10 +23,12 @@
     "@google-cloud/storage": "^7.0.0",
     "@langchain/core": "^0.3.0",
     "@prisma/client": "^6.0.0",
+    "bcryptjs": "^3.0.3",
     "bullmq": "^5.0.0",
     "canvas": "^3.2.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "falkordb": "^6.6.2",
     "ioredis": "^5.4.1",
     "langchain": "^0.3.0",
     "lucide-react": "^0.460.0",
@@ -42,6 +47,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.19.13",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
