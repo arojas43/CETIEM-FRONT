@@ -657,9 +657,9 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
         documentId,
         document.name,
         onProgress,
-        (document.domain?.toLowerCase() as any) || 'legal'
+        (document.domain?.toLowerCase() as any) || 'industria'
       );
-      
+
       console.log(`[AI Worker] ✓ Lotes completados: ${result.chunksProcessed}`);
       console.log(`[AI Worker] ✓ Entidades: ${result.totalEntities}, Relaciones: ${result.totalRelations}`);
       
@@ -701,7 +701,7 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
       const indicesToProcess = validIndices.slice(0, MAX_CHUNKS_TO_PROCESS);
 
       console.log(`[AI Worker]   - Procesando ${indicesToProcess.length}/${validIndices.length} nodos (límite: ${MAX_CHUNKS_TO_PROCESS})`);
-      console.log(`[AI Worker]   - Dominio: ${(document.domain?.toLowerCase()) || 'legal (default)'}`);
+      console.log(`[AI Worker]   - Dominio: ${(document.domain?.toLowerCase()) || 'industria (default)'}`);
 
       for (let i = 0; i < indicesToProcess.length; i++) {
         const indexNode = indicesToProcess[i];
@@ -721,7 +721,7 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
             chunk,
             documentId,
             document.name,
-            (document.domain?.toLowerCase() as any) || 'legal',
+            (document.domain?.toLowerCase() as any) || 'industria',
             pageIndexReference
           );
           
@@ -752,7 +752,8 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
       console.log(`[AI Worker] [6/8] Verificando persistencia...`);
       const { falkorDBService } = await import('../falkordb');
       const graphStats = await falkorDBService.roQuery(
-        `MATCH (n) WHERE n.documentId = "${documentId}" RETURN count(n) AS count`
+        "MATCH (n) WHERE n.documentId = $docId RETURN count(n) AS count",
+        { docId: documentId }
       );
       const entitiesInGraph = graphStats.rows[0]?.count || 0;
       console.log(`[AI Worker]   - Entidades en grafo: ${entitiesInGraph}`);

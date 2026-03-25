@@ -48,10 +48,21 @@ services:
     restart: unless-stopped
     command: ["--stop-writes-on-bgsave-error", "no"]
     ports:
-      - "6380:6379"   # FalkorDB en 6380 para no chocar con Redis
-      - "3001:3000"   # FalkorDB Browser UI en localhost:3001
+      - "6380:6379"   # FalkorDB en 6380 para no chocar con Redis en 6379
     volumes:
       - cetiem_falkordb_data:/var/lib/falkordb/data
+
+  # ── FalkorDB Browser UI ─────────────────────────────────────
+  # Interfaz visual para explorar el grafo de conocimiento
+  # → http://localhost:3001
+  falkordb-browser:
+    image: falkordb/falkordb-browser:latest
+    container_name: cetiem-falkordb-browser
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    depends_on:
+      - falkordb
 
 volumes:
   cetiem_postgres_data:

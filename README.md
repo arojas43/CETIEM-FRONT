@@ -35,7 +35,8 @@ docker compose up -d
 Esto levanta:
 - **PostgreSQL** → `localhost:5432` (user: `postgres`, pass: `cetiem`, db: `cetiem_db`)
 - **Redis** → `localhost:6379` (BullMQ)
-- **FalkorDB** → `localhost:6380` + UI en `localhost:3001`
+- **FalkorDB** → `localhost:6380`
+- **FalkorDB Browser UI** → `localhost:3001` (explorador visual del grafo de conocimiento)
 
 ### 4. Inicializar la base de datos
 
@@ -46,6 +47,8 @@ npx prisma db seed  # Crea los 4 usuarios de prueba
 
 ### 5. Arrancar la aplicación
 
+> **Importante:** Los workers son necesarios para el procesamiento de documentos (PageIndex + Cognee + FalkorDB). Sin ellos los documentos quedan en estado `PENDING` indefinidamente.
+
 ```bash
 # Terminal 1 — Next.js
 npm run dev
@@ -54,7 +57,11 @@ npm run dev
 npm run workers
 ```
 
-La app queda disponible en **http://localhost:3000**
+| URL | Descripción |
+|-----|-------------|
+| `http://localhost:3000` | Aplicación principal |
+| `http://localhost:3001` | FalkorDB Browser — explorador visual del grafo |
+| `http://localhost:5555` | Prisma Studio — `npm run db:studio` |
 
 ---
 
@@ -232,6 +239,8 @@ npm run start            # Servidor de producción
 | Workers no procesan documentos | Redis no disponible | `docker compose up -d redis` |
 | Puerto 3000 ocupado | Proceso previo | `lsof -ti:3000 \| xargs kill -9` |
 | Login falla con usuarios de prueba | Seed no ejecutado | `npx prisma db seed` |
+| FalkorDB Browser no carga en 3001 | Primera vez (imagen lenta) | Espera ~30s o `docker compose logs falkordb-browser` |
+| `Cannot find module 'falkordb'` | Dependencias no instaladas | `npm install` (el paquete oficial es `falkordb`, no ioredis) |
 
 ---
 
