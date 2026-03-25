@@ -17,16 +17,14 @@ async function main() {
 📄 Uso: npx tsx process-document.ts [documentId] [dominio]
 
 Dominios disponibles:
-  - medical    (documentos médicos)
-  - legal      (documentos legales/normativos)
-  - technical  (documentos técnicos)
-  - academic   (documentos académicos)
-  - custom     (genérico)
+  - industria    (sector industrial: ISO 9001/14001/45001, SST)
+  - construccion (obra civil, NOM-031, residuos de obra)
+  - tecnologia   (TI/servicios digitales, LGPDPPSO, ISO 27001)
 
 Ejemplos:
   npx tsx process-document.ts cmmdpia98000142fp6dz96u2d
-  npx tsx process-document.ts cmmdpia98000142fp6dz96u2d legal
-  npx tsx process-document.ts cmmdpia98000142fp6dz96u2d medical
+  npx tsx process-document.ts cmmdpia98000142fp6dz96u2d industria
+  npx tsx process-document.ts cmmdpia98000142fp6dz96u2d construccion
 `);
     process.exit(0);
   }
@@ -34,11 +32,11 @@ Ejemplos:
   const documentId = args[0];
   const domainArg = args[1] as CogneeDomain | undefined;
 
-  const validDomains: CogneeDomain[] = ['medical', 'legal', 'technical', 'academic', 'custom'];
+  const validDomains: CogneeDomain[] = ['industria', 'construccion', 'tecnologia'];
   const domain = domainArg && validDomains.includes(domainArg) ? domainArg : undefined;
 
   if (domainArg && !domain) {
-    console.warn(`⚠️  Dominio "${domainArg}" no válido, usando default (legal)`);
+    console.warn(`⚠️  Dominio "${domainArg}" no válido, usando default (industria)`);
   }
 
   try {

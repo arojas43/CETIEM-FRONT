@@ -37,7 +37,7 @@ function extractFirstJSON(text: string): any | null {
   return null;
 }
 
-export type CogneeDomain = 'medical' | 'legal' | 'technical' | 'academic' | 'custom';
+export type CogneeDomain = 'industria' | 'construccion' | 'tecnologia';
 export type ExtractionMode = 'auto' | 'directed' | 'mixed';
 
 export interface ExtractionConfig {
@@ -89,123 +89,83 @@ const DOMAIN_CONFIGS: Record<CogneeDomain, {
   systemPrompt: string;
   exampleOutput: string;
 }> = {
-  medical: {
+  industria: {
     entityTypes: [
-      'DISEASE: Enfermedades, síndromes, condiciones médicas',
-      'TREATMENT: Tratamientos, terapias, procedimientos terapéuticos',
-      'ANATOMY: Partes del cuerpo, órganos, tejidos, sistemas',
-      'MEDICATION: Medicamentos, drogas, fármacos, sustancias',
-      'SYMPTOM: Síntomas, signos clínicos, manifestaciones',
-      'DIAGNOSIS: Criterios diagnósticos, pruebas diagnósticas',
-      'PROCEDURE: Procedimientos médicos, cirugías, intervenciones',
-      'ORGANIZATION: Instituciones médicas, hospitales, laboratorios',
-    ],
-    relationTypes: [
-      'TREATS: Tratamiento trata enfermedad/síntoma',
-      'CAUSES: Causa efecto o condición',
-      'ORIGINATES_FROM: Se origina en tejido/órgano',
-      'LOCATED_IN: Ubicado en anatomía',
-      'DIAGNOSED_BY: Diagnosticado por prueba/procedimiento',
-      'SYMPTOM_OF: Síntoma de enfermedad',
-      'CONTRAINDICATED_WITH: Contraindicado con medicamento/tratamiento',
-      'PRESCRIBED_FOR: Prescrito para condición',
-    ],
-    systemPrompt: 'Eres un experto en extracción de conocimiento médico de documentos. Identifica enfermedades, tratamientos, anatomía, procedimientos, síntomas y diagnósticos.',
-    exampleOutput: `{"entities": [{"id": "1", "type": "DISEASE", "name": "Liposarcoma", "description": "Tumor maligno del tejido adiposo"}, {"id": "2", "type": "ANATOMY", "name": "Tejido adiposo", "description": "Tejido graso del organismo"}, {"id": "3", "type": "TREATMENT", "name": "Cirugía resectiva", "description": "Extirpación quirúrgica del tumor"}], "relations": [{"source": "1", "target": "2", "type": "ORIGINATES_FROM"}, {"source": "3", "target": "1", "type": "TREATS"}]}`,
-  },
-  legal: {
-    entityTypes: [
-      'ORGANIZATION: Empresas, instituciones, organizaciones, entidades',
-      'REGULATION: Normas, leyes, reglamentos, estándares (ISO, NOM, etc.)',
-      'REQUIREMENT: Requisitos, obligaciones, mandatos',
-      'PERSON: Personas físicas, nombres propios, cargos',
-      'DATE: Fechas importantes, plazos, vigencias',
-      'DOCUMENT: Documentos, certificados, reportes, actas',
-      'PROCEDURE: Procedimientos, procesos, metodologías',
-      'LOCATION: Ubicaciones, sedes, instalaciones',
+      'ORGANIZATION: Empresas, plantas industriales, proveedores, contratistas',
+      'REGULATION: Normas ISO (9001, 14001, 45001), NOMs, reglamentos aplicables',
+      'REQUIREMENT: Requisitos legales, obligaciones de SST, medio ambiente, calidad',
+      'PROCESS: Procesos productivos, operaciones industriales, procedimientos',
+      'HAZARD: Peligros, riesgos, agentes contaminantes, sustancias peligrosas',
+      'INDICATOR: KPIs, métricas ESG, indicadores de desempeño ambiental/social',
+      'PERSON: Responsables, representantes, cargo/puesto',
+      'DOCUMENT: Políticas, manuales, registros, certificados, permisos',
     ],
     relationTypes: [
       'COMPLIES_WITH: Cumple con norma/regulación',
       'IMPLEMENTS: Implementa procedimiento/requisito',
-      'REQUIRES: Requiere documento/acción',
-      'APPLIES_TO: Aplica a organización/persona/área',
-      'ISSUED_BY: Emitido por organización/autoridad',
-      'VALID_UNTIL: Válido hasta fecha',
-      'LOCATED_IN: Ubicado en lugar',
-      'RESPONSIBLE_FOR: Responsable de procedimiento/área',
+      'GENERATES: Genera residuo/emisión/contaminante',
+      'MITIGATES: Mitiga riesgo/impacto ambiental',
+      'RESPONSIBLE_FOR: Responsable de proceso/área',
+      'CERTIFIED_BY: Certificado por organismo/norma',
+      'MEASURES: Mide indicador/métrica',
+      'AFFECTS: Afecta a parte interesada/comunidad',
     ],
-    systemPrompt: 'Eres un experto en extracción de conocimiento de documentos legales y normativos. Identifica normas, requisitos, organizaciones, fechas y procedimientos.',
-    exampleOutput: `{"entities": [{"id": "1", "type": "ORGANIZATION", "name": "Empresa XYZ", "description": "Empresa certificadora"}, {"id": "2", "type": "REGULATION", "name": "ISO 9001", "description": "Estándar de gestión de calidad"}, {"id": "3", "type": "PROCEDURE", "name": "Auditoría interna", "description": "Proceso de verificación interna"}], "relations": [{"source": "1", "target": "2", "type": "COMPLIES_WITH"}, {"source": "3", "target": "2", "type": "IMPLEMENTS"}]}`,
+    systemPrompt: 'Eres un experto en auditoría ESG para empresas industriales. Identifica organizaciones, normas (ISO 9001/14001/45001), requisitos de SST, procesos productivos, peligros y métricas de desempeño ambiental y social.',
+    exampleOutput: `{"entities": [{"id": "1", "type": "ORGANIZATION", "name": "Planta Monterrey", "description": "Planta de manufactura principal"}, {"id": "2", "type": "REGULATION", "name": "ISO 14001:2015", "description": "Sistema de gestión ambiental"}, {"id": "3", "type": "INDICATOR", "name": "Consumo de agua m³/ton", "description": "KPI hídrico de producción"}], "relations": [{"source": "1", "target": "2", "type": "COMPLIES_WITH"}, {"source": "1", "target": "3", "type": "MEASURES"}]}`,
   },
-  technical: {
+  construccion: {
     entityTypes: [
-      'SYSTEM: Sistemas, subsistemas, componentes',
-      'EQUIPMENT: Equipos, máquinas, dispositivos',
-      'SPECIFICATION: Especificaciones técnicas, parámetros',
-      'MATERIAL: Materiales, sustancias, compuestos',
-      'PROCESS: Procesos, operaciones, métodos',
-      'STANDARD: Estándares técnicos, normas',
-      'MEASUREMENT: Mediciones, unidades, rangos',
-      'FAILURE: Fallos, errores, anomalías',
+      'ORGANIZATION: Constructoras, contratistas, supervisores, clientes',
+      'PROJECT: Obras, proyectos, contratos de construcción',
+      'REGULATION: NOM-031, Reglamento de construcción, licencias, permisos',
+      'MATERIAL: Materiales de construcción, insumos, residuos de obra',
+      'HAZARD: Riesgos de obra, peligros en altura, caídas, derrumbes',
+      'WORKER: Personal de obra, cuadrillas, subcontratistas',
+      'INDICATOR: Indicadores de accidentabilidad, residuos, emisiones de polvo',
+      'DOCUMENT: Bitácoras, planos, permisos, planes de seguridad',
     ],
     relationTypes: [
-      'PART_OF: Parte de sistema/equipo',
-      'CONTAINS: Contiene componente/material',
-      'OPERATES_AT: Opera en condición/rango',
-      'REQUIRES_MATERIAL: Requiere material/sustancia',
-      'MEASURES_BY: Medido por instrumento',
-      'FAILS_WHEN: Falla cuando condición',
-      'COMPLIES_WITH: Cumple con estándar/norma',
-      'PRODUCES: Produce resultado/subproducto',
+      'EXECUTES: Ejecuta proyecto/obra',
+      'REQUIRES_PERMIT: Requiere permiso/licencia',
+      'GENERATES_WASTE: Genera residuo de construcción',
+      'EXPOSES_TO: Expone a trabajador a peligro',
+      'COMPLIES_WITH: Cumple con norma/reglamento',
+      'SUPERVISES: Supervisa trabajo/contratista',
+      'LOCATED_IN: Ubicado en sitio/municipio',
+      'MITIGATES: Mitiga impacto ambiental/social',
     ],
-    systemPrompt: 'Eres un experto en extracción de conocimiento de documentos técnicos. Identifica sistemas, equipos, especificaciones, materiales y procesos.',
-    exampleOutput: `{"entities": [{"id": "1", "type": "EQUIPMENT", "name": "Compresor centrífugo", "description": "Equipo de compresión de gas"}, {"id": "2", "type": "SYSTEM", "name": "Sistema de refrigeración", "description": "Sistema principal"}, {"id": "3", "type": "STANDARD", "name": "ISO 1940", "description": "Norma de balanceo"}], "relations": [{"source": "1", "target": "2", "type": "PART_OF"}, {"source": "1", "target": "3", "type": "COMPLIES_WITH"}]}`,
+    systemPrompt: 'Eres un experto en auditoría ESG para empresas de construcción. Identifica obras, contratistas, normativa de seguridad en obra (NOM-031), materiales, residuos de construcción y demolición, riesgos laborales e indicadores ambientales.',
+    exampleOutput: `{"entities": [{"id": "1", "type": "PROJECT", "name": "Torre Corporativa CDMX", "description": "Edificio de 30 pisos en construcción"}, {"id": "2", "type": "REGULATION", "name": "NOM-031-STPS-2011", "description": "Seguridad en obras de construcción"}, {"id": "3", "type": "HAZARD", "name": "Trabajo en altura", "description": "Riesgo de caída mayor a 1.8m"}], "relations": [{"source": "1", "target": "2", "type": "COMPLIES_WITH"}, {"source": "1", "target": "3", "type": "EXPOSES_TO"}]}`,
   },
-  academic: {
+  tecnologia: {
     entityTypes: [
-      'CONCEPT: Conceptos, teorías, ideas principales',
-      'THEORY: Teorías, modelos teóricos, marcos conceptuales',
-      'METHOD: Métodos, metodologías, enfoques',
-      'FINDING: Hallazgos, resultados, conclusiones',
-      'AUTHOR: Autores, investigadores, académicos',
-      'INSTITUTION: Instituciones, universidades, centros',
-      'PUBLICATION: Publicaciones, artículos, libros',
-      'FIELD: Campos de estudio, disciplinas',
+      'ORGANIZATION: Empresas tech, proveedores cloud, clientes, socios',
+      'SYSTEM: Sistemas de información, plataformas, infraestructura digital',
+      'DATA: Datos personales, activos de información, bases de datos',
+      'REGULATION: LGPDPPSO, ISO 27001, SOC 2, leyes de ciberseguridad',
+      'RISK: Riesgos digitales, vulnerabilidades, amenazas cibernéticas',
+      'INDICATOR: KPIs ESG digital, consumo energético TI, diversidad de plantilla',
+      'PERSON: Responsables de datos, CISO, DPO, stakeholders',
+      'DOCUMENT: Políticas de privacidad, contratos, reportes de incidentes',
     ],
     relationTypes: [
-      'PROPOSED_BY: Propuesto por autor',
-      'SUPPORTS: Soporta teoría/hipótesis',
-      'CONTRADICTS: Contradice teoría/hallazgo',
-      'BASED_ON: Basado en teoría/método',
-      'APPLIED_TO: Aplicado a campo/problema',
-      'PUBLISHED_IN: Publicado en publicación',
-      'AFFILIATED_WITH: Afiliado con institución',
-      'EXTENDS: Extiende teoría/método',
+      'PROCESSES: Procesa datos personales',
+      'COMPLIES_WITH: Cumple con norma/ley de datos',
+      'EXPOSES_TO: Expone a riesgo/vulnerabilidad',
+      'MITIGATES: Mitiga riesgo cibernético',
+      'RESPONSIBLE_FOR: Responsable de datos/sistema',
+      'INTEGRATES_WITH: Integra con sistema/API',
+      'MEASURES: Mide indicador/métrica ESG',
+      'ISSUED_BY: Emitido por organismo regulador',
     ],
-    systemPrompt: 'Eres un experto en extracción de conocimiento de documentos académicos. Identifica conceptos, teorías, métodos, hallazgos y autores.',
-    exampleOutput: `{"entities": [{"id": "1", "type": "THEORY", "name": "Teoría del Aprendizaje Social", "description": "Teoría sobre aprendizaje observacional"}, {"id": "2", "type": "AUTHOR", "name": "Albert Bandura", "description": "Psicólogo canadiense"}, {"id": "3", "type": "CONCEPT", "name": "Modelado conductual", "description": "Aprendizaje por observación"}], "relations": [{"source": "1", "target": "2", "type": "PROPOSED_BY"}, {"source": "3", "target": "1", "type": "BASED_ON"}]}`,
-  },
-  custom: {
-    entityTypes: [
-      'ENTITY: Entidad genérica',
-      'CONCEPT: Concepto importante',
-      'OBJECT: Objeto, elemento',
-      'PERSON: Persona',
-      'ORGANIZATION: Organización',
-    ],
-    relationTypes: [
-      'RELATED_TO: Relacionado con',
-      'PART_OF: Parte de',
-      'ASSOCIATED_WITH: Asociado con',
-    ],
-    systemPrompt: 'Eres un experto en extracción de conocimiento de documentos. Identifica entidades y relaciones importantes.',
-    exampleOutput: `{"entities": [{"id": "1", "type": "ORGANIZATION", "name": "Empresa A"}, {"id": "2", "type": "PERSON", "name": "Juan Pérez", "description": "Director general"}, {"id": "3", "type": "CONCEPT", "name": "Gestión de calidad"}], "relations": [{"source": "2", "target": "1", "type": "PART_OF"}, {"source": "1", "target": "3", "type": "ASSOCIATED_WITH"}]}`,
+    systemPrompt: 'Eres un experto en auditoría ESG para empresas de tecnología y servicios digitales. Identifica sistemas de información, datos personales, cumplimiento LGPDPPSO/ISO 27001, riesgos cibernéticos, consumo energético de TI y métricas de gobierno corporativo digital.',
+    exampleOutput: `{"entities": [{"id": "1", "type": "ORGANIZATION", "name": "SaaS Corp México", "description": "Empresa de software B2B"}, {"id": "2", "type": "REGULATION", "name": "LGPDPPSO", "description": "Ley general de protección de datos"}, {"id": "3", "type": "INDICATOR", "name": "PUE del datacenter", "description": "Power Usage Effectiveness — eficiencia energética"}], "relations": [{"source": "1", "target": "2", "type": "COMPLIES_WITH"}, {"source": "1", "target": "3", "type": "MEASURES"}]}`,
   },
 };
 
 export class CogneeService {
   private graphName: string = 'certificacion';
-  private defaultDomain: CogneeDomain = 'legal'; // Default para certificación empresarial
+  private defaultDomain: CogneeDomain = 'industria'; // Default para certificación empresarial ESG
 
   /**
    * Extrae conocimiento de un chunk de texto usando LLM

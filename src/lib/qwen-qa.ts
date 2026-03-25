@@ -10,7 +10,7 @@ export class QwenQAService {
 
   constructor() {
     this.apiKey = process.env.NVIDIA_QA_API_KEY || "";
-    this.model = "z-ai/glm4.7";
+    this.model = process.env.NVIDIA_QA_MODEL || "z-ai/glm4.7";
   }
 
   /**

@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { processDocument } from "@/lib/process-document-service";
 
-export type DocumentDomainType = 'MEDICAL' | 'LEGAL' | 'TECHNICAL' | 'ACADEMIC' | 'CUSTOM';
+export type DocumentDomainType = 'INDUSTRIA' | 'CONSTRUCCION' | 'TECNOLOGIA';
 
 /**
  * POST /api/documents/[id]/process
@@ -38,12 +38,12 @@ export async function POST(
     }
 
     // Validar dominio
-    const validDomains = ['MEDICAL', 'LEGAL', 'TECHNICAL', 'ACADEMIC', 'CUSTOM'];
-    const selectedDomain = domain?.toUpperCase() || document.domain || 'LEGAL';
-    
-    if (!validDomains.includes(selectedDomain)) {
+    const validDomains: DocumentDomainType[] = ['INDUSTRIA', 'CONSTRUCCION', 'TECNOLOGIA'];
+    const selectedDomain = (domain?.toUpperCase() || document.domain || 'INDUSTRIA') as string;
+
+    if (!validDomains.includes(selectedDomain as DocumentDomainType)) {
       return NextResponse.json(
-        { error: `Invalid domain. Must be one of: ${validDomains.join(', ')}` },
+        { error: `Dominio inválido. Debe ser uno de: ${validDomains.join(', ')}` },
         { status: 400 }
       );
     }
@@ -62,7 +62,7 @@ export async function POST(
     // Ejecutar procesamiento (sin await para no bloquear la respuesta)
     // Pero esperamos a que termine para dar feedback al usuario
     try {
-      const domainLower = selectedDomain.toLowerCase() as 'medical' | 'legal' | 'technical' | 'academic' | 'custom';
+      const domainLower = selectedDomain.toLowerCase() as 'industria' | 'construccion' | 'tecnologia';
       const result = await processDocument(id, domainLower, extractionConfig ?? undefined);
 
       if (result.success) {
@@ -128,10 +128,10 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const validDomains = ['MEDICAL', 'LEGAL', 'TECHNICAL', 'ACADEMIC', 'CUSTOM'];
-    if (!domain || !validDomains.includes(domain.toUpperCase())) {
+    const validDomains: DocumentDomainType[] = ['INDUSTRIA', 'CONSTRUCCION', 'TECNOLOGIA'];
+    if (!domain || !validDomains.includes(domain.toUpperCase() as DocumentDomainType)) {
       return NextResponse.json(
-        { error: `Invalid domain. Must be one of: ${validDomains.join(', ')}` },
+        { error: `Dominio inválido. Debe ser uno de: ${validDomains.join(', ')}` },
         { status: 400 }
       );
     }

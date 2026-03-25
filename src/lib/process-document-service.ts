@@ -173,7 +173,7 @@ export async function processDocument(documentId: string, domain?: CogneeDomain,
     const indicesToProcess = validIndices.slice(0, MAX_CHUNKS);
 
     console.log(`   - Procesando ${indicesToProcess.length}/${validIndices.length} nodos (límite: ${MAX_CHUNKS})`);
-    console.log(`   - Dominio: ${domain || 'legal (default)'}`);
+    console.log(`   - Dominio: ${domain || 'industria (default)'}`);
 
     let totalEntities = 0;
     let totalRelations = 0;
