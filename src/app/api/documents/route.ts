@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { documentProcessingQueue } from "@/lib/queue";
 
+export const dynamic = "force-dynamic";
+
 export interface PaginatedResponse<T> {
   data: T[];
   pagination: {

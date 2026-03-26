@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { cogneeService } from "@/lib/cognee-service";
 import { qaService } from "@/lib/qa-service";
 
+export const dynamic = "force-dynamic";
+
 export const maxDuration = 120; // segundos
 
 /**

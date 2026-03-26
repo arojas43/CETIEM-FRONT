@@ -1,8 +1,60 @@
 # ============================================================
-# CETIEM — Servicios de infraestructura para desarrollo
-# Levanta PostgreSQL, Redis y FalkorDB con un solo comando:
-#   docker compose up -d
+# CETIEM — Stack completo en Docker
+#
+# Inicio rápido para desarrolladores:
+#   1. cp .env.example .env
+#   2. Edita .env y agrega tus NVIDIA_API_KEY y NVIDIA_QA_API_KEY
+#   3. docker compose up --build
+#
+# URLs:
+#   http://localhost:3000  → Aplicación
+#   http://localhost:3001  → FalkorDB UI (explorador de grafo)
+#   http://localhost:5555  → Prisma Studio (npx prisma studio)
 # ============================================================
+
+# Variables de entorno internas compartidas por app y workers
+x-app-env: &app-env
+  # ── Base de datos ─────────────────────────────────────────
+  # Usa el hostname del servicio Docker, no localhost
+  DATABASE_URL: "postgresql://postgres:cetiem@postgres:5432/cetiem_db?schema=certificacion_ia"
+
+  # ── Auth ──────────────────────────────────────────────────
+  NEXTAUTH_URL: "http://localhost:3000"
+  NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+  # Si no se define en .env, usa este valor de desarrollo
+  NEXTAUTH_SECRET: "${NEXTAUTH_SECRET:-cetiem-dev-secret-change-in-production}"
+  AUTH_SECRET:     "${AUTH_SECRET:-cetiem-dev-secret-change-in-production}"
+
+  # ── Almacenamiento ────────────────────────────────────────
+  LOCAL_STORAGE_PATH: "/app/uploads"
+
+  # ── NVIDIA NIM (desde .env del desarrollador) ─────────────
+  NVIDIA_API_KEY:        "${NVIDIA_API_KEY}"
+  NVIDIA_QA_API_KEY:     "${NVIDIA_QA_API_KEY}"
+  NVIDIA_CHAT_MODEL:     "${NVIDIA_CHAT_MODEL:-meta/llama-3.1-70b-instruct}"
+  NVIDIA_EMBEDDING_MODEL: "${NVIDIA_EMBEDDING_MODEL:-llama-3_2-nemoretriever-300m-embed-v1}"
+  NVIDIA_QA_MODEL:       "${NVIDIA_QA_MODEL:-z-ai/glm4.7}"
+
+  # ── Redis (hostname del servicio Docker) ──────────────────
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+
+  # ── PageIndex ─────────────────────────────────────────────
+  PAGEINDEX_LOCAL_MODE: "true"
+
+  # ── Cognee + FalkorDB (hostname del servicio Docker) ──────
+  # Puerto 6379: FalkorDB escucha en 6379 dentro de la red Docker
+  # (6380 es solo el mapeo al host)
+  COGNEE_MODE: "falkordb"
+  COGNEE_LLM_PROVIDER: "nvidia"
+  COGNEE_EMBEDDING_PROVIDER: "nvidia"
+  FALKORDB_HOST: "falkordb"
+  FALKORDB_PORT: "6379"
+
+  # ── Límites ───────────────────────────────────────────────
+  MAX_CHUNKS_TO_PROCESS: "500"
+  MAX_BATCHES: "100"
+  NODE_ENV: "production"
 
 services:
 
@@ -23,7 +75,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   # ── Redis (BullMQ) ─────────────────────────────────────────
   redis:
@@ -39,7 +91,7 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 10
 
   # ── FalkorDB (grafo de conocimiento) ───────────────────────
   falkordb:
@@ -48,13 +100,16 @@ services:
     restart: unless-stopped
     command: ["--stop-writes-on-bgsave-error", "no"]
     ports:
-      - "6380:6379"   # FalkorDB en 6380 para no chocar con Redis en 6379
+      - "6380:6379"
     volumes:
       - cetiem_falkordb_data:/var/lib/falkordb/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   # ── FalkorDB Browser UI ─────────────────────────────────────
-  # Interfaz visual para explorar el grafo de conocimiento
-  # → http://localhost:3001
   falkordb-browser:
     image: falkordb/falkordb-browser:latest
     container_name: cetiem-falkordb-browser
@@ -64,7 +119,65 @@ services:
     depends_on:
       - falkordb
 
+  # ── DB Init (migración + seed, se ejecuta una vez y sale) ──
+  db-init:
+    build: .
+    container_name: cetiem-db-init
+    command: >
+      sh -c "
+        echo '→ Aplicando schema Prisma...' &&
+        npx prisma db push &&
+        echo '→ Ejecutando seed (usuarios de prueba)...' &&
+        npx prisma db seed &&
+        echo '✓ Base de datos lista'
+      "
+    environment:
+      DATABASE_URL: "postgresql://postgres:cetiem@postgres:5432/cetiem_db?schema=certificacion_ia"
+      NODE_ENV: "production"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # ── Aplicación Next.js ─────────────────────────────────────
+  app:
+    build: .
+    container_name: cetiem-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      <<: *app-env
+    volumes:
+      - cetiem_uploads:/app/uploads
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      falkordb:
+        condition: service_healthy
+
+  # ── Workers BullMQ (procesamiento de documentos en background)
+  workers:
+    build: .
+    container_name: cetiem-workers
+    command: npm run workers
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+    volumes:
+      - cetiem_uploads:/app/uploads
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      falkordb:
+        condition: service_healthy
+
 volumes:
   cetiem_postgres_data:
   cetiem_redis_data:
   cetiem_falkordb_data:
+  cetiem_uploads:       # PDFs compartidos entre app y workers

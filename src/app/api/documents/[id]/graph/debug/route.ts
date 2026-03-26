@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { falkorDBService, checkFalkorDBHealth } from "@/lib/falkordb";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/documents/[id]/graph/debug
  * Endpoint de debug para ver todas las entidades en el grafo

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { falkorDBService, checkFalkorDBHealth } from "@/lib/falkordb";
 
+export const dynamic = "force-dynamic";
+
 /**
  * POST /api/graph/query
  * Consulta el grafo de conocimiento en FalkorDB (solo ASSESSOR y ADMIN).

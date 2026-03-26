@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { storageService } from "@/lib/storage";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/documents/[id]
  * Devuelve los datos de un documento (accesible por el dueño o cualquier usuario autenticado para la consola de revisión)

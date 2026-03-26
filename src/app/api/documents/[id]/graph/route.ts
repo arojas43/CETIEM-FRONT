@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { falkorDBService, checkFalkorDBHealth } from "@/lib/falkordb";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/documents/[id]/graph
  * Obtiene el grafo de conocimiento de un documento específico

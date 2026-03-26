@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { falkorDBService, checkFalkorDBHealth } from "@/lib/falkordb";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/graph/stats
  * Global graph statistics for the admin/assessor graph console

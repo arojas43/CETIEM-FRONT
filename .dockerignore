@@ -1,0 +1,37 @@
+# Dependencias (se instalan en el build)
+node_modules
+
+# Build anterior
+.next
+.turbo
+
+# Entorno local (nunca al contenedor)
+.env
+.env.local
+.env.*.local
+
+# Archivos subidos por empresas (van en volumen Docker)
+uploads/
+
+# Git
+.git
+.gitignore
+
+# Editor
+.vscode
+.idea
+*.swp
+
+# Docs y archivos de referencia
+*.pdf
+*.docx
+GUIA*.md
+ARQUITECTURA.md
+VALIDACION.md
+Moodboard*.pdf
+Relevamiento*.pdf
+
+# Scripts de desarrollo local (no necesarios dentro del contenedor)
+start.sh
+cleanup.sh
+process-document.ts

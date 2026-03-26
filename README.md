@@ -6,62 +6,45 @@ Sistema de auditoría y certificación ESG asistido por inteligencia artificial.
 
 ## Inicio rápido para desarrolladores
 
-### 1. Clonar y preparar el entorno
+### 1. Clonar
 
 ```bash
 git clone git@github.com:Cipre-Holding/RAG1.git
 cd RAG1
-npm install
+```
+
+### 2. Configurar API keys de NVIDIA
+
+```bash
 cp .env.example .env
 ```
 
-### 2. Completar `.env`
-
-Abre `.env` y rellena:
+Abre `.env` y rellena **solo estas dos variables** (el resto lo maneja Docker):
 
 | Variable | Dónde obtenerla |
 |----------|----------------|
-| `NEXTAUTH_SECRET` / `AUTH_SECRET` | `openssl rand -base64 32` (genera una clave) |
 | `NVIDIA_API_KEY` | [build.nvidia.com](https://build.nvidia.com) → API Key (plan gratuito disponible) |
 | `NVIDIA_QA_API_KEY` | Puede ser la misma que `NVIDIA_API_KEY` |
-| El resto | Ya tienen valores por defecto para Docker Compose |
 
-### 3. Levantar servicios de infraestructura
-
-```bash
-docker compose up -d
-```
-
-Esto levanta:
-- **PostgreSQL** → `localhost:5432` (user: `postgres`, pass: `cetiem`, db: `cetiem_db`)
-- **Redis** → `localhost:6379` (BullMQ)
-- **FalkorDB** → `localhost:6380`
-- **FalkorDB Browser UI** → `localhost:3001` (explorador visual del grafo de conocimiento)
-
-### 4. Inicializar la base de datos
+### 3. Levantar todo
 
 ```bash
-npm run db:push     # Aplica el schema de Prisma a PostgreSQL
-npx prisma db seed  # Crea los 4 usuarios de prueba
+docker compose up --build
 ```
 
-### 5. Arrancar la aplicación
-
-> **Importante:** Los workers son necesarios para el procesamiento de documentos (PageIndex + Cognee + FalkorDB). Sin ellos los documentos quedan en estado `PENDING` indefinidamente.
-
-```bash
-# Terminal 1 — Next.js
-npm run dev
-
-# Terminal 2 — Workers BullMQ (procesamiento de documentos en background)
-npm run workers
-```
+Esto levanta **todos los servicios** automáticamente:
+- Build de la aplicación Next.js
+- Migración y seed de la base de datos (usuarios de prueba incluidos)
+- Workers BullMQ para procesamiento de documentos con IA
+- PostgreSQL, Redis, FalkorDB, FalkorDB Browser
 
 | URL | Descripción |
 |-----|-------------|
 | `http://localhost:3000` | Aplicación principal |
 | `http://localhost:3001` | FalkorDB Browser — explorador visual del grafo |
-| `http://localhost:5555` | Prisma Studio — `npm run db:studio` |
+
+> **Nota:** El primer `docker compose up --build` tarda ~3 minutos en compilar la imagen.
+> Las siguientes veces usa `docker compose up` (sin `--build`) y arranca en segundos.
 
 ---
 

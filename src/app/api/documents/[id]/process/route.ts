@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { processDocument } from "@/lib/process-document-service";
 
+export const dynamic = "force-dynamic";
+
 export type DocumentDomainType = 'INDUSTRIA' | 'CONSTRUCCION' | 'TECNOLOGIA';
 
 /**
