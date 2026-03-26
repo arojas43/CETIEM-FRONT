@@ -27,6 +27,7 @@ x-app-env: &app-env
   # Si no se define en .env, usa este valor de desarrollo
   NEXTAUTH_SECRET: "${NEXTAUTH_SECRET:-cetiem-dev-secret-change-in-production}"
   AUTH_SECRET:     "${AUTH_SECRET:-cetiem-dev-secret-change-in-production}"
+  AUTH_TRUST_HOST: "true"
 
   # ── Almacenamiento ────────────────────────────────────────
   LOCAL_STORAGE_PATH: "/app/uploads"
