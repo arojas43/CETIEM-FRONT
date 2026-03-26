@@ -9,7 +9,10 @@
 # URLs:
 #   http://localhost:3000  → Aplicación
 #   http://localhost:3001  → FalkorDB UI (explorador de grafo)
-#   http://localhost:5555  → Prisma Studio (npx prisma studio)
+#   localhost:5433         → PostgreSQL (cliente externo / Prisma Studio)
+#   localhost:6381         → Redis (depuración)
+#   localhost:6380         → FalkorDB (depuración)
+#   http://localhost:5555  → Prisma Studio (npx prisma studio --port 5555)
 # ============================================================
 
 # Variables de entorno internas compartidas por app y workers
@@ -68,7 +71,7 @@ services:
       POSTGRES_PASSWORD: cetiem
       POSTGRES_DB: cetiem_db
     ports:
-      - "5432:5432"
+      - "5433:5432"   # 5433 evita conflicto con Postgres local en 5432
     volumes:
       - cetiem_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -84,7 +87,7 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes
     ports:
-      - "6379:6379"
+      - "6381:6379"   # 6381 evita conflicto con Redis local en 6379
     volumes:
       - cetiem_redis_data:/data
     healthcheck:
@@ -117,7 +120,8 @@ services:
     ports:
       - "3001:3000"
     depends_on:
-      - falkordb
+      falkordb:
+        condition: service_healthy
 
   # ── DB Init (migración + seed, se ejecuta una vez y sale) ──
   db-init:
