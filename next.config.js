@@ -24,6 +24,7 @@ const nextConfig = {
     'bullmq',
     '@prisma/client',
     'canvas',
+    'pdfjs-dist',
   ],
 };
 

@@ -3,7 +3,7 @@
 # ============================================================
 
 # ── Stage 1: Dependencias del sistema + npm install ──────────
-FROM node:20-slim AS deps
+FROM node:22-slim AS deps
 WORKDIR /app
 
 # Libs del sistema para módulos nativos (canvas, pdfjs, etc.)
@@ -17,7 +17,7 @@ COPY package*.json ./
 RUN npm ci
 
 # ── Stage 2: Build de Next.js ─────────────────────────────────
-FROM node:20-slim AS builder
+FROM node:22-slim AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -33,7 +33,7 @@ ENV NEXT_PUBLIC_APP_URL=http://localhost:3000
 RUN npm run build
 
 # ── Stage 3: Runner final ─────────────────────────────────────
-FROM node:20-slim AS runner
+FROM node:22-slim AS runner
 WORKDIR /app
 
 # Solo libs de RUNTIME (no dev tools)

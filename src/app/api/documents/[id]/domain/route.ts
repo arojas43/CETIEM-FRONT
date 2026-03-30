@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-const VALID_DOMAINS = ["LEGAL", "MEDICAL", "TECHNICAL", "ACADEMIC", "CUSTOM"];
+const VALID_DOMAINS = ["INDUSTRIA", "CONSTRUCCION", "TECNOLOGIA"];
 
 /**
  * PUT /api/documents/[id]/domain

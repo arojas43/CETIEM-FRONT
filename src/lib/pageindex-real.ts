@@ -16,6 +16,23 @@
 
 import { nimService } from "./nim";
 
+// pdfjs-dist/legacy requiere DOMMatrix en Node.js
+if (typeof globalThis.DOMMatrix === 'undefined') {
+  (globalThis as any).DOMMatrix = class DOMMatrix {
+    m11 = 1; m12 = 0; m13 = 0; m14 = 0;
+    m21 = 0; m22 = 1; m23 = 0; m24 = 0;
+    m31 = 0; m32 = 0; m33 = 1; m34 = 0;
+    m41 = 0; m42 = 0; m43 = 0; m44 = 1;
+    multiply(_o: any) { return this; }
+    invertSelf() { return this; }
+    inverse() { return this; }
+    transformPoint(p: any) { return p; }
+    toFloat32Array() { return new Float32Array(16); }
+    toFloat64Array() { return new Float64Array(16); }
+    toString() { return 'matrix(1,0,0,1,0,0)'; }
+  };
+}
+
 /**
  * Extrae el primer objeto JSON válido de un string de texto libre.
  * Usa conteo de llaves balanceadas — más robusto que un regex greedy.
@@ -74,31 +91,25 @@ export class PageIndexService {
   }
 
   /**
-   * Carga pdfjs-dist dinámicamente (solo en runtime, no en build)
+   * Carga pdfjs-dist/legacy dinámicamente (solo en runtime, no en build).
+   * El build legacy es el recomendado para entornos Node.js server-side (v4.x).
+   * pdfjs-dist está en serverExternalPackages → no bundleado por webpack.
    */
   private async loadPdfjs(): Promise<any> {
     if (!this.pdfjsLib) {
-      // Polyfill para DOMMatrix (requerido por pdfjs-dist en Node.js)
-      if (typeof globalThis.DOMMatrix === 'undefined') {
-        (globalThis as any).DOMMatrix = class DOMMatrix {
-          m11: number = 1; m12: number = 0; m13: number = 0; m14: number = 0;
-          m21: number = 0; m22: number = 1; m23: number = 0; m24: number = 0;
-          m31: number = 0; m32: number = 0; m33: number = 1; m34: number = 0;
-          m41: number = 0; m42: number = 0; m43: number = 0; m44: number = 1;
-          multiply(other: any) { return this; }
-          invertSelf() { return this; }
-          inverse() { return this; }
-          transformPoint(point: any) { return point; }
-          toFloat32Array() { return new Float32Array(16); }
-          toFloat64Array() { return new Float64Array(16); }
-          toString() { return 'matrix(1,0,0,1,0,0)'; }
-        };
+      // pdfjs-dist v4 legacy build — compatible con Node.js 20+
+      const pdfjsMod = await import('pdfjs-dist/legacy/build/pdf.mjs' as any);
+      this.pdfjsLib = (pdfjsMod as any).default ?? pdfjsMod;
+
+      // Worker para Node.js — apuntar al archivo del worker
+      if (this.pdfjsLib.GlobalWorkerOptions) {
+        const { resolve } = await import('path');
+        const workerPath = resolve(
+          process.cwd(),
+          'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'
+        );
+        this.pdfjsLib.GlobalWorkerOptions.workerSrc = `file://${workerPath}`;
       }
-      
-      const { createRequire } = await import('module');
-      const require = createRequire(import.meta.url);
-      this.pdfjsLib = require('pdfjs-dist');
-      this.pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/build/pdf.worker.mjs');
     }
     return this.pdfjsLib;
   }

@@ -92,6 +92,12 @@ export class FalkorDBService {
       await testDb.close();
       return true;
     } catch (error: any) {
+      // "Invalid graph operation on empty key" = FalkorDB responde pero el grafo
+      // aún no existe (instancia recién creada). Sí está disponible.
+      if (error.message?.includes('Invalid graph operation on empty key')) {
+        if (testDb) { try { await testDb.close(); } catch {} }
+        return true;
+      }
       console.warn("[FalkorDB] Verificación falló:", error.message);
       if (testDb) {
         try { await testDb.close(); } catch {}
@@ -129,8 +135,15 @@ export class FalkorDBService {
         });
         this.graph = this.db.selectGraph(this.config.graphName);
 
-        // Verificar con query de prueba
-        await this.graph.roQuery("RETURN 1");
+        // Verificar con query de prueba (grafo puede no existir en instancia nueva)
+        try {
+          await this.graph.roQuery("RETURN 1");
+        } catch (queryError: any) {
+          // "Invalid graph operation on empty key" → FalkorDB funciona, grafo vacío
+          if (!queryError.message?.includes('Invalid graph operation on empty key')) {
+            throw queryError;
+          }
+        }
 
         this.isConnected = true;
         console.log(`✅ [FalkorDB] Conectado en ${this.config.host}:${this.config.port}`);
