@@ -6,6 +6,7 @@ import { FileText, Trash2, Edit2, Save, X, ChevronLeft, ChevronRight, Search, Fi
 import { cn } from "@/lib/utils";
 import { ProcessingProgress } from "@/components/processing-progress";
 import { useRole } from "@/lib/role-context";
+import { CATEGORIAS, getCatalogoById } from "@/lib/document-catalogue";
 
 interface Certification {
   id: string;
@@ -20,6 +21,8 @@ interface Document {
   description?: string | null;
   status: string;
   domain?: string;
+  tipoDocumento?: string | null;
+  categoriaDoc?: string | null;
   storageUrl: string;
   createdAt: string;
   pageIndices?: { length: number };
@@ -342,9 +345,25 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
                     </div>
                   ) : (
                     <>
-                      <p className="font-medium text-white text-sm truncate">{doc.name}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-white text-sm truncate">{doc.name}</p>
+                        {doc.tipoDocumento && (() => {
+                          const tipo = getCatalogoById(doc.tipoDocumento!);
+                          const cat = tipo?.categoria ?? (doc.categoriaDoc as any);
+                          if (!cat || cat === "OTRO") return null;
+                          const info = CATEGORIAS[cat as keyof typeof CATEGORIAS];
+                          return info ? (
+                            <span className={cn(
+                              "px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0",
+                              info.bgColor, info.color
+                            )}>
+                              {tipo ? tipo.nombre : info.label}
+                            </span>
+                          ) : null;
+                        })()}
+                      </div>
                       <p className="text-xs text-cetiem-gray truncate">
-                        {doc.description || "Sin descripción"} · {new Date(doc.createdAt).toLocaleDateString('es-ES')}
+                        {doc.description || new Date(doc.createdAt).toLocaleDateString('es-ES')}
                       </p>
                       {(doc.status === "PROCESSING" || doc.status === "PENDING" || processingId === doc.id) && (
                         <ProcessingProgress

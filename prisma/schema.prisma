@@ -90,25 +90,28 @@ model VerificationToken {
 }
 
 model Document {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  mimeType    String
-  size        Int
-  storageUrl  String
-  status      DocumentStatus @default(PENDING)
-  domain      DocumentDomain @default(INDUSTRIA)
-  sha256      String?        // Hash SHA-256 del archivo
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  id            String             @id @default(cuid())
+  name          String
+  description   String?
+  mimeType      String
+  size          Int
+  storageUrl    String
+  status        DocumentStatus     @default(PENDING)
+  domain        DocumentDomain     @default(INDUSTRIA)
+  sha256        String?            // Hash SHA-256 del archivo
+  // Catálogo de tipo de documento
+  tipoDocumento String?            // ID del catálogo, e.g. "ACTA_CONSTITUTIVA"
+  categoriaDoc  CategoriaDocumento @default(OTRO)
+  userId        String
+  user          User               @relation(fields: [userId], references: [id])
   certifications Certification[]
-  pageIndices PageIndex[]
-  capaTickets CapaTicket[]
+  pageIndices   PageIndex[]
+  capaTickets   CapaTicket[]
 
   processingProgress Json?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum DocumentStatus {
@@ -123,6 +126,16 @@ enum DocumentDomain {
   INDUSTRIA
   CONSTRUCCION
   TECNOLOGIA
+}
+
+enum CategoriaDocumento {
+  GOBERNANZA
+  FINANCIERO
+  AMBIENTAL
+  SOCIAL
+  LEGAL
+  OPERACIONES
+  OTRO
 }
 
 model PageIndex {

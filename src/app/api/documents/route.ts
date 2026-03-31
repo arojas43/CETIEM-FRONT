@@ -115,6 +115,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File;
     const description = formData.get("description") as string;
+    const tipoDocumento = (formData.get("tipoDocumento") as string) || null;
+    const categoriaDoc = (formData.get("categoriaDoc") as string) || "OTRO";
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -146,6 +148,8 @@ export async function POST(request: NextRequest) {
         storageUrl: "/pending", // Temporal, se actualiza después
         status: "PENDING",
         sha256,
+        tipoDocumento: tipoDocumento || null,
+        categoriaDoc: (categoriaDoc as any) || "OTRO",
         userId: session.user.id,
       },
     });
