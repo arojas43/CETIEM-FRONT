@@ -75,7 +75,7 @@ export default function HomePage() {
             <div className="hidden md:block absolute top-10 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-cetiem-green/20 via-cetiem-teal/30 to-cetiem-lime/20" />
             {[
               { n: "01", icon: Upload,      color: "bg-cetiem-green", title: "Empresa sube documentos", desc: "Arrastra PDFs — manuales, certificados, procedimientos, actas." },
-              { n: "02", icon: Brain,       color: "bg-cetiem-teal",  title: "IA analiza el expediente", desc: "PageIndex + Cognee extraen entidades, normas y requisitos automáticamente." },
+              { n: "02", icon: Brain,       color: "bg-cetiem-teal",  title: "IA analiza el expediente", desc: "Modelos de inteligencia artificial con NVIDIA NIM analizan y clasifican el expediente automáticamente." },
               { n: "03", icon: Shield,      color: "bg-cetiem-amber", title: "Assessor revisa y dictamina", desc: "Un auditor CETIEM valida con la consola split-view PDF + formulario." },
               { n: "04", icon: Award,       color: "bg-cetiem-lime",  title: "Certificado digital emitido", desc: "Descarga tu certificación con QR de verificación en tiempo real." },
             ].map(step => {
@@ -177,9 +177,9 @@ export default function HomePage() {
               {[
                 { name: "Next.js 15",    role: "Frontend / API",    color: "text-white" },
                 { name: "NVIDIA NIM",    role: "IA / LLM (GLM4.7)", color: "text-cetiem-green" },
-                { name: "FalkorDB",      role: "Grafo de conocimiento", color: "text-cetiem-teal" },
                 { name: "PostgreSQL",    role: "Base de datos",     color: "text-cetiem-lime" },
-                { name: "BullMQ",        role: "Colas asíncronas",  color: "text-cetiem-amber" },
+                { name: "Análisis IA",   role: "Documentos ESG",    color: "text-cetiem-teal" },
+                { name: "Certificación", role: "Digital + verificable", color: "text-cetiem-amber" },
               ].map(tech => (
                 <div key={tech.name} className="text-center">
                   <p className={`font-heading font-bold text-sm ${tech.color}`}>{tech.name}</p>

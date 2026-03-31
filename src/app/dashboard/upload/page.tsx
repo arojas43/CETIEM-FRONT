@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
-import { useDropzone } from "react-dropzone";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Upload, FileText, X, CheckCircle, AlertCircle, Search,
