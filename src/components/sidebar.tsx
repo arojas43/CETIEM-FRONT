@@ -23,9 +23,9 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   company: [
     { href: '/dashboard',             label: 'Dashboard',        icon: LayoutDashboard },
     { href: '/dashboard/documents',   label: 'Mis Documentos',   icon: FileText },
-    { href: '/dashboard/upload',      label: 'Subir Documento',  icon: Upload },
-    { href: '/dashboard/capa',        label: 'Tickets CAPA',     icon: ShieldAlert },
-    { href: '/dashboard/certificate', label: 'Mi Certificación', icon: Award, disabled: true },
+    { href: '/dashboard/upload',          label: 'Subir Documentos', icon: Upload },
+    { href: '/dashboard/capa',            label: 'Tickets CAPA',     icon: ShieldAlert },
+    { href: '/dashboard/mi-certificado',  label: 'Mi Certificado',   icon: Award },
   ],
   assessor: [
     { href: '/dashboard',             label: 'Dashboard',          icon: LayoutDashboard },

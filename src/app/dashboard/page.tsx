@@ -31,7 +31,10 @@ export default async function DashboardPage() {
   const companyUser = role === 'company'
     ? await prisma.user.findUnique({
         where: { id: userId },
-        select: { track: true, sprintLevel: true, companyName: true },
+        select: {
+          track: true, sprintLevel: true, companyName: true,
+          assessor: { select: { name: true, email: true } },
+        },
       })
     : null
 

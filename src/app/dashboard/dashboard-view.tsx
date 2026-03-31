@@ -34,6 +34,7 @@ interface GlobalDoc {
 }
 interface CompanyMeta {
   track: string | null; sprintLevel: string; companyName: string | null;
+  assessor?: { name: string | null; email: string } | null;
 }
 interface CertStats {
   total: number; approved: number; rejected: number; capaOpen: number;
@@ -436,12 +437,21 @@ function CompanyDashboard({ userName, stats, recentDocs, companyMeta, certStats 
                   <span className="font-medium text-cetiem-lime">{SPRINT_LABEL[companyMeta.sprintLevel] || companyMeta.sprintLevel}</span>
                 </div>
                 {certStats && certStats.total > 0 && (
-                  <>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-cetiem-gray">Dictámenes</span>
-                      <span className="text-white">{certStats.total} total · <span className="text-cetiem-lime">{certStats.approved} aprob.</span></span>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-cetiem-gray">Dictámenes</span>
+                    <span className="text-white">{certStats.total} total · <span className="text-cetiem-lime">{certStats.approved} aprob.</span></span>
+                  </div>
+                )}
+                {companyMeta.assessor && (
+                  <div className="pt-2 mt-1 border-t border-white/5">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-3.5 w-3.5 text-cetiem-amber shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-cetiem-gray/50 uppercase tracking-wider">Assessor ESG asignado</p>
+                        <p className="text-xs text-white font-medium truncate">{companyMeta.assessor.name || companyMeta.assessor.email}</p>
+                      </div>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
