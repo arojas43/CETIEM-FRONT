@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import {
   Upload, FileText, X, CheckCircle, AlertCircle, Search,
-  ChevronDown, ChevronRight, Info,
+  ChevronDown, ChevronRight, Info, Cpu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -415,7 +415,17 @@ export default function UploadPage() {
                 )}
               </div>
 
-              {/* Notas opcionales */}
+              {/* NVIDIA NIM badge */}
+          {!tipoSeleccionado && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-white/3 border border-white/5 rounded-xl">
+              <Cpu className="h-3.5 w-3.5 text-cetiem-green shrink-0" />
+              <p className="text-cetiem-gray text-xs">
+                Los documentos son analizados automáticamente con <strong className="text-white">IA impulsada por NVIDIA NIM</strong>. El contenido es revisado por un Assessor ESG certificado.
+              </p>
+            </div>
+          )}
+
+          {/* Notas opcionales */}
               {file && !uploading && (
                 <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5">
                   <h2 className="font-heading font-semibold text-white flex items-center gap-2 mb-3">

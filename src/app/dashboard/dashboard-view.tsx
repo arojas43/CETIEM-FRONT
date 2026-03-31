@@ -7,7 +7,7 @@ import {
   FileText, Upload, Search, CheckCircle, Clock, AlertCircle,
   Building2, ClipboardList, Users, ArrowRight, Eye,
   TrendingUp, Shield, Award, RefreshCw, ShieldAlert,
-  Network, ScrollText, Download, ChevronRight,
+  Network, ScrollText, Download, ChevronRight, MessageSquare, XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +28,8 @@ interface UserRow {
 }
 interface GlobalDoc {
   id: string; name: string; status: string; createdAt: Date; domain: string;
-  user: { name: string | null; email: string; companyName: string | null };
+  userId: string;
+  user: { id: string; name: string | null; email: string; companyName: string | null };
   certifications: { status: string }[];
 }
 interface CompanyMeta {
@@ -37,6 +38,12 @@ interface CompanyMeta {
 interface CertStats {
   total: number; approved: number; rejected: number; capaOpen: number;
   esgScore?: number | null; certStatus?: string | null;
+  certId?: string | null;
+  certNotes?: string | null;
+  certFindings?: any[];
+  certVerdict?: string | null;
+  publicToken?: string | null;
+  assessedAt?: string | null;
 }
 
 interface Props {
@@ -117,6 +124,120 @@ function DonutChart({ analyzed, processing, indexed, failed, total }: DocStats) 
   )
 }
 
+// ─── DICTAMEN BANNER — shown on company dashboard when assessor emits verdict ──
+function DictamenBanner({ certStats, companyId }: { certStats: CertStats; companyId?: string }) {
+  const { certStatus, certNotes, certFindings = [], capaOpen, esgScore, assessedAt, certId } = certStats
+  if (!certStatus || certStatus === 'DRAFT') return null
+
+  const findingsSummary = {
+    nc:  (certFindings as any[]).filter(f => f.type === 'NON_COMPLIANCE').length,
+    obs: (certFindings as any[]).filter(f => f.type === 'OBSERVATION').length,
+    comp:(certFindings as any[]).filter(f => f.type === 'COMPLIANCE').length,
+  }
+
+  if (certStatus === 'APPROVED') {
+    return (
+      <div className="bg-gradient-to-r from-cetiem-lime/15 to-cetiem-green/10 border border-cetiem-lime/30 rounded-2xl p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <Award className="h-8 w-8 text-cetiem-lime shrink-0 mt-0.5" />
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-heading font-bold text-cetiem-lime text-base">Certificado ESG Aprobado</h3>
+                {esgScore !== null && esgScore !== undefined && (
+                  <span className="text-xs font-bold bg-cetiem-lime/20 text-cetiem-lime px-2 py-0.5 rounded-full">
+                    Score {Math.round(esgScore)}%
+                  </span>
+                )}
+              </div>
+              {certNotes && (
+                <p className="text-white/70 text-sm italic mb-2">"{certNotes}"</p>
+              )}
+              <p className="text-cetiem-gray/60 text-xs">
+                {assessedAt ? `Emitido el ${new Date(assessedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}` : 'Dictamen emitido'}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/mi-certificado"
+            className="shrink-0 flex items-center gap-2 bg-cetiem-lime hover:bg-cetiem-lime/90 text-black font-semibold text-sm px-4 py-2 rounded-xl transition-colors"
+          >
+            <Download className="h-4 w-4" /> Ver Certificado
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (certStatus === 'REJECTED') {
+    return (
+      <div className="bg-cetiem-red/10 border border-cetiem-red/30 rounded-2xl p-5">
+        <div className="flex items-start gap-3">
+          <XCircle className="h-6 w-6 text-cetiem-red shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="font-heading font-semibold text-cetiem-red text-sm mb-2">Dictamen: No aprobado</h3>
+            {certNotes && <p className="text-white/70 text-sm italic mb-2">"{certNotes}"</p>}
+            {findingsSummary.nc > 0 && (
+              <p className="text-cetiem-gray text-xs">{findingsSummary.nc} no conformidad{findingsSummary.nc !== 1 ? 'es' : ''} identificada{findingsSummary.nc !== 1 ? 's' : ''}</p>
+            )}
+            <p className="text-cetiem-gray/60 text-xs mt-1">Contacta a tu Assessor ESG para orientación.</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // IN_REVIEW or CAPA_OPEN
+  return (
+    <div className="bg-cetiem-amber/10 border border-cetiem-amber/30 rounded-2xl p-5">
+      <div className="flex items-start gap-3">
+        <MessageSquare className="h-6 w-6 text-cetiem-amber shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <h3 className="font-heading font-semibold text-cetiem-amber text-sm">
+              {certStatus === 'CAPA_OPEN' ? 'Acciones correctivas requeridas' : 'Revisión en curso — feedback del Assessor'}
+            </h3>
+          </div>
+          {certNotes && (
+            <p className="text-white text-sm italic mb-3 bg-white/5 rounded-xl px-3 py-2 border-l-2 border-cetiem-amber/40">
+              "{certNotes}"
+            </p>
+          )}
+          <div className="flex items-center gap-3 text-xs flex-wrap">
+            {findingsSummary.nc > 0 && (
+              <span className="bg-cetiem-red/15 text-cetiem-red px-2 py-1 rounded-lg font-medium">
+                {findingsSummary.nc} No conformidad{findingsSummary.nc !== 1 ? 'es' : ''}
+              </span>
+            )}
+            {findingsSummary.obs > 0 && (
+              <span className="bg-cetiem-amber/15 text-cetiem-amber px-2 py-1 rounded-lg font-medium">
+                {findingsSummary.obs} Observación{findingsSummary.obs !== 1 ? 'es' : ''}
+              </span>
+            )}
+            {findingsSummary.comp > 0 && (
+              <span className="bg-cetiem-lime/10 text-cetiem-lime px-2 py-1 rounded-lg font-medium">
+                {findingsSummary.comp} Cumplimiento{findingsSummary.comp !== 1 ? 's' : ''}
+              </span>
+            )}
+            {capaOpen > 0 && (
+              <Link href="/dashboard/capa"
+                className="bg-cetiem-red/15 text-cetiem-red px-2 py-1 rounded-lg font-medium hover:bg-cetiem-red/25 transition-colors flex items-center gap-1">
+                <ShieldAlert className="h-3 w-3" />
+                {capaOpen} ticket{capaOpen !== 1 ? 's' : ''} CAPA
+              </Link>
+            )}
+          </div>
+          {certStatus === 'CAPA_OPEN' && capaOpen > 0 && (
+            <Link href="/dashboard/capa" className="mt-3 inline-flex items-center gap-2 text-xs bg-cetiem-amber text-black font-medium px-3 py-1.5 rounded-lg hover:bg-cetiem-amber/90 transition-colors">
+              Gestionar acciones correctivas <ChevronRight className="h-3 w-3" />
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── COMPANY VIEW ─────────────────────────────────────────────────────────────
 function CompanyDashboard({ userName, stats, recentDocs, companyMeta, certStats }: Pick<Props, 'userName' | 'stats' | 'recentDocs' | 'companyMeta' | 'certStats'>) {
   const firstName = userName.split(' ')[0].split('@')[0]
@@ -135,10 +256,10 @@ function CompanyDashboard({ userName, stats, recentDocs, companyMeta, certStats 
 
   // 4 steps: each is independently determined
   const certSteps = [
-    { n: 1, label: 'Documentos\nSubidos',    done: stats.total > 0,                       active: stats.total === 0 },
-    { n: 2, label: 'Análisis IA\nCompleto',  done: stats.analyzed > 0,                    active: stats.total > 0 && stats.analyzed === 0 },
-    { n: 3, label: 'Revisión\nAssessor',     done: hasCert,                               active: stats.analyzed > 0 && !hasCert },
-    { n: 4, label: 'Certificado\nEmitido',   done: certApproved,                          active: hasCert && !certApproved },
+    { n: 1, label: 'Documentos\nSubidos',       done: stats.total > 0,      active: stats.total === 0 },
+    { n: 2, label: 'Análisis IA\n· NVIDIA NIM', done: stats.analyzed > 0,   active: stats.total > 0 && stats.analyzed === 0 },
+    { n: 3, label: 'Revisión\nAssessor ESG',    done: hasCert,               active: stats.analyzed > 0 && !hasCert },
+    { n: 4, label: 'Certificado\nESG Emitido',  done: certApproved,          active: hasCert && !certApproved },
   ]
 
   return (
@@ -156,8 +277,11 @@ function CompanyDashboard({ userName, stats, recentDocs, companyMeta, certStats 
       <div className="flex-1 p-8 grid grid-cols-3 gap-6 overflow-auto">
         <div className="col-span-2 space-y-6">
 
-          {/* CAPA alert — shown only when relevant */}
-          {capaOpen > 0 && (
+          {/* Dictamen banner — shown when assessor has issued verdict */}
+          {certStats && <DictamenBanner certStats={certStats} />}
+
+          {/* CAPA alert — only when no dictamen banner (no duplication) */}
+          {capaOpen > 0 && (!certStats?.certStatus || certStats.certStatus === 'DRAFT') && (
             <Link href="/dashboard/capa" className="flex items-center gap-3 bg-cetiem-amber/10 border border-cetiem-amber/30 rounded-2xl p-4 hover:border-cetiem-amber/50 transition-colors">
               <ShieldAlert className="h-5 w-5 text-cetiem-amber shrink-0" />
               <div className="flex-1">
@@ -451,7 +575,7 @@ function AssessorDashboard({ userName, globalStats, allDocsGlobal }: Pick<Props,
                     </div>
                     <StatusBadge status={doc.status} />
                     <Link
-                      href={`/dashboard/review/${doc.id}`}
+                      href={`/dashboard/review/company/${doc.userId}`}
                       className="flex items-center gap-1 text-xs bg-cetiem-amber hover:bg-cetiem-amber/90 text-black font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0"
                     >
                       <Eye className="h-3 w-3" /> Revisar

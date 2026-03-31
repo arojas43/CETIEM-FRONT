@@ -92,6 +92,15 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
   const totalSections = await prisma.pageIndex.count({ where: { documentId: id } });
   const latestCert = document.certifications?.[0] ?? null;
 
+  // CAPA tickets for this document (company only sees their own)
+  const capaTickets = isCompany
+    ? await prisma.capaTicket.findMany({
+        where: { documentId: id, userId: session.user.id! },
+        select: { id: true, title: true, description: true, status: true, dueDate: true },
+        orderBy: { createdAt: 'desc' },
+      })
+    : [];
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -165,9 +174,9 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
               </div>
             </div>
 
-            {/* AI analysis status */}
+            {/* AI analysis status — no AI tech jargon for company */}
             <div className={cn(
-              "border rounded-2xl p-6",
+              "border rounded-2xl p-5",
               document.status === "ANALYZED"
                 ? "bg-cetiem-lime/5 border-cetiem-lime/20"
                 : document.status === "INDEXED"
@@ -176,31 +185,34 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
                 ? "bg-cetiem-red/5 border-cetiem-red/20"
                 : "bg-white/3 border-white/5"
             )}>
-              <div className="flex items-center gap-2 mb-2">
-                <Brain className={cn("h-4 w-4",
-                  document.status === "ANALYZED" ? "text-cetiem-lime" :
-                  document.status === "INDEXED"   ? "text-cetiem-teal" :
-                  document.status === "FAILED"    ? "text-cetiem-red"  : "text-cetiem-gray"
-                )} />
-                <h3 className="font-heading font-semibold text-white text-sm">Análisis IA</h3>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Brain className={cn("h-4 w-4",
+                    document.status === "ANALYZED" ? "text-cetiem-lime" :
+                    document.status === "INDEXED"   ? "text-cetiem-teal" :
+                    document.status === "FAILED"    ? "text-cetiem-red"  : "text-cetiem-gray"
+                  )} />
+                  <h3 className="font-heading font-semibold text-white text-sm">Revisión IA</h3>
+                </div>
+                <span className="text-[10px] text-cetiem-gray/40 font-medium tracking-wide">NVIDIA NIM</span>
               </div>
               {document.status === "ANALYZED" ? (
                 <p className="text-cetiem-gray text-sm">
-                  Documento analizado. Se extrajeron <strong className="text-white">{totalSections} secciones</strong> y el grafo de conocimiento fue construido. El documento está listo para revisión por un Data Assessor.
+                  Documento procesado y listo para revisión por el Assessor ESG.
                 </p>
               ) : document.status === "INDEXED" ? (
                 <p className="text-cetiem-gray text-sm">
-                  Documento indexado con <strong className="text-white">{totalSections} secciones</strong>. Procesamiento parcial completado.
+                  Procesamiento completado. En espera de análisis completo.
                 </p>
               ) : document.status === "FAILED" ? (
                 <p className="text-cetiem-gray text-sm">
-                  El análisis falló. Puedes reintentar el procesamiento desde el botón de arriba.
+                  Ocurrió un error durante el procesamiento. El equipo será notificado.
                 </p>
               ) : document.status === "PROCESSING" ? (
                 <p className="text-cetiem-gray text-sm">Análisis en curso, por favor espera...</p>
               ) : (
                 <p className="text-cetiem-gray text-sm">
-                  Documento pendiente de análisis. Usa el botón de arriba para iniciar el proceso.
+                  En espera de procesamiento. Se revisará en breve.
                 </p>
               )}
             </div>
@@ -208,21 +220,30 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
             {/* Assessor feedback */}
             {latestCert ? (
               <div className={cn(
-                "border rounded-2xl p-6",
+                "border rounded-2xl p-5 space-y-3",
                 latestCert.status === "APPROVED"  ? "bg-cetiem-lime/5 border-cetiem-lime/20" :
                 latestCert.status === "REJECTED"  ? "bg-cetiem-red/5 border-cetiem-red/20" :
                                                     "bg-cetiem-amber/5 border-cetiem-amber/20"
               )}>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2">
                   {(() => {
                     const Icon = certStatusIcon[latestCert.status] ?? AlertCircle;
                     return <Icon className={cn("h-4 w-4", certStatusColor[latestCert.status])} />;
                   })()}
                   <h3 className="font-heading font-semibold text-white text-sm">
-                    Dictamen del Assessor — {certStatusLabel[latestCert.status] ?? latestCert.status}
+                    Assessor ESG — {certStatusLabel[latestCert.status] ?? latestCert.status}
                   </h3>
                 </div>
 
+                {/* Assessor notes */}
+                {(latestCert.requirements as any)?.notes && (
+                  <div className="bg-white/5 border-l-2 border-cetiem-amber/40 rounded-r-xl px-4 py-3">
+                    <p className="text-[10px] text-cetiem-gray/50 mb-1 uppercase tracking-wider">Nota del Assessor</p>
+                    <p className="text-white text-sm italic">"{(latestCert.requirements as any).notes}"</p>
+                  </div>
+                )}
+
+                {/* Findings */}
                 {latestCert.findings?.length > 0 ? (
                   <div className="space-y-2">
                     {latestCert.findings.map((f) => (
@@ -246,17 +267,56 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
                     ))}
                   </div>
                 ) : (
-                  <p className="text-cetiem-gray text-sm">Dictamen emitido sin hallazgos específicos.</p>
+                  <p className="text-cetiem-gray text-sm">Sin hallazgos específicos en este documento.</p>
                 )}
               </div>
             ) : (
-              <div className="bg-white/3 border border-white/5 rounded-2xl p-6 flex items-start gap-3">
+              <div className="bg-white/3 border border-white/5 rounded-2xl p-5 flex items-start gap-3">
                 <Clock className="h-5 w-5 text-cetiem-gray/40 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-white text-sm font-medium">Pendiente de revisión</p>
                   <p className="text-cetiem-gray/60 text-xs mt-1">
-                    Un Data Assessor revisará tu expediente una vez que el análisis IA esté completo. Recibirás el dictamen aquí.
+                    Un Assessor ESG revisará tu expediente una vez que el análisis IA esté completo.
                   </p>
+                </div>
+              </div>
+            )}
+
+            {/* CAPA tickets for this document */}
+            {capaTickets.length > 0 && (
+              <div className="bg-cetiem-amber/5 border border-cetiem-amber/20 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-cetiem-amber" />
+                    <h3 className="font-heading font-semibold text-white text-sm">
+                      Acciones correctivas ({capaTickets.length})
+                    </h3>
+                  </div>
+                  <a href="/dashboard/capa" className="text-xs text-cetiem-amber hover:underline">Gestionar →</a>
+                </div>
+                <div className="space-y-2">
+                  {capaTickets.map(ticket => {
+                    const daysLeft = Math.ceil((new Date(ticket.dueDate).getTime() - Date.now()) / 86400000);
+                    const isOverdue = daysLeft < 0;
+                    return (
+                      <div key={ticket.id} className="bg-white/5 rounded-xl p-3 flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-xs font-medium">{ticket.title}</p>
+                          <p className="text-cetiem-gray/60 text-[11px] mt-0.5 line-clamp-2">{ticket.description}</p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full",
+                            ticket.status === "CLOSED"      ? "bg-cetiem-lime/10 text-cetiem-lime" :
+                            isOverdue                       ? "bg-cetiem-red/15 text-cetiem-red" :
+                            ticket.status === "IN_PROGRESS" ? "bg-cetiem-teal/10 text-cetiem-teal" :
+                                                              "bg-cetiem-amber/10 text-cetiem-amber"
+                          )}>
+                            {ticket.status === "CLOSED" ? "Cerrado" : isOverdue ? "Vencido" : ticket.status === "IN_PROGRESS" ? "En proceso" : `${daysLeft}d`}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

@@ -40,7 +40,7 @@ export default async function DashboardPage() {
     ? await prisma.companyCertification.findFirst({
         where: { companyId: userId },
         orderBy: { createdAt: 'desc' },
-        select: { id: true, status: true, esgScore: true },
+        select: { id: true, status: true, esgScore: true, requirements: true, publicToken: true },
       }).then(async cert => ({
         total:    cert ? 1 : 0,
         approved: cert?.status === 'APPROVED' ? 1 : 0,
@@ -48,6 +48,12 @@ export default async function DashboardPage() {
         capaOpen: await prisma.capaTicket.count({ where: { userId, status: { in: ['OPEN', 'IN_PROGRESS', 'OVERDUE'] } } }),
         esgScore: cert?.esgScore ?? null,
         certStatus: cert?.status ?? null,
+        certId: cert?.id ?? null,
+        certNotes: (cert?.requirements as any)?.notes ?? null,
+        certFindings: (cert?.requirements as any)?.findings ?? [],
+        certVerdict: (cert?.requirements as any)?.verdict ?? null,
+        publicToken: cert?.publicToken ?? null,
+        assessedAt: (cert?.requirements as any)?.assessedAt ?? null,
       }))
     : null
 
@@ -67,7 +73,8 @@ export default async function DashboardPage() {
     take: 10,
     select: {
       id: true, name: true, status: true, createdAt: true, domain: true,
-      user: { select: { name: true, email: true, companyName: true } },
+      userId: true,
+      user: { select: { id: true, name: true, email: true, companyName: true } },
       certifications: { orderBy: { createdAt: 'desc' }, take: 1, select: { status: true } },
     },
   })

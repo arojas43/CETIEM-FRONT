@@ -15,7 +15,6 @@ import {
 import { cn } from "@/lib/utils";
 
 async function DocumentProgress({ userId }: { userId: string }) {
-  // Tipos ya subidos (puede haber duplicados si subieron más de uno del mismo tipo)
   const documentos = await prisma.document.findMany({
     where: { userId },
     select: { tipoDocumento: true, categoriaDoc: true, status: true },
@@ -25,98 +24,120 @@ async function DocumentProgress({ userId }: { userId: string }) {
   const analizados = new Set(
     documentos.filter(d => d.status === "ANALYZED").map(d => d.tipoDocumento).filter(Boolean) as string[]
   );
+  const enProceso = documentos.filter(d =>
+    d.status === "PROCESSING" || d.status === "INDEXED"
+  ).length;
 
   const totalSubidos = tiposSubidos.size;
   const totalAnalizados = analizados.size;
-  const porcentaje = Math.round((totalSubidos / TOTAL_REQUERIDOS) * 100);
+  const pctSubidos = Math.round((totalSubidos / TOTAL_REQUERIDOS) * 100);
+  const pctAnalizados = totalSubidos > 0 ? Math.round((totalAnalizados / totalSubidos) * 100) : 0;
 
   // Por categoría
   const porCategoria = ORDEN_CATEGORIAS.filter(c => c !== "OTRO").map(cat => {
     const enCategoria = CATALOGO_DOCUMENTOS.filter(d => d.categoria === cat);
     const subidos = enCategoria.filter(d => tiposSubidos.has(d.id)).length;
+    const analizadosCat = enCategoria.filter(d => analizados.has(d.id)).length;
     const total = enCategoria.length;
-    return { cat, subidos, total, completa: subidos === total };
+    return { cat, subidos, analizadosCat, total, completa: subidos === total };
   });
 
-  const colorBarra = porcentaje === 100
-    ? "bg-cetiem-lime"
-    : porcentaje >= 60
-      ? "bg-cetiem-green"
-      : porcentaje >= 30
-        ? "bg-cetiem-amber"
-        : "bg-cetiem-red";
+  const colorBarraSubidos = pctSubidos === 100 ? "bg-cetiem-lime" : pctSubidos >= 60 ? "bg-cetiem-green" : pctSubidos >= 30 ? "bg-cetiem-amber" : "bg-cetiem-red";
 
   return (
     <div className="mb-6 bg-cetiem-card border border-white/5 rounded-2xl p-5">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      {/* Título */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-heading font-semibold text-white text-sm">Expediente ESG</h2>
+        <span className="text-[10px] text-cetiem-gray/40 font-medium tracking-wide">NVIDIA NIM</span>
+      </div>
+
+      {/* Dos etapas: subida + análisis IA */}
+      <div className="grid grid-cols-2 gap-4 mb-5">
+        {/* Subida */}
         <div>
-          <h2 className="font-heading font-semibold text-white text-sm">
-            Progreso del expediente ESG
-          </h2>
-          <p className="text-xs text-cetiem-gray mt-0.5">
-            {totalSubidos} de {TOTAL_REQUERIDOS} tipos de documento subidos
-            {totalAnalizados > 0 && ` · ${totalAnalizados} analizados por IA`}
-          </p>
+          <div className="flex items-center justify-between text-xs mb-1.5">
+            <span className="text-cetiem-gray">Documentos subidos</span>
+            <span className={cn("font-bold", pctSubidos === 100 ? "text-cetiem-lime" : pctSubidos >= 60 ? "text-cetiem-green" : "text-cetiem-amber")}>
+              {totalSubidos}/{TOTAL_REQUERIDOS}
+            </span>
+          </div>
+          <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+            <div className={cn("h-full rounded-full transition-all", colorBarraSubidos)} style={{ width: `${pctSubidos}%` }} />
+          </div>
         </div>
-        <div className="text-right">
-          <span className={cn(
-            "text-2xl font-bold font-heading",
-            porcentaje === 100 ? "text-cetiem-lime" : porcentaje >= 60 ? "text-cetiem-green" : "text-cetiem-amber"
-          )}>
-            {porcentaje}%
-          </span>
+
+        {/* Análisis IA */}
+        <div>
+          <div className="flex items-center justify-between text-xs mb-1.5">
+            <span className="text-cetiem-gray">Análisis IA completado</span>
+            <span className={cn("font-bold", pctAnalizados === 100 ? "text-cetiem-lime" : pctAnalizados > 0 ? "text-cetiem-teal" : "text-cetiem-gray/40")}>
+              {totalAnalizados}/{totalSubidos || "—"}
+            </span>
+          </div>
+          <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+            <div
+              className={cn("h-full rounded-full transition-all", pctAnalizados === 100 ? "bg-cetiem-lime" : "bg-cetiem-teal")}
+              style={{ width: `${pctAnalizados}%` }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Barra principal */}
-      <div className="h-2.5 bg-white/5 rounded-full overflow-hidden mb-4">
-        <div
-          className={cn("h-full rounded-full transition-all", colorBarra)}
-          style={{ width: `${porcentaje}%` }}
-        />
-      </div>
+      {enProceso > 0 && (
+        <div className="flex items-center gap-2 mb-4 text-xs text-cetiem-amber bg-cetiem-amber/5 border border-cetiem-amber/15 rounded-lg px-3 py-2">
+          <Clock className="h-3.5 w-3.5 shrink-0" />
+          {enProceso} documento{enProceso !== 1 ? 's' : ''} en procesamiento IA...
+        </div>
+      )}
 
       {/* Por categoría */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {porCategoria.map(({ cat, subidos, total, completa }) => (
+        {porCategoria.map(({ cat, subidos, analizadosCat, total, completa }) => (
           <div
             key={cat}
             className={cn(
-              "flex items-center justify-between px-3 py-2 rounded-lg border text-xs",
-              completa
+              "px-3 py-2 rounded-lg border text-xs",
+              completa && analizadosCat === total
                 ? "bg-cetiem-lime/5 border-cetiem-lime/20"
-                : "bg-white/[0.02] border-white/5"
+                : completa
+                  ? "bg-cetiem-teal/5 border-cetiem-teal/10"
+                  : "bg-white/[0.02] border-white/5"
             )}
           >
-            <div className="flex items-center gap-1.5 min-w-0">
-              {completa ? (
-                <CheckCircle2 className="h-3.5 w-3.5 text-cetiem-lime shrink-0" />
-              ) : subidos === 0 ? (
-                <FileWarning className="h-3.5 w-3.5 text-cetiem-gray/40 shrink-0" />
-              ) : (
-                <Clock className="h-3.5 w-3.5 text-cetiem-amber shrink-0" />
-              )}
-              <span className={cn(
-                "truncate",
-                completa ? CATEGORIAS[cat].color : "text-cetiem-gray"
-              )}>
-                {CATEGORIAS[cat].label}
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                {completa && analizadosCat === total ? (
+                  <CheckCircle2 className="h-3 w-3 text-cetiem-lime shrink-0" />
+                ) : subidos === 0 ? (
+                  <FileWarning className="h-3 w-3 text-cetiem-gray/40 shrink-0" />
+                ) : (
+                  <Clock className="h-3 w-3 text-cetiem-amber shrink-0" />
+                )}
+                <span className={cn("truncate text-[11px]", completa ? CATEGORIAS[cat].color : "text-cetiem-gray")}>
+                  {CATEGORIAS[cat].label}
+                </span>
+              </div>
+              <span className={cn("font-medium shrink-0 ml-1 text-[11px]", completa ? "text-cetiem-lime" : subidos > 0 ? "text-white" : "text-cetiem-gray/30")}>
+                {subidos}/{total}
               </span>
             </div>
-            <span className={cn(
-              "ml-2 font-medium shrink-0",
-              completa ? "text-cetiem-lime" : subidos > 0 ? "text-white" : "text-cetiem-gray/40"
-            )}>
-              {subidos}/{total}
-            </span>
+            {/* Mini barra de análisis */}
+            {subidos > 0 && (
+              <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-cetiem-teal rounded-full"
+                  style={{ width: `${Math.round((analizadosCat / subidos) * 100)}%` }}
+                />
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      {porcentaje < 100 && (
-        <p className="text-[11px] text-cetiem-gray/50 mt-3 text-center">
-          Se requieren los {TOTAL_OBLIGATORIOS} documentos obligatorios para solicitar el dictamen
+      {pctSubidos < 100 && (
+        <p className="text-[11px] text-cetiem-gray/40 mt-3 text-center">
+          {TOTAL_OBLIGATORIOS} documentos obligatorios · {TOTAL_REQUERIDOS} en total
         </p>
       )}
     </div>
