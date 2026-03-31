@@ -14,11 +14,13 @@ interface Doc {
   id: string; name: string; status: string; domain: string; createdAt: Date;
   certifications: { id: string; status: string; esgScore: number | null }[];
 }
+interface CompanyCert { id: string; status: string; esgScore: number | null; createdAt: Date }
 interface Assessor { id: string; name: string | null; email: string }
 interface User {
   id: string; name: string | null; email: string; createdAt: Date;
   companyName: string | null; track: string | null; sprintLevel: string;
   assessorId: string | null; documents: Doc[];
+  companyCertifications: CompanyCert[];
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -152,6 +154,7 @@ export function CompaniesView({ users, assessors }: { users: User[]; assessors: 
             const isOpen = expanded === user.id;
             const assignedAssessorId = localAssessors[user.id];
             const assignedAssessor = assessors.find(a => a.id === assignedAssessorId);
+            const companyCert = user.companyCertifications[0] ?? null;
 
             return (
               <div key={user.id} className="bg-cetiem-card border border-white/5 rounded-2xl overflow-hidden">
@@ -185,10 +188,21 @@ export function CompaniesView({ users, assessors }: { users: User[]; assessors: 
                       <span className="text-[10px] text-cetiem-red/60 bg-cetiem-red/5 px-2 py-1 rounded-full">Sin assessor</span>
                     )}
                     <span className="text-cetiem-gray text-xs">{user.documents.length} doc{user.documents.length !== 1 ? "s" : ""}</span>
-                    <span className={cn("inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium border", badge.color)}>
-                      <BadgeIcon className="h-2.5 w-2.5" />
-                      {badge.label}
-                    </span>
+                    {/* Dictamen a nivel empresa */}
+                    {companyCert ? (
+                      <span className={cn("inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium border", CERT_STATUS_COLOR[companyCert.status] || "text-cetiem-gray bg-white/5 border-white/10")}>
+                        <Award className="h-2.5 w-2.5" />
+                        {companyCert.status === "APPROVED" ? `Aprobada${companyCert.esgScore != null ? ` · ${Math.round(companyCert.esgScore)}%` : ""}` :
+                         companyCert.status === "REJECTED"  ? "Rechazada" :
+                         companyCert.status === "CAPA_OPEN" ? "CAPA Abierta" :
+                         companyCert.status === "IN_REVIEW" ? "En revisión" : companyCert.status}
+                      </span>
+                    ) : (
+                      <span className={cn("inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium border", badge.color)}>
+                        <BadgeIcon className="h-2.5 w-2.5" />
+                        {badge.label}
+                      </span>
+                    )}
                     {isOpen ? <ChevronDown className="h-4 w-4 text-cetiem-gray" /> : <ChevronRight className="h-4 w-4 text-cetiem-gray" />}
                   </div>
                 </button>
@@ -216,6 +230,28 @@ export function CompaniesView({ users, assessors }: { users: User[]; assessors: 
                       </div>
                     )}
 
+                    {/* Dictamen a nivel empresa */}
+                    <div className="flex items-center justify-between bg-white/3 border border-white/5 rounded-xl p-3">
+                      <div className="flex items-center gap-2">
+                        <Award className="h-4 w-4 text-cetiem-amber shrink-0" />
+                        <span className="text-xs text-white font-medium">Dictamen ESG</span>
+                        {companyCert && (
+                          <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium border", CERT_STATUS_COLOR[companyCert.status] || "text-cetiem-gray bg-white/5 border-white/10")}>
+                            {companyCert.status === "APPROVED" ? `Aprobada · ${companyCert.esgScore != null ? Math.round(companyCert.esgScore)+"%" : ""}` :
+                             companyCert.status === "REJECTED"  ? "Rechazada" :
+                             companyCert.status === "CAPA_OPEN" ? "CAPA Abierta" :
+                             companyCert.status === "IN_REVIEW" ? "En revisión" : companyCert.status}
+                          </span>
+                        )}
+                      </div>
+                      <Link
+                        href={`/dashboard/review/company/${user.id}`}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-cetiem-amber hover:bg-cetiem-amber/90 text-black text-[10px] font-bold rounded-lg transition-colors"
+                      >
+                        {companyCert ? "Ver / Modificar Dictamen" : "Emitir Dictamen"}
+                      </Link>
+                    </div>
+
                     {/* Documents */}
                     <div>
                       <p className="text-[10px] font-medium text-cetiem-gray/50 uppercase tracking-widest mb-2">
@@ -225,40 +261,22 @@ export function CompaniesView({ users, assessors }: { users: User[]; assessors: 
                         <p className="text-cetiem-gray/40 text-xs py-3 text-center">Esta empresa aún no ha subido documentos.</p>
                       ) : (
                         <div className="space-y-1.5">
-                          {user.documents.map(doc => {
-                            const cert = doc.certifications[0];
-                            return (
-                              <div key={doc.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition-colors">
-                                <FileText className="h-4 w-4 text-cetiem-gray/50 shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-white text-xs font-medium truncate">{doc.name}</p>
-                                  <p className="text-cetiem-gray/40 text-[10px] capitalize">{doc.domain?.toLowerCase()} · {new Date(doc.createdAt).toLocaleDateString("es-MX")}</p>
-                                </div>
-                                <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium", STATUS_COLOR[doc.status])}>
-                                  {STATUS_LABEL[doc.status]}
-                                </span>
-                                {cert && (
-                                  <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium border", CERT_STATUS_COLOR[cert.status] || "text-cetiem-gray bg-white/5 border-white/10")}>
-                                    {cert.status === "APPROVED" ? `✓ ${cert.esgScore != null ? cert.esgScore.toFixed(0)+"%" : "Aprobado"}` :
-                                     cert.status === "REVOKED"  ? "Revocado" :
-                                     cert.status === "CAPA_OPEN"? "CAPA" : cert.status}
-                                  </span>
-                                )}
-                                <div className="flex items-center gap-1">
-                                  <Link href={`/dashboard/documents/${doc.id}`}
-                                    className="p-1.5 rounded-lg hover:bg-white/10 text-cetiem-gray hover:text-white transition-colors" title="Ver documento">
-                                    <Eye className="h-3.5 w-3.5" />
-                                  </Link>
-                                  {(doc.status === "ANALYZED" || doc.status === "INDEXED") && (
-                                    <Link href={`/dashboard/review/${doc.id}`}
-                                      className="flex items-center gap-1 px-2 py-1 bg-cetiem-amber hover:bg-cetiem-amber/90 text-black text-[10px] font-bold rounded-lg transition-colors">
-                                      Revisar
-                                    </Link>
-                                  )}
-                                </div>
+                          {user.documents.map(doc => (
+                            <div key={doc.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition-colors">
+                              <FileText className="h-4 w-4 text-cetiem-gray/50 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-xs font-medium truncate">{doc.name}</p>
+                                <p className="text-cetiem-gray/40 text-[10px] capitalize">{doc.domain?.toLowerCase()} · {new Date(doc.createdAt).toLocaleDateString("es-MX")}</p>
                               </div>
-                            );
-                          })}
+                              <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium", STATUS_COLOR[doc.status])}>
+                                {STATUS_LABEL[doc.status]}
+                              </span>
+                              <Link href={`/dashboard/documents/${doc.id}`}
+                                className="p-1.5 rounded-lg hover:bg-white/10 text-cetiem-gray hover:text-white transition-colors" title="Ver documento">
+                                <Eye className="h-3.5 w-3.5" />
+                              </Link>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>

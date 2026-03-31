@@ -70,13 +70,29 @@ export async function POST(req: NextRequest, { params }: Params) {
   });
   if (!company) return NextResponse.json({ error: "Empresa no encontrada" }, { status: 404 });
 
-  // Calcular ESG score desde V.L.A.P.
+  // Calcular ESG score: combinación de V.L.A.P. (50%) + ratio de cumplimientos (50%)
   let esgScore: number | null = null;
-  if (vlap) {
+  const vlapScore = (() => {
+    if (!vlap) return null;
     const v = vlap as Record<string, { value: boolean | null; confidence: number; override: boolean }>;
-    const passed = ["vigencia", "legibilidad", "autoria", "pertinencia"]
-      .filter(k => v[k]?.value === true).length;
-    esgScore = (passed / 4) * 100;
+    const keys = ["vigencia", "legibilidad", "autoria", "pertinencia"];
+    const total = keys.length;
+    const passed = keys.filter(k => v[k]?.value === true).length;
+    const avgConf = keys.reduce((acc, k) => acc + (v[k]?.confidence ?? 0), 0) / total;
+    return (passed / total) * 0.7 * 100 + avgConf * 0.3;
+  })();
+  const findingsScore = (() => {
+    if (findings.length === 0) return 100;
+    const comp = findings.filter((f: any) => f.type === "COMPLIANCE").length;
+    const nc   = findings.filter((f: any) => f.type === "NON_COMPLIANCE").length;
+    const obs  = findings.filter((f: any) => f.type === "OBSERVATION").length;
+    // Cumplimientos suman, NC restan fuerte, observaciones restan poco
+    return Math.max(0, Math.min(100, ((comp * 1 - nc * 2 - obs * 0.5) / findings.length) * 100 + 50));
+  })();
+  if (vlapScore !== null) {
+    esgScore = Math.round(vlapScore * 0.5 + findingsScore * 0.5);
+  } else if (findings.length > 0) {
+    esgScore = Math.round(findingsScore);
   }
 
   // Determinar status
@@ -99,6 +115,12 @@ export async function POST(req: NextRequest, { params }: Params) {
       .update(JSON.stringify({ companyId, verdict, assessorId: session.user.id, assessedAt: new Date().toISOString(), esgScore }))
       .digest("hex");
   }
+
+  // Cerrar CAPA tickets abiertos antes de reemplazar el dictamen (evita FK constraint)
+  await prisma.capaTicket.updateMany({
+    where: { userId: companyId, status: { in: ["OPEN", "IN_PROGRESS", "OVERDUE"] } },
+    data: { status: "CLOSED", resolution: "Cerrado automáticamente al emitir nuevo dictamen." },
+  });
 
   // Eliminar dictamen anterior si existe
   await prisma.companyCertification.deleteMany({ where: { companyId } });

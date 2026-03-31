@@ -25,6 +25,11 @@ export default async function CompaniesPage() {
           },
           orderBy: { createdAt: "desc" },
         },
+        companyCertifications: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { id: true, status: true, esgScore: true, createdAt: true },
+        },
       },
     }),
     prisma.user.findMany({
