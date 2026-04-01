@@ -27,6 +27,7 @@ interface Document {
   createdAt: string;
   pageIndices?: { length: number };
   certifications?: Certification[];
+  user?: { id: string; companyName: string | null; name: string | null; email: string } | null;
 }
 
 interface PaginationInfo {
@@ -363,6 +364,11 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
                         })()}
                       </div>
                       <p className="text-xs text-cetiem-gray truncate">
+                        {!isCompany && doc.user && (
+                          <span className="text-cetiem-teal/70 font-medium mr-1">
+                            {doc.user.companyName || doc.user.name || doc.user.email} ·{" "}
+                          </span>
+                        )}
                         {doc.description || new Date(doc.createdAt).toLocaleDateString('es-ES')}
                       </p>
                       {(doc.status === "PROCESSING" || doc.status === "PENDING" || processingId === doc.id) && (

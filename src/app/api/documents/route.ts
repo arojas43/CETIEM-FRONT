@@ -30,6 +30,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const role = (session.user as any).role as string;
+    const isCompany = role === "COMPANY";
+
     // Parsear parámetros de paginación
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
@@ -42,8 +45,8 @@ export async function GET(request: NextRequest) {
     const validLimit = Math.min(100, Math.max(1, limit));
     const skip = (validPage - 1) * validLimit;
 
-    // Construir filtro where
-    const where: any = { userId: session.user.id };
+    // Empresa solo ve sus propios documentos; assessor/admin ven todos
+    const where: any = isCompany ? { userId: session.user.id } : {};
 
     if (status) {
       where.status = status;
@@ -65,10 +68,10 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         certifications: true,
-        pageIndices: {
-          orderBy: { level: "asc" },
-          take: 5, // Solo primeros 5 índices para lista
-        },
+        pageIndices: { orderBy: { level: "asc" }, take: 5 },
+        user: !isCompany
+          ? { select: { id: true, companyName: true, name: true, email: true } }
+          : false,
       },
       orderBy: { createdAt: "desc" },
       skip,
