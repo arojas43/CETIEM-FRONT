@@ -26,6 +26,16 @@ const nextConfig = {
     'canvas',
     'pdfjs-dist',
   ],
+  // Configuración para hot reloading en Docker/Windows
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.watchOptions = {
+        poll: 1000, // Verificar cambios cada segundo
+        aggregateTimeout: 300,
+      };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

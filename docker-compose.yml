@@ -153,8 +153,18 @@ services:
       - "3000:3000"
     environment:
       <<: *app-env
+      NODE_ENV: development
     volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+      - ./public:/app/public
+      - ./package.json:/app/package.json
+      - ./next.config.js:/app/next.config.js
+      - ./postcss.config.js:/app/postcss.config.js
+      - ./tailwind.config.js:/app/tailwind.config.js
+      - ./tsconfig.json:/app/tsconfig.json
       - cetiem_uploads:/app/uploads
+    command: npm run dev
     depends_on:
       db-init:
         condition: service_completed_successfully

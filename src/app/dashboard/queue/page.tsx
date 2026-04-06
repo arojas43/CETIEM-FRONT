@@ -2,8 +2,9 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { Building2, FileText, Clock, CheckCircle, ChevronRight, Users } from "lucide-react";
+import { Building2, FileText, Clock, CheckCircle, ChevronRight, Users, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MyDocumentIa } from "@/components/ui/icons";
 
 const CERT_COLOR: Record<string, string> = {
   APPROVED:  "text-cetiem-lime   bg-cetiem-lime/10   border-cetiem-lime/20",
@@ -25,6 +26,18 @@ const TRACK_LABEL: Record<string, string> = {
   C: "Track C — Tecnología",
 };
 
+type QueueCompany = {
+  id: string;
+  name: string | null;
+  email: string;
+  companyName: string | null;
+  track: string | null;
+  sprintLevel: string;
+  assessor: { name: string | null; email: string } | null;
+  documents: { id: string; status: string; name: string; updatedAt: Date }[];
+  companyCertifications: { id: string; status: string; esgScore: number | null; createdAt: Date }[];
+};
+
 export default async function QueuePage() {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin");
@@ -32,7 +45,7 @@ export default async function QueuePage() {
   if (userRole !== "ASSESSOR" && userRole !== "ADMIN") redirect("/dashboard");
 
   // Empresas que tienen al menos un documento en estado ANALYZED o INDEXED
-  const companies = await prisma.user.findMany({
+  const companies: QueueCompany[] = await prisma.user.findMany({
     where: {
       role: "COMPANY",
       documents: { some: { status: { in: ["ANALYZED", "INDEXED", "PENDING", "PROCESSING"] } } },
@@ -69,6 +82,13 @@ export default async function QueuePage() {
           <h1 className="font-heading font-bold text-2xl text-white">Cola de Revisión</h1>
           <p className="text-cetiem-gray text-sm mt-0.5">Empresas con documentos analizados por IA — listos para dictamen.</p>
         </div>
+        <span className={cn("inline-flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-full border",
+          pending.length > 0
+            ? "text-cetiem-amber bg-cetiem-amber/10 border-cetiem-amber/30"
+            : "text-cetiem-lime  bg-cetiem-lime/10  border-cetiem-lime/30"
+        )}>
+          <MyDocumentIa className="h-4 w-4" /> Iniciar Revisión
+        </span>        
         <span className={cn("text-sm font-medium px-3 py-1.5 rounded-full border",
           pending.length > 0
             ? "text-cetiem-amber bg-cetiem-amber/10 border-cetiem-amber/30"
