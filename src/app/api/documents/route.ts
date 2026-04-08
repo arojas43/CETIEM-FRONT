@@ -45,8 +45,12 @@ export async function GET(request: NextRequest) {
     const validLimit = Math.min(100, Math.max(1, limit));
     const skip = (validPage - 1) * validLimit;
 
-    // Empresa solo ve sus propios documentos; assessor/admin ven todos
-    const where: any = isCompany ? { userId: session.user.id } : {};
+    // Empresa: solo sus docs. Assessor: solo docs de empresas asignadas. Admin: todos.
+    const where: any = isCompany
+      ? { userId: session.user.id }
+      : role === "ASSESSOR"
+        ? { user: { assessorId: session.user.id } }
+        : {};
 
     if (status) {
       where.status = status;

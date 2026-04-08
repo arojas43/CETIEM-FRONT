@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
+import { notify } from "@/lib/notify";
 
 /** PATCH /api/companies/[id]/assign — assign/unassign assessor to company */
 export async function PATCH(
@@ -29,6 +30,18 @@ export async function PATCH(
       entityId: id,
       payload: { assessorId: assessorId || null },
     });
+
+    // Notify company about assessor assignment
+    if (assessorId) {
+      const assessor = await prisma.user.findUnique({ where: { id: assessorId }, select: { name: true, email: true } });
+      await notify({
+        userId: id,
+        type: "ASSESSOR_ASSIGNED",
+        title: "Assessor ESG asignado",
+        body: `${assessor?.name || assessor?.email || "Un assessor"} ha sido asignado para acompañar tu proceso de certificación ESG.`,
+        link: "/dashboard",
+      });
+    }
 
     return NextResponse.json({ id: updated.id, assessorId: updated.assessorId });
   } catch (err) {

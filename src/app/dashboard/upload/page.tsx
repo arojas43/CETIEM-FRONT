@@ -262,8 +262,8 @@ function ItemFila({
                 </div>
               ) : (
                 <button onClick={() => fileInputRef.current?.click()}
-                  className="w-full flex items-center gap-2 px-3 py-2 border border-dashed border-white/10 rounded-lg hover:border-cetiem-green/30 hover:bg-white/3 transition-all text-sm text-cetiem-gray/50">
-                  <FolderOpen className="h-4 w-4 shrink-0" />
+                  className="w-full flex items-center gap-2 px-3 py-2.5 border border-dashed border-white/20 rounded-lg hover:border-cetiem-green/50 hover:bg-cetiem-green/5 transition-all text-sm text-cetiem-gray/70 hover:text-white">
+                  <FolderOpen className="h-4 w-4 shrink-0 text-cetiem-gray/50" />
                   Seleccionar PDF...
                 </button>
               )}
@@ -315,17 +315,22 @@ function GlobalDropZone({ onFiles }: { onFiles: (files: File[]) => void }) {
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       className={cn(
-        "border-2 border-dashed rounded-2xl py-8 text-center transition-all",
-        active ? "border-cetiem-green bg-cetiem-green/5" : "border-white/8 hover:border-white/15"
+        "border-2 border-dashed rounded-2xl py-10 text-center transition-all",
+        active
+          ? "border-cetiem-green bg-cetiem-green/8 scale-[1.01]"
+          : "border-white/25 bg-white/3 hover:border-cetiem-green/50 hover:bg-cetiem-green/3"
       )}
     >
-      <Upload className={cn("h-8 w-8 mx-auto mb-2 transition-colors",
-        active ? "text-cetiem-green" : "text-cetiem-gray/20"
-      )} />
-      <p className="text-sm text-cetiem-gray/50">
-        {active ? "Suelta los PDFs aquí" : "Arrastra varios PDFs aquí para añadirlos de golpe"}
+      <div className={cn(
+        "h-12 w-12 rounded-2xl mx-auto mb-3 flex items-center justify-center transition-colors",
+        active ? "bg-cetiem-green/20" : "bg-white/8"
+      )}>
+        <Upload className={cn("h-6 w-6 transition-colors", active ? "text-cetiem-green" : "text-cetiem-gray/60")} />
+      </div>
+      <p className={cn("text-sm font-medium transition-colors", active ? "text-cetiem-green" : "text-white/70")}>
+        {active ? "Suelta los PDFs aquí" : "Arrastra varios PDFs aquí"}
       </p>
-      <p className="text-[11px] text-cetiem-gray/30 mt-1">Se crearán entradas automáticamente</p>
+      <p className="text-xs text-cetiem-gray/40 mt-1">o usa los botones de abajo para seleccionarlos uno a uno</p>
     </div>
   );
 }

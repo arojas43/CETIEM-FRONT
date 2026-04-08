@@ -51,6 +51,7 @@ model User {
   auditLogs              AuditLog[]
   capaTickets            CapaTicket[]
   companyCertifications  CompanyCertification[]
+  notifications          Notification[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -292,4 +293,16 @@ model AuditLog {
   ipAddress   String?
   userAgent   String?
   createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // CERT_ISSUED | CERT_APPROVED | CERT_REJECTED | CAPA_CREATED | CAPA_RESOLVED | DOC_ANALYZED | ASSESSOR_ASSIGNED
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
 }

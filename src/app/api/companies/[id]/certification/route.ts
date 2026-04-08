@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
+import { notify } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,14 @@ export async function POST(req: NextRequest, { params }: Params) {
     select: { id: true, companyName: true, email: true },
   });
   if (!company) return NextResponse.json({ error: "Empresa no encontrada" }, { status: 404 });
+
+  // Assessors can only issue dictamen for their assigned companies
+  if (role === "ASSESSOR") {
+    const assignment = await prisma.user.findUnique({ where: { id: companyId }, select: { assessorId: true } });
+    if (assignment?.assessorId !== session.user.id) {
+      return NextResponse.json({ error: "No tienes asignada esta empresa" }, { status: 403 });
+    }
+  }
 
   // Validate provided documentIds belong to the company
   if (documentIds.length > 0) {
@@ -202,6 +211,32 @@ export async function POST(req: NextRequest, { params }: Params) {
     entityId: cert.id,
     payload: { verdict, companyId, esgScore, hasNC, ncCount: ncFindings.length, documentIds },
   });
+
+  // Notify company about the dictamen
+  const notifTitle = certStatus === "APPROVED"
+    ? "Certificado ESG Aprobado"
+    : certStatus === "REJECTED"
+    ? "Dictamen: No aprobado"
+    : certStatus === "CAPA_OPEN"
+    ? "Acciones correctivas requeridas"
+    : "Revisión en curso";
+  const notifBody = certStatus === "APPROVED"
+    ? `Tu empresa ha obtenido la certificación ESG${esgScore != null ? ` con un score de ${Math.round(esgScore)}%` : ""}.`
+    : certStatus === "CAPA_OPEN"
+    ? `Se han generado ${ncFindings.length} ticket(s) CAPA con plazo de 30 días.`
+    : notes || "Tu assessor ha emitido un nuevo dictamen. Revisa tu certificado.";
+  await notify({ userId: companyId, type: `CERT_${certStatus}`, title: notifTitle, body: notifBody, link: "/dashboard/mi-certificado" });
+
+  // Notify company about each CAPA ticket created
+  if (ncFindings.length > 0) {
+    await notify({
+      userId: companyId,
+      type: "CAPA_CREATED",
+      title: `${ncFindings.length} ticket${ncFindings.length !== 1 ? "s" : ""} CAPA generado${ncFindings.length !== 1 ? "s" : ""}`,
+      body: "Revisa y cierra los tickets dentro del plazo de 30 días para reanudar la revisión.",
+      link: "/dashboard/capa",
+    });
+  }
 
   return NextResponse.json(cert, { status: 201 });
 }

@@ -22,7 +22,10 @@ export async function GET(req: NextRequest) {
   const search = searchParams.get("search") || "";
   const skip   = (page - 1) * limit;
 
-  const where: any = { role: "COMPANY" };
+  // Assessors only see their assigned companies; admins see all
+  const where: any = role === "ASSESSOR"
+    ? { role: "COMPANY", assessorId: session.user.id }
+    : { role: "COMPANY" };
   if (search) {
     where.OR = [
       { companyName: { contains: search, mode: "insensitive" } },

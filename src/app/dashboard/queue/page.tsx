@@ -46,9 +46,11 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
   const { saved } = await searchParams;
 
   // Empresas que tienen al menos un documento en estado ANALYZED o INDEXED
+  // Assessors only see their assigned companies; admins see all
   const companies: QueueCompany[] = await prisma.user.findMany({
     where: {
       role: "COMPANY",
+      ...(userRole === "ASSESSOR" ? { assessorId: session.user.id } : {}),
       documents: { some: { status: { in: ["ANALYZED", "INDEXED", "PENDING", "PROCESSING"] } } },
     },
     select: {
