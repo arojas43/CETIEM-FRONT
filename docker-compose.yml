@@ -16,9 +16,10 @@
 # ============================================================
 
 # Variables de entorno internas compartidas por app y workers
-x-app-env: &app-env
+x-app-env:
   # ── Base de datos ─────────────────────────────────────────
   # Usa el hostname del servicio Docker, no localhost
+  &app-env
   DATABASE_URL: "postgresql://postgres:cetiem@postgres:5432/cetiem_db?schema=certificacion_ia"
 
   # ── Auth ──────────────────────────────────────────────────
@@ -26,18 +27,21 @@ x-app-env: &app-env
   NEXT_PUBLIC_APP_URL: "http://localhost:3000"
   # Si no se define en .env, usa este valor de desarrollo
   NEXTAUTH_SECRET: "${NEXTAUTH_SECRET:-cetiem-dev-secret-change-in-production}"
-  AUTH_SECRET:     "${AUTH_SECRET:-cetiem-dev-secret-change-in-production}"
+  AUTH_SECRET: "${AUTH_SECRET:-cetiem-dev-secret-change-in-production}"
   AUTH_TRUST_HOST: "true"
 
   # ── Almacenamiento ────────────────────────────────────────
   LOCAL_STORAGE_PATH: "/app/uploads"
 
   # ── NVIDIA NIM (desde .env del desarrollador) ─────────────
-  NVIDIA_API_KEY:        "${NVIDIA_API_KEY}"
-  NVIDIA_QA_API_KEY:     "${NVIDIA_QA_API_KEY}"
-  NVIDIA_CHAT_MODEL:     "${NVIDIA_CHAT_MODEL:-meta/llama-3.1-70b-instruct}"
+  NVIDIA_API_KEY: "${NVIDIA_API_KEY}"
+  NVIDIA_QA_API_KEY: "${NVIDIA_QA_API_KEY}"
+  NVIDIA_CHAT_MODEL: "${NVIDIA_CHAT_MODEL:-meta/llama-3.1-70b-instruct}"
   NVIDIA_EMBEDDING_MODEL: "${NVIDIA_EMBEDDING_MODEL:-llama-3_2-nemoretriever-300m-embed-v1}"
-  NVIDIA_QA_MODEL:       "${NVIDIA_QA_MODEL:-z-ai/glm4.7}"
+  NVIDIA_QA_MODEL: "${NVIDIA_QA_MODEL:-z-ai/glm4.7}"
+  # Kimi K2 para extracción de intención (razonamiento superior)
+  NVIDIA_INTENT_API_KEY: "${NVIDIA_INTENT_API_KEY:-}"
+  NVIDIA_INTENT_MODEL: "${NVIDIA_INTENT_MODEL:-moonshotai/kimi-k2-instruct-0905}"
 
   # ── Redis (hostname del servicio Docker) ──────────────────
   REDIS_HOST: "redis"
@@ -58,6 +62,8 @@ x-app-env: &app-env
   # ── Límites ───────────────────────────────────────────────
   MAX_CHUNKS_TO_PROCESS: "500"
   MAX_BATCHES: "100"
+  # Chunks paralelos en Cognee. Default 5 = balance latencia/throughput con NIM
+  COGNEE_PARALLEL_CHUNKS: "${COGNEE_PARALLEL_CHUNKS:-5}"
   NODE_ENV: "production"
 
 services:
@@ -72,11 +78,11 @@ services:
       POSTGRES_PASSWORD: cetiem
       POSTGRES_DB: cetiem_db
     ports:
-      - "5434:5432"   # 5434 evita conflicto con Postgres local en 5432/5433
+      - "5434:5432" # 5434 evita conflicto con Postgres local en 5432/5433
     volumes:
       - cetiem_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -88,11 +94,11 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes
     ports:
-      - "6381:6379"   # 6381 evita conflicto con Redis local en 6379
+      - "6381:6379" # 6381 evita conflicto con Redis local en 6379
     volumes:
       - cetiem_redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -102,13 +108,13 @@ services:
     image: falkordb/falkordb:latest
     container_name: cetiem-falkordb
     restart: unless-stopped
-    command: ["--stop-writes-on-bgsave-error", "no"]
+    command: [ "--stop-writes-on-bgsave-error", "no" ]
     ports:
       - "6380:6379"
     volumes:
       - cetiem_falkordb_data:/var/lib/falkordb/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      test: [ "CMD", "redis-cli", "-p", "6379", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -195,4 +201,4 @@ volumes:
   cetiem_postgres_data:
   cetiem_redis_data:
   cetiem_falkordb_data:
-  cetiem_uploads:       # PDFs compartidos entre app y workers
+  cetiem_uploads: # PDFs compartidos entre app y workers

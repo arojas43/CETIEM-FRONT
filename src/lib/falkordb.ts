@@ -95,12 +95,12 @@ export class FalkorDBService {
       // "Invalid graph operation on empty key" = FalkorDB responde pero el grafo
       // aún no existe (instancia recién creada). Sí está disponible.
       if (error.message?.includes('Invalid graph operation on empty key')) {
-        if (testDb) { try { await testDb.close(); } catch {} }
+        if (testDb) { try { await testDb.close(); } catch { } }
         return true;
       }
       console.warn("[FalkorDB] Verificación falló:", error.message);
       if (testDb) {
-        try { await testDb.close(); } catch {}
+        try { await testDb.close(); } catch { }
       }
       return false;
     }
@@ -148,7 +148,7 @@ export class FalkorDBService {
         this.isConnected = true;
         console.log(`✅ [FalkorDB] Conectado en ${this.config.host}:${this.config.port}`);
 
-        await this.ensureIndexes().catch(() => {});
+        await this.ensureIndexes().catch(() => { });
         return true;
       } catch (error: any) {
         console.warn(`[FalkorDB] Intento ${attempt} fallido:`, error.message);
@@ -167,7 +167,7 @@ export class FalkorDBService {
 
   private async _closeClient(): Promise<void> {
     if (this.db) {
-      try { await this.db.close(); } catch {}
+      try { await this.db.close(); } catch { }
       this.db = null;
       this.graph = null;
     }
@@ -268,6 +268,7 @@ export class FalkorDBService {
 
   /**
    * Crea índices en FalkorDB por documentId para todos los tipos de entidad ESG
+   * [Mejora] También crea índices por companyId para el grafo global cross-documento
    */
   async ensureIndexes(): Promise<void> {
     if (_indexesEnsured) return;
@@ -294,12 +295,136 @@ export class FalkorDBService {
       } catch {
         // "already indexed" es esperado — ignorar
       }
+      // [Mejora] Índice adicional por companyId para grafo global
+      try {
+        await this.query(`CREATE INDEX FOR (n:${label}) ON (n.companyId)`);
+      } catch {
+        // "already indexed" es esperado — ignorar
+      }
     }
 
     _indexesEnsured = true;
     console.log(
-      `[FalkorDB] Índices listos (${created} nuevos, ${labels.length - created} existentes)`
+      `[FalkorDB] Índices listos (${created} nuevos por documentId + companyId, ${labels.length - created} existentes)`
     );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // [Mejora 2] GRAFO GLOBAL — Consultas cross-documento por empresa
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Retorna todas las entidades y relaciones de una empresa, agrupadas por documento.
+   * Permite al Assessor ver la visión consolidada de conocimiento de una empresa.
+   */
+  async getCompanyGraph(companyId: string, limit: number = 200): Promise<{
+    entities: Array<{ type: string; name: string; description?: string; documentId: string; page?: number }>;
+    relations: Array<{ source: string; type: string; target: string; documentId: string }>;
+    documentCount: number;
+  }> {
+    try {
+      const [entitiesResult, relationsResult, docCountResult] = await Promise.all([
+        this.roQuery(
+          `MATCH (n)
+           WHERE n.companyId = $cid
+           RETURN labels(n)[0] AS type, n.name AS name, n.description AS description,
+                  n.documentId AS documentId, n.page AS page
+           ORDER BY n.documentId, labels(n)[0], n.name
+           LIMIT $lim`,
+          { cid: companyId, lim: limit }
+        ),
+        this.roQuery(
+          `MATCH (a)-[r]->(b)
+           WHERE a.companyId = $cid AND b.companyId = $cid
+           RETURN a.name AS source, type(r) AS type, b.name AS target, a.documentId AS documentId
+           LIMIT $lim`,
+          { cid: companyId, lim: limit }
+        ),
+        this.roQuery(
+          `MATCH (n) WHERE n.companyId = $cid
+           RETURN count(DISTINCT n.documentId) AS count`,
+          { cid: companyId }
+        ),
+      ]);
+
+      return {
+        entities: entitiesResult.rows.map(r => ({
+          type: r.type,
+          name: r.name,
+          description: r.description,
+          documentId: r.documentId,
+          page: r.page,
+        })),
+        relations: relationsResult.rows.map(r => ({
+          source: r.source,
+          type: r.type,
+          target: r.target,
+          documentId: r.documentId,
+        })),
+        documentCount: docCountResult.rows[0]?.count || 0,
+      };
+    } catch (error: any) {
+      console.error('[FalkorDB] Error obteniendo grafo de empresa:', error.message);
+      return { entities: [], relations: [], documentCount: 0 };
+    }
+  }
+
+  /**
+   * Detecta entidades con el mismo nombre y tipo en diferentes documentos de una empresa
+   * y crea relaciones SAME_AS entre ellas para el grafo global.
+   * Llamar después de procesar un documento para mantener el grafo sincronizado.
+   */
+  async mergeSharedEntities(companyId: string): Promise<number> {
+    try {
+      // Buscar entidades duplicadas por nombre+tipo en distintos documentos
+      const duplicates = await this.roQuery(
+        `MATCH (a)-[]-()
+         WITH a
+         WHERE a.companyId = $cid
+         WITH a.name AS name, labels(a)[0] AS type, collect(a) AS nodes
+         WHERE size(nodes) > 1
+         UNWIND nodes AS n
+         RETURN n.id AS id, name, type, n.documentId AS documentId`,
+        { cid: companyId }
+      );
+
+      if (duplicates.rows.length === 0) return 0;
+
+      // Agrupar por name+type
+      const groups = new Map<string, Array<{ id: string; documentId: string }>>();
+      for (const row of duplicates.rows) {
+        const key = `${row.type}::${row.name}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push({ id: row.id, documentId: row.documentId });
+      }
+
+      let linked = 0;
+      for (const [, nodes] of groups) {
+        // Crear relación SAME_AS entre el primer nodo y todos los demás
+        const pivot = nodes[0];
+        for (let i = 1; i < nodes.length; i++) {
+          const other = nodes[i];
+          if (pivot.documentId === other.documentId) continue; // mismo doc — ignorar
+          try {
+            await this.query(
+              `MATCH (a {id: $aId}), (b {id: $bId})
+               WHERE NOT (a)-[:SAME_AS]->(b)
+               CREATE (a)-[:SAME_AS {companyId: $cid, autoLinked: true}]->(b)`,
+              { aId: this.escapeQuotes(pivot.id), bId: this.escapeQuotes(other.id), cid: companyId }
+            );
+            linked++;
+          } catch {
+            // Relación ya existe o entidad no encontrada — ignorar
+          }
+        }
+      }
+
+      console.log(`[FalkorDB] mergeSharedEntities: ${linked} relaciones SAME_AS creadas para empresa ${companyId}`);
+      return linked;
+    } catch (error: any) {
+      console.error('[FalkorDB] Error en mergeSharedEntities:', error.message);
+      return 0;
+    }
   }
 
   /**
@@ -429,12 +554,12 @@ export class FalkorDBService {
 
     const propsString = properties
       ? " {" + Object.entries(properties)
-          .map(([key, value]) =>
-            typeof value === "string"
-              ? `${key}: "${this.escapeQuotes(value)}"`
-              : `${key}: ${JSON.stringify(value)}`
-          )
-          .join(", ") + "}"
+        .map(([key, value]) =>
+          typeof value === "string"
+            ? `${key}: "${this.escapeQuotes(value)}"`
+            : `${key}: ${JSON.stringify(value)}`
+        )
+        .join(", ") + "}"
       : "";
 
     const cypher =

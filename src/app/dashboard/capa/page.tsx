@@ -19,10 +19,10 @@ interface CapaTicket {
 }
 
 const STATUS_CONFIG = {
-  OPEN:        { label: "Abierto",     color: "text-cetiem-amber bg-cetiem-amber/10 border-cetiem-amber/20", icon: Clock },
-  IN_PROGRESS: { label: "En proceso",  color: "text-cetiem-teal bg-cetiem-teal/10 border-cetiem-teal/20",   icon: RefreshCw },
-  CLOSED:      { label: "Cerrado",     color: "text-cetiem-lime bg-cetiem-lime/10 border-cetiem-lime/20",    icon: CheckCircle },
-  OVERDUE:     { label: "Vencido",     color: "text-cetiem-red bg-cetiem-red/10 border-cetiem-red/20",       icon: AlertCircle },
+  OPEN: { label: "Abierto", color: "text-cetiem-amber bg-cetiem-amber/10 border-cetiem-amber/20", icon: Clock },
+  IN_PROGRESS: { label: "En proceso", color: "text-cetiem-teal bg-cetiem-teal/10 border-cetiem-teal/20", icon: RefreshCw },
+  CLOSED: { label: "Cerrado", color: "text-cetiem-lime bg-cetiem-lime/10 border-cetiem-lime/20", icon: CheckCircle },
+  OVERDUE: { label: "Vencido", color: "text-cetiem-red bg-cetiem-red/10 border-cetiem-red/20", icon: AlertCircle },
 };
 
 const SEV_COLOR: Record<string, string> = {
@@ -34,6 +34,8 @@ export default function CapaPage() {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [resolutionText, setResolutionText] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -55,7 +57,7 @@ export default function CapaPage() {
     setUpdating(null);
   };
 
-  const open   = tickets.filter(t => t.status === "OPEN" || t.status === "IN_PROGRESS");
+  const open = tickets.filter(t => t.status === "OPEN" || t.status === "IN_PROGRESS");
   const closed = tickets.filter(t => t.status === "CLOSED");
   const overdue = tickets.filter(t => t.status === "OVERDUE");
 
@@ -128,23 +130,58 @@ export default function CapaPage() {
               </div>
             )}
             {ticket.status !== "CLOSED" && (
-              <div className="flex items-center gap-2 pt-1">
-                {ticket.status === "OPEN" && (
-                  <button onClick={() => updateStatus(ticket.id, "IN_PROGRESS")} disabled={updating === ticket.id}
-                    className="text-xs border border-cetiem-teal/30 text-cetiem-teal hover:bg-cetiem-teal/10 px-3 py-1.5 rounded-lg transition-colors">
-                    Marcar En Proceso
-                  </button>
+              <div className="space-y-3 pt-1">
+                {resolvingId === ticket.id ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={resolutionText}
+                      onChange={(e) => setResolutionText(e.target.value)}
+                      placeholder="Describe la resolución aplicada..."
+                      className="w-full px-3 py-2 text-xs bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:outline-none focus:border-cetiem-lime resize-none"
+                      rows={3}
+                      autoFocus
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={async () => {
+                          if (!resolutionText.trim()) return;
+                          await updateStatus(ticket.id, "CLOSED", resolutionText);
+                          setResolvingId(null);
+                          setResolutionText("");
+                        }}
+                        disabled={updating === ticket.id || !resolutionText.trim()}
+                        className="text-xs bg-cetiem-lime hover:bg-cetiem-lime/90 text-black font-medium px-4 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {updating === ticket.id ? "Guardando..." : "Confirmar Cierre"}
+                      </button>
+                      <button
+                        onClick={() => { setResolvingId(null); setResolutionText(""); }}
+                        className="text-xs text-cetiem-gray hover:text-white px-3 py-1.5 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    {ticket.status === "OPEN" && (
+                      <button onClick={() => updateStatus(ticket.id, "IN_PROGRESS")} disabled={updating === ticket.id}
+                        className="text-xs border border-cetiem-teal/30 text-cetiem-teal hover:bg-cetiem-teal/10 px-3 py-1.5 rounded-lg transition-colors">
+                        Marcar En Proceso
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setResolvingId(ticket.id);
+                        setResolutionText("");
+                      }}
+                      disabled={updating === ticket.id}
+                      className="text-xs bg-cetiem-lime hover:bg-cetiem-lime/90 text-black font-medium px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Cerrar CAPA
+                    </button>
+                  </div>
                 )}
-                <button
-                  onClick={async () => {
-                    const res = prompt("Describe la resolución aplicada:");
-                    if (res !== null) await updateStatus(ticket.id, "CLOSED", res);
-                  }}
-                  disabled={updating === ticket.id}
-                  className="text-xs bg-cetiem-lime hover:bg-cetiem-lime/90 text-black font-medium px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  {updating === ticket.id ? "Guardando..." : "Cerrar CAPA"}
-                </button>
               </div>
             )}
           </div>

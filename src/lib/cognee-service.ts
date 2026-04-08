@@ -185,7 +185,8 @@ export class CogneeService {
       start_index?: number;
       end_index?: number;
     },
-    extractionConfig?: ExtractionConfig
+    extractionConfig?: ExtractionConfig,
+    companyId?: string // [Mejora 2] ID del usuario-empresa para el grafo global
   ): Promise<{ entities: CogneeEntity[]; relations: CogneeRelation[] }> {
     const selectedDomain = domain || this.defaultDomain;
     const prompt = this.buildDomainPrompt(content, documentName, selectedDomain, extractionConfig);
@@ -200,7 +201,7 @@ export class CogneeService {
         temperature: 0.2,
       });
 
-      return this.parseKnowledgeGraph(response, documentId, pageIndexReference);
+      return this.parseKnowledgeGraph(response, documentId, pageIndexReference, companyId);
     } catch (error: any) {
       console.error('[Cognee] Error extrayendo conocimiento:', error.message);
       return { entities: [], relations: [] };
@@ -281,7 +282,7 @@ ${relationTypes.map(t => `- ${t}`).join('\n')}
 ## FRAGMENTO A ANALIZAR:
 ${content.slice(0, 15000)}`;
   }
-  
+
   /**
    * Guarda entidades y relaciones en el grafo INDIVIDUAL del documento
    * Cada documento tiene su propio grafo aislado por documentId
@@ -289,7 +290,8 @@ ${content.slice(0, 15000)}`;
   async persistToGraph(
     entities: CogneeEntity[],
     relations: CogneeRelation[],
-    documentId: string
+    documentId: string,
+    companyId?: string // [Mejora 2] propaga companyId a cada nodo en FalkorDB
   ): Promise<{ saved: number; failed: number }> {
     let saved = 0;
     let failed = 0;
@@ -303,6 +305,7 @@ ${content.slice(0, 15000)}`;
             id: entity.id,
             name: entity.name,
             documentId, // CLAVE: aísla por documento
+            ...(companyId ? { companyId } : {}), // [Mejora 2] grafo global
             ...(entity.description ? { description: entity.description } : {}),
             ...(entity.properties ? entity.properties : {}),
           },
@@ -333,7 +336,7 @@ ${content.slice(0, 15000)}`;
 
     return { saved, failed };
   }
-  
+
   /**
    * Búsqueda semántica en el grafo INDIVIDUAL de un documento
    * Combina búsqueda en grafo + contexto de PageIndex
@@ -393,7 +396,7 @@ ${content.slice(0, 15000)}`;
         description: r.desc,
       }));
     }
-    
+
     // 3. Obtener relaciones si se solicita
     let relations: CogneeRelation[] = [];
     if (includeRelations && entities.length > 0) {
@@ -406,7 +409,7 @@ ${content.slice(0, 15000)}`;
          LIMIT 50`,
         { docId: documentId }
       );
-      
+
       relations = relationsResult.rows.map(r => ({
         id: `rel-${r.source}-${r.target}`,
         source: r.source,
@@ -414,13 +417,13 @@ ${content.slice(0, 15000)}`;
         type: r.type,
       }));
     }
-    
+
     // 4. Obtener contexto de PageIndex
     const context = await this.getPageIndexContext(documentId, query);
 
     // 5. Generar respuesta con LLM usando el dominio correcto
     const answer = await this.generateAnswer(query, entities, relations, context, domain);
-    
+
     return {
       answer,
       entities,
@@ -431,7 +434,7 @@ ${content.slice(0, 15000)}`;
       })),
     };
   }
-  
+
   /**
    * Obtiene contexto de PageIndex para una búsqueda
    */
@@ -454,12 +457,12 @@ ${content.slice(0, 15000)}`;
         },
         take: 5,
       });
-      
+
       if (sections.length === 0) {
         return '';
       }
-      
-      return sections.map(s => 
+
+      return sections.map(s =>
         `## ${s.title}${s.page ? ` (pág. ${s.page})` : ''}\n${s.content?.slice(0, 500) || ''}`
       ).join('\n\n');
     } catch (error: any) {
@@ -467,7 +470,7 @@ ${content.slice(0, 15000)}`;
       return '';
     }
   }
-  
+
   /**
    * Genera respuesta usando LLM con contexto del grafo
    */
@@ -481,21 +484,21 @@ ${content.slice(0, 15000)}`;
     const entitiesText = entities.length > 0
       ? 'Entidades encontradas:\n' + entities.map(e => `- ${e.type}: ${e.name}${e.description ? ` (${e.description})` : ''}`).join('\n')
       : '';
-    
+
     const relationsText = relations.length > 0
       ? 'Relaciones:\n' + relations.map(r => `- ${r.source} → ${r.type} → ${r.target}`).join('\n')
       : '';
-    
+
     const contextText = context
       ? `Contexto del documento:\n${context.slice(0, 2000)}`
       : '';
-    
+
     const fullContext = [entitiesText, relationsText, contextText].filter(Boolean).join('\n\n');
-    
+
     if (!fullContext) {
       return 'No se encontró información relevante sobre esta consulta en el documento.';
     }
-    
+
     const selectedDomain = domain || this.defaultDomain;
     const domainSystemPrompt = DOMAIN_CONFIGS[selectedDomain].systemPrompt;
 
@@ -507,26 +510,27 @@ ${content.slice(0, 15000)}`;
         maxTokens: 500,
         temperature: 0.3,
       });
-      
+
       return answer;
     } catch (error: any) {
       return `Se encontraron ${entities.length} entidades relacionadas, pero no se pudo generar una respuesta: ${error.message}`;
     }
   }
-  
+
   /**
    * Parsea respuesta del LLM a grafo de conocimiento
    * Guarda referencias a PageIndex para Q&A contextual
    */
   private parseKnowledgeGraph(
-    response: string, 
+    response: string,
     documentId: string,
     pageIndexReference?: {
       page?: number;
       section?: string;
       start_index?: number;
       end_index?: number;
-    }
+    },
+    companyId?: string // [Mejora 2]
   ): {
     entities: CogneeEntity[];
     relations: CogneeRelation[];
@@ -550,6 +554,7 @@ ${content.slice(0, 15000)}`;
           start_index: pageIndexReference?.start_index,
           end_index: pageIndexReference?.end_index,
           documentId,
+          ...(companyId ? { companyId } : {}), // [Mejora 2]
         },
       }));
 
@@ -570,7 +575,7 @@ ${content.slice(0, 15000)}`;
       return { entities: [], relations: [] };
     }
   }
-  
+
   /**
    * Obtiene estadísticas del grafo de un documento específico
    */
@@ -594,12 +599,12 @@ ${content.slice(0, 15000)}`;
           { docId: documentId }
         ),
       ]);
-      
+
       const entityTypes: Record<string, number> = {};
       typeResult.rows.forEach((r: any) => {
         entityTypes[r.type] = r.count;
       });
-      
+
       return {
         entityCount: entityResult.rows[0]?.count || 0,
         relationCount: relationResult.rows[0]?.count || 0,
@@ -610,7 +615,7 @@ ${content.slice(0, 15000)}`;
       return { entityCount: 0, relationCount: 0, entityTypes: {} };
     }
   }
-  
+
   /**
    * Elimina todo el grafo de un documento específico
    */

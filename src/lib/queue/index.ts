@@ -27,7 +27,7 @@ const redisConnection = {
  */
 export async function checkRedisHealth(maxRetries: number = 5): Promise<boolean> {
   let client;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       client = new Redis({
@@ -40,7 +40,7 @@ export async function checkRedisHealth(maxRetries: number = 5): Promise<boolean>
 
       await client.connect();
       const pong = await client.ping();
-      
+
       if (pong === 'PONG') {
         await client.quit();
         console.log(`✅ Redis disponible en ${redisConnection.host}:${redisConnection.port}`);
@@ -49,15 +49,15 @@ export async function checkRedisHealth(maxRetries: number = 5): Promise<boolean>
     } catch (error: any) {
       console.warn(`[Redis Health] Intento ${attempt}/${maxRetries} fallido:`, error.message);
       if (client) {
-        try { await client.quit(); } catch {}
+        try { await client.quit(); } catch { }
       }
-      
+
       if (attempt < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, attempt * 500));
       }
     }
   }
-  
+
   console.error(`❌ Redis no disponible después de ${maxRetries} intentos`);
   return false;
 }
@@ -159,7 +159,7 @@ export async function createDocumentProcessingWorker() {
         return { success: true, documentId: job.data.documentId, duration };
       } catch (error: any) {
         console.error(`[Worker] ❌ Error procesando documento ${job.data.documentId}:`, error.message);
-        
+
         // Clasificar el error para mejor manejo
         let errorMessage = error.message;
         let errorType = 'UNKNOWN';
@@ -177,7 +177,7 @@ export async function createDocumentProcessingWorker() {
         // Actualizar estado con información del error
         await prisma.document.update({
           where: { id: job.data.documentId },
-          data: { 
+          data: {
             status: "FAILED",
             description: `Error (${errorType}): ${errorMessage.slice(0, 200)}`
           },
@@ -199,14 +199,14 @@ export async function createDocumentProcessingWorker() {
 
   worker.on("failed", (job, error) => {
     console.error(`[Worker] ❌ Trabajo ${job?.id} falló:`, error?.message || error);
-    
+
     // Reintentar automáticamente errores transitorios
     if (job?.attemptsMade && job.attemptsMade < 3) {
-      const isTransientError = 
+      const isTransientError =
         error?.message?.includes('ECONNREFUSED') ||
         error?.message?.includes('timeout') ||
         error?.message?.includes('Redis');
-      
+
       if (isTransientError) {
         console.log(`[Worker] Error transitorio, reintentando... (${job.attemptsMade}/3)`);
       }
@@ -255,7 +255,7 @@ export async function createReportGenerationWorker() {
     "report-generation",
     async (job) => {
       console.log(`[Report Worker] Generando reporte ${job.data.format} para certificación ${job.data.certificationId}`);
-      
+
       return { success: true, format: job.data.format };
     },
     {
@@ -309,7 +309,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
     // Obtener documento de la BD
     console.log(`[PageIndex] [1/8] Obteniendo documento...`);
     await updateProgress(documentId, "Obteniendo documento", 10, { stage: "fetching" });
-    
+
     const document = await prisma.document.findUnique({
       where: { id: documentId },
     });
@@ -322,7 +322,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
     // Obtener metadatos del almacenamiento local
     console.log(`[PageIndex] [2/8] Obteniendo metadatos...`);
     await updateProgress(documentId, "Cargando metadatos", 15, { stage: "metadata" });
-    
+
     const { localStorageService } = await import('../local-storage');
     const metadata = await localStorageService.getMetadata(documentId);
 
@@ -335,7 +335,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
     const fileSize = document.size || 0;
     const isLargeDocument = fileSize > 50 * 1024 * 1024; // > 50MB
     console.log(`[PageIndex] Tamaño: ${(fileSize / 1024 / 1024).toFixed(2)}MB, Grande: ${isLargeDocument}`);
-    await updateProgress(documentId, `Analizando PDF (${(fileSize / 1024 / 1024).toFixed(1)}MB)`, 20, { 
+    await updateProgress(documentId, `Analizando PDF (${(fileSize / 1024 / 1024).toFixed(1)}MB)`, 20, {
       stage: "analyzing",
       fileSize,
       isLargeDocument,
@@ -356,7 +356,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
     if (isLargeDocument) {
       console.log(`[PageIndex] Usando pdftotext para documento grande (>50MB)`);
       await updateProgress(documentId, "Extrayendo texto (documento grande)", 30, { stage: "extracting_large" });
-      
+
       // Para documentos MUY grandes, usar pdftotext (poppler) con streaming real
       const { extractTextFromPDFWithPdftotext } = await import('../large-document-pdftotext');
 
@@ -367,7 +367,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
           extractionProgress: progress,
         });
       });
-      
+
       // Verificar si se extrajo texto
       if (!result || result.totalPages === 0 || result.chunks.length === 0) {
         console.warn(`[PageIndex] ⚠️  No se pudo extraer texto del PDF`);
@@ -383,14 +383,14 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
             parentId: null,
           },
         });
-        
+
         await prisma.document.update({
           where: { id: documentId },
           data: { status: 'FAILED', description: 'Error: No se pudo extraer texto del PDF' },
         });
         return;
       }
-      
+
       // Guardar texto extraído para siguiente paso
       await prisma.document.update({
         where: { id: documentId },
@@ -398,7 +398,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
           description: `Texto extraído: ${result.text.length} caracteres, ~${result.totalPages} páginas, ${result.chunks.length} chunks`,
         },
       });
-      
+
       // Crear índices desde chunks
       console.log(`[PageIndex] [4/8] Creando índices desde ${result.chunks.length} chunks...`);
       const nodes = result.chunks.map((chunk, index) => ({
@@ -415,15 +415,15 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
         },
         parentId: null,
       }));
-      
+
       // Guardar nodos en lotes para no saturar
       const createdNodes = new Map<string, string>();
       const batchSize = 50;
-      
+
       for (let i = 0; i < nodes.length; i += batchSize) {
         const batch = nodes.slice(i, i + batchSize);
         console.log(`[PageIndex] Guardando lote ${Math.floor(i / batchSize) + 1}/${Math.ceil(nodes.length / batchSize)} (${batch.length} nodos)`);
-        
+
         for (const node of batch) {
           try {
             const created = await prisma.pageIndex.create({
@@ -442,11 +442,11 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
             console.error(`[PageIndex] Error guardando nodo ${node.id}:`, error.message);
           }
         }
-        
+
         // Pequeña pausa entre lotes
         await new Promise(resolve => setTimeout(resolve, 50));
       }
-      
+
       console.log(`[PageIndex] ✓ Índice guardado: ${createdNodes.size}/${nodes.length} nodos`);
     } else {
       // Documento pequeño - método tradicional
@@ -456,7 +456,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
       // Construir índice con PageIndex
       console.log(`[PageIndex] [4/8] Extrayendo texto y estructura...`);
       await updateProgress(documentId, "Extrayendo estructura", 40, { stage: "extracting_structure" });
-      
+
       let pageIndex;
       try {
         pageIndex = await pageIndexService.buildIndex(
@@ -474,7 +474,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
       // Guardar nodos del índice en la BD
       console.log(`[PageIndex] [5/8] Guardando índices en PostgreSQL...`);
       await updateProgress(documentId, "Guardando índices", 48, { stage: "saving_indices" });
-      
+
       const nodes = pageIndexService.flattenNodes(pageIndex);
       const createdNodes = new Map<string, string>();
 
@@ -482,7 +482,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
       for (let i = 0; i < nodes.length; i += batchSize) {
         const batch = nodes.slice(i, i + batchSize);
         const currentProgress = 48 + ((i / nodes.length) * 2); // 48-50%
-        
+
         await updateProgress(documentId, `Guardando índices: ${Math.min(i + batchSize, nodes.length)}/${nodes.length}`, currentProgress, {
           stage: "saving",
           saved: i,
@@ -518,7 +518,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
       }
 
       console.log(`[PageIndex] ✓ Índice guardado: ${createdNodes.size}/${nodes.length} nodos`);
-      await updateProgress(documentId, `Índices guardados: ${createdNodes.size}`, 50, { 
+      await updateProgress(documentId, `Índices guardados: ${createdNodes.size}`, 50, {
         stage: "indices_saved",
         totalIndices: createdNodes.size,
       });
@@ -527,7 +527,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
     // Encolar análisis con Cognee
     console.log(`[PageIndex] [6/8] Encolando análisis con Cognee...`);
     await updateProgress(documentId, "Encolando análisis Cognee", 52, { stage: "queueing_analysis" });
-    
+
     try {
       const { aiAnalysisQueue } = await import('../queue');
       await aiAnalysisQueue.add("ai-analysis", {
@@ -543,7 +543,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
     // Actualizar estado
     console.log(`[PageIndex] [7/8] Actualizando estado...`);
     await updateProgress(documentId, "Completando indexación", 55, { stage: "finalizing" });
-    
+
     await prisma.document.update({
       where: { id: documentId },
       data: { status: "INDEXED" },
@@ -558,13 +558,13 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
     });
   } catch (error: any) {
     console.error(`[PageIndex] ❌ Error en indexación:`, error.message);
-    
+
     // Actualizar estado a FAILED
     await prisma.document.update({
       where: { id: documentId },
       data: { status: "FAILED" },
     });
-    
+
     throw error;
   }
 }
@@ -586,7 +586,7 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
     // Obtener documento
     console.log(`[AI Worker] [1/8] Obteniendo documento de BD...`);
     await updateProgress(documentId, "Obteniendo documento", 62, { stage: "cognee_fetching" });
-    
+
     const document = await prisma.document.findUnique({
       where: { id: documentId },
     });
@@ -662,17 +662,17 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
 
       console.log(`[AI Worker] ✓ Lotes completados: ${result.chunksProcessed}`);
       console.log(`[AI Worker] ✓ Entidades: ${result.totalEntities}, Relaciones: ${result.totalRelations}`);
-      
+
       // Actualizar estado
       console.log(`[AI Worker] [4/4] Actualizando estado...`);
       await prisma.document.update({
         where: { id: documentId },
-        data: { 
+        data: {
           status: result.totalEntities > 0 ? "ANALYZED" : "INDEXED",
           description: `${document.description || ''} | Entidades: ${result.totalEntities}, Relaciones: ${result.totalRelations}`,
         },
       });
-      
+
     } else {
       // Documento pequeño: procesar cada nodo PageIndex como chunk independiente
       // Esto preserva la referencia de página/sección por entidad extraída
@@ -698,46 +698,78 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
       let totalRelations = 0;
 
       const MAX_CHUNKS_TO_PROCESS = parseInt(process.env.MAX_CHUNKS_TO_PROCESS || '500');
+      // [Mejora 3] micro-batches paralelos — configurable con COGNEE_PARALLEL_CHUNKS
+      const PARALLEL_CHUNKS = Math.max(1, parseInt(process.env.COGNEE_PARALLEL_CHUNKS || '5'));
       const indicesToProcess = validIndices.slice(0, MAX_CHUNKS_TO_PROCESS);
+      // companyId = userId del propietario del documento (para grafo global cross-doc)
+      const companyId = document.userId;
 
       console.log(`[AI Worker]   - Procesando ${indicesToProcess.length}/${validIndices.length} nodos (límite: ${MAX_CHUNKS_TO_PROCESS})`);
+      console.log(`[AI Worker]   - Paralelismo: ${PARALLEL_CHUNKS} chunks simultáneos`);
       console.log(`[AI Worker]   - Dominio: ${(document.domain?.toLowerCase()) || 'industria (default)'}`);
+      console.log(`[AI Worker]   - companyId: ${companyId}`);
 
-      for (let i = 0; i < indicesToProcess.length; i++) {
-        const indexNode = indicesToProcess[i];
-        const chunk = `${indexNode.title}: ${indexNode.content?.slice(0, 2000) || ''}`;
-        console.log(`[AI Worker]   - Procesando nodo ${i + 1}/${indicesToProcess.length} (pág. ${indexNode.page ?? '?'})...`);
+      // Procesar en micro-batches paralelos
+      for (let batchStart = 0; batchStart < indicesToProcess.length; batchStart += PARALLEL_CHUNKS) {
+        const batchSlice = indicesToProcess.slice(batchStart, batchStart + PARALLEL_CHUNKS);
+        const batchNum = Math.floor(batchStart / PARALLEL_CHUNKS) + 1;
+        const totalBatches = Math.ceil(indicesToProcess.length / PARALLEL_CHUNKS);
 
-        // Referencia de página/sección para que las entidades queden geolocalizadas
-        const pageIndexReference = {
-          page: indexNode.page ?? undefined,
-          section: indexNode.title,
-          start_index: (indexNode.metadata as any)?.start_index,
-          end_index: (indexNode.metadata as any)?.end_index,
-        };
+        console.log(`[AI Worker]   - Batch ${batchNum}/${totalBatches} (chunks ${batchStart + 1}-${Math.min(batchStart + PARALLEL_CHUNKS, indicesToProcess.length)})`);
 
-        try {
-          const { entities, relations } = await cogneeService.extractKnowledge(
-            chunk,
-            documentId,
-            document.name,
-            (document.domain?.toLowerCase() as any) || 'industria',
-            pageIndexReference
-          );
-          
-          if (entities.length > 0) {
-            const result = await cogneeService.persistToGraph(entities, relations, documentId);
-            totalEntities += result.saved;
-            totalRelations += result.failed < relations.length ? relations.length - result.failed : 0;
-            
-            console.log(`[AI Worker]     • Chunk ${i + 1}: ${result.saved} entidades guardadas`);
+        // Actualizar progreso una vez por batch (no por chunk)
+        const batchProgress = 55 + ((batchStart / indicesToProcess.length) * 35); // 55-90%
+        await updateProgress(documentId, `Procesando batch ${batchNum}/${totalBatches}`, batchProgress, {
+          stage: 'cognee_parallel',
+          batch: batchNum,
+          totalBatches,
+          chunksProcessed: batchStart,
+          totalChunks: indicesToProcess.length,
+        });
+
+        // Ejecutar el batch en paralelo con tolerancia a fallos
+        const batchResults = await Promise.allSettled(
+          batchSlice.map(async (indexNode) => {
+            const chunk = `${indexNode.title}: ${indexNode.content?.slice(0, 2000) || ''}`;
+            const pageIndexReference = {
+              page: indexNode.page ?? undefined,
+              section: indexNode.title,
+              start_index: (indexNode.metadata as any)?.start_index,
+              end_index: (indexNode.metadata as any)?.end_index,
+            };
+
+            const { entities, relations } = await cogneeService.extractKnowledge(
+              chunk,
+              documentId,
+              document.name,
+              (document.domain?.toLowerCase() as any) || 'industria',
+              pageIndexReference,
+              undefined, // extractionConfig
+              companyId  // [Mejora 2] propaga companyId al grafo
+            );
+
+            if (entities.length > 0) {
+              const result = await cogneeService.persistToGraph(entities, relations, documentId, companyId);
+              return { entities: result.saved, relations: relations.length - result.failed };
+            }
+            return { entities: 0, relations: 0 };
+          })
+        );
+
+        // Acumular resultados del batch
+        for (const result of batchResults) {
+          if (result.status === 'fulfilled') {
+            totalEntities += result.value.entities;
+            totalRelations += result.value.relations;
+          } else {
+            console.warn(`[AI Worker]   • Chunk falló en batch ${batchNum}:`, result.reason?.message);
           }
-        } catch (error: any) {
-          console.warn(`[AI Worker]     • Error en chunk ${i + 1}:`, error.message);
         }
-        
-        // Pequeña pausa entre chunks para no saturar la API
-        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Pequeña pausa entre batches para no saturar la NIM API
+        if (batchStart + PARALLEL_CHUNKS < indicesToProcess.length) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
       }
 
       console.log(`[AI Worker] ✓ Cognee completó procesamiento`);
@@ -767,6 +799,19 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
           description: `${document.description || ''} | Entidades: ${entitiesInGraph}`,
         },
       });
+
+      // [Mejora 2] Reenlazar entidades compartidas del grafo global de la empresa
+      if (entitiesInGraph > 0 && companyId) {
+        console.log(`[AI Worker] [7b/8] Vinculando entidades cross-documento (SAME_AS)...`);
+        try {
+          const linked = await falkorDBService.mergeSharedEntities(companyId);
+          if (linked > 0) {
+            console.log(`[AI Worker]   - ${linked} relaciones SAME_AS creadas en grafo global`);
+          }
+        } catch (mergeError: any) {
+          console.warn(`[AI Worker]   ⚠️ mergeSharedEntities falló (no crítico):`, mergeError.message);
+        }
+      }
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
@@ -782,17 +827,17 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
   } catch (error: any) {
     console.error(`[AI Worker] ❌ ERROR en processDocumentAnalysis:`, error.message);
     console.error(`[AI Worker] Stack:`, error.stack);
-    
+
     // No marcar como FAILED si es solo error de FalkorDB
     const isFalkorDBError = error.message.includes('FalkorDB') || error.message.includes('Redis');
-    
+
     if (!isFalkorDBError) {
       await prisma.document.update({
         where: { id: documentId },
         data: { status: "FAILED" },
       });
     }
-    
+
     throw error;
   }
 }

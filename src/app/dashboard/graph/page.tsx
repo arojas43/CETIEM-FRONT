@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Database, Search, RefreshCw, Link } from "lucide-react";
+import { Database, Search, RefreshCw, Link as LinkIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface GraphStats {
   entityTypes: Array<{ type: string; count: number }>;
@@ -31,6 +31,8 @@ export default function GraphQueryPage() {
       console.error("Error loading stats:", err);
     }
   };
+
+  useEffect(() => { loadStats(); }, []);
 
   const executeQuery = async () => {
     setLoading(true);
@@ -98,7 +100,7 @@ export default function GraphQueryPage() {
             <div className="bg-cetiem-card border border-white/5 rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-cetiem-gray">Total Relaciones</span>
-                <Link className="h-4 w-4 text-cetiem-lime" />
+                <LinkIcon className="h-4 w-4 text-cetiem-lime" />
               </div>
               <div className="text-2xl font-heading font-bold text-white">{stats.totalRelations}</div>
               <p className="text-xs text-cetiem-gray mt-1 truncate">

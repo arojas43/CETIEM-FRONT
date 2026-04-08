@@ -6,6 +6,9 @@
  * - Sección: "¿De qué trata la sección II-A?"
  * - Contenido: "¿Qué dice sobre el sargazo?"
  * - Ubicación exacta: "¿Qué hay en el tercer párrafo de la página 5?"
+ *
+ * [Mejora] Extracción de intención con Kimi K2 (razonamiento NIM) como
+ * pre-procesamiento LLM antes del fallback RegEx.
  */
 
 import { prisma } from './db';
@@ -47,18 +50,36 @@ export class QAService {
   ): Promise<QAResult> {
     console.log(`[QA] Pregunta: "${query}"`);
 
-    // 1. Extraer intención de la pregunta (página, sección, párrafo — no exclusivo)
-    const intent = this.extractQueryIntent(query);
-    console.log(`[QA] Intención:`, { page: intent.page, section: intent.section, paragraph: intent.paragraph, isSpecific: intent.isSpecific });
+    // 1a. Extracción de intención con Kimi K2 — captura semántica en lenguaje natural
+    const llmIntent = await this.extractQueryIntentLLM(query);
+
+    // 1b. Extracción de intención con RegEx — fallback preciso para queries directas
+    const regexIntent = this.extractQueryIntent(query);
+
+    // Fusionar: priorizar RegEx si es específico, de lo contrario usar LLM
+    const intent = {
+      page: regexIntent.page ?? llmIntent.page,
+      section: regexIntent.section ?? llmIntent.section,
+      paragraph: regexIntent.paragraph ?? llmIntent.paragraph,
+      isSpecific: regexIntent.isSpecific || llmIntent.isSpecific,
+      originalQuery: llmIntent.reformulatedQuery || query,
+    };
+    console.log(`[QA] Intención (RegEx+LLM):`, {
+      page: intent.page,
+      section: intent.section,
+      paragraph: intent.paragraph,
+      isSpecific: intent.isSpecific,
+      reformulated: intent.originalQuery !== query,
+    });
 
     // 2. Obtener contexto de PageIndex basado en la intención
-    const pageIndexContext = await this.getPageIndexByIntent(intent, documentId, query);
+    const pageIndexContext = await this.getPageIndexByIntent(intent, documentId, intent.originalQuery);
 
     // 3. Obtener entidades relacionadas de FalkorDB
     const entities = await this.getRelatedEntities(documentId, pageIndexContext);
 
     // 4. Generar respuesta contextual con LLM
-    const answer = await this.generateContextualAnswer(query, pageIndexContext, entities, documentName, documentId);
+    const answer = await this.generateContextualAnswer(intent.originalQuery, pageIndexContext, entities, documentName, documentId);
 
     return {
       answer,
@@ -71,6 +92,81 @@ export class QAService {
         title: c.text.split('\n')[0]?.slice(0, 100),
       })),
     };
+  }
+
+  /**
+   * [NUEVO] Extrae intención de búsqueda usando Kimi K2 (NVIDIA NIM).
+   * Maneja consultas en lenguaje natural complejo que los RegEx no capturan.
+   * Siempre retorna un objeto válido aunque falle la llamada al LLM.
+   */
+  private async extractQueryIntentLLM(query: string): Promise<{
+    page?: number;
+    section?: string;
+    paragraph?: number;
+    isSpecific: boolean;
+    reformulatedQuery?: string;
+  }> {
+    const apiKey = process.env.NVIDIA_INTENT_API_KEY || process.env.NVIDIA_API_KEY || '';
+    const model = process.env.NVIDIA_INTENT_MODEL || 'moonshotai/kimi-k2-instruct-0905';
+    const baseUrl = 'https://integrate.api.nvidia.com/v1';
+
+    const systemPrompt = `You are a document query analyzer. Given a question in Spanish about a document, extract ONLY the structured intent.
+Respond ONLY with a valid JSON object — no text before or after:
+{
+  "page": <number | null>,
+  "section": <string identifier like "1", "II-A", "3.2" | null>,
+  "paragraph": <number | null>,
+  "isSpecific": <true if any field above is non-null OR the question targets a specific named section, false otherwise>,
+  "reformulatedQuery": <cleaned, concise version of the question for document retrieval | null>
+}
+Rules:
+- "page" and "paragraph" must be integers, not strings
+- "section" must be the exact identifier string (e.g. "II-A") — NOT the full section title
+- When "isSpecific" is false, set "reformulatedQuery" to the most important keywords for retrieval
+- Do not hallucinate; if unsure, return null for that field`;
+
+    try {
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: query },
+          ],
+          max_tokens: 256,
+          temperature: 0.0,
+          top_p: 1,
+        }),
+      });
+
+      if (!response.ok) throw new Error(`Kimi K2 error: ${response.status}`);
+
+      const data = await response.json();
+      const raw = data.choices?.[0]?.message?.content || '{}';
+
+      // Extraer JSON del output (puede venir envuelto en markdown)
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('No JSON in Kimi K2 response');
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      console.log('[QA] Kimi K2 intent:', parsed);
+
+      return {
+        page: typeof parsed.page === 'number' ? parsed.page : undefined,
+        section: typeof parsed.section === 'string' ? parsed.section : undefined,
+        paragraph: typeof parsed.paragraph === 'number' ? parsed.paragraph : undefined,
+        isSpecific: parsed.isSpecific === true,
+        reformulatedQuery: parsed.reformulatedQuery || undefined,
+      };
+    } catch (error: any) {
+      console.warn('[QA] Kimi K2 intent fallback (usando solo RegEx):', error.message);
+      return { isSpecific: false };
+    }
   }
 
   /**
@@ -432,7 +528,7 @@ export class QAService {
 
       if (sections.length === 0) {
         // Fallback: buscar por patrón de versículos
-        const versePattern = verseStart 
+        const versePattern = verseStart
           ? `${chapter}:${verseStart}`
           : `${chapter}:`;
 
@@ -677,16 +773,16 @@ Rules:
 
     try {
       // Formatear relaciones para Qwen (si hay entidades)
-      const relationsFormatted = entities.length > 0 
+      const relationsFormatted = entities.length > 0
         ? entities.map((e: any) => ({
-            source: e.name,
-            type: 'RELATED',
-            target: e.description || e.name,
-          }))
+          source: e.name,
+          type: 'RELATED',
+          target: e.description || e.name,
+        }))
         : [];
-      
+
       console.log(`[QA] Enviando a Qwen: ${contexts.length} secciones, ${pageIndexText.length} chars`);
-      
+
       // Usar Qwen 3.5 122B para mejor calidad de respuesta
       return await qwenQAService.generateAnswer({
         question: query,
@@ -699,19 +795,19 @@ Rules:
       console.error('[QA] ❌ Error con Qwen:', error.message);
       console.log(`[QA] ✅ Contexto disponible: ${contexts.length} secciones`);
       console.log(`[QA] ✅ Primeras 3 secciones:`, contexts.slice(0, 3).map(c => c.section));
-      
+
       // Fallback a NIM normal si Qwen falla - USANDO EL CONTEXTO DE PAGEINDEX
       const { nimService } = await import('./nim');
-      
+
       // Construir contexto completo con TODA la información disponible
       const fullContext = [
         pageIndexText,  // ← Texto de PageIndex (30 secciones encontradas)
         entities.length > 0 ? '## Entidades:\n' + entities.map(e => `- ${e.type}: ${e.name}${e.description ? ` (${e.description})` : ''}`).join('\n') : '',
       ].filter(Boolean).join('\n\n');
-      
+
       console.log(`[QA] 📤 Enviando ${fullContext.length} chars de contexto a Llama 3.1`);
       console.log(`[QA] 📄 Contexto incluye ${contexts.length} secciones de PageIndex`);
-      
+
       if (!fullContext || fullContext.length < 50) {
         console.warn('[QA] ⚠️ Contexto insuficiente (< 50 chars)');
         return 'No se encontró información suficiente en el documento para responder esta pregunta.';
@@ -725,7 +821,7 @@ Rules:
           maxTokens: 2048,
           temperature: 0.3,
         });
-        
+
         console.log(`[QA] ✅ Respuesta generada: ${response.length} chars`);
         return response;
       } catch (fallbackError: any) {

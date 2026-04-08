@@ -49,30 +49,34 @@ interface DocumentListPaginatedProps {
 }
 
 const statusColor: Record<string, string> = {
-  ANALYZED:   "bg-cetiem-lime/10 text-cetiem-lime",
-  INDEXED:    "bg-cetiem-teal/10 text-cetiem-teal",
-  FAILED:     "bg-cetiem-red/10 text-cetiem-red",
+  ANALYZED: "bg-cetiem-lime/10 text-cetiem-lime",
+  INDEXED: "bg-cetiem-teal/10 text-cetiem-teal",
+  FAILED: "bg-cetiem-red/10 text-cetiem-red",
   PROCESSING: "bg-cetiem-amber/10 text-cetiem-amber",
-  PENDING:    "bg-white/5 text-cetiem-gray",
+  PENDING: "bg-white/5 text-cetiem-gray",
 };
 
 const statusLabel: Record<string, string> = {
-  ANALYZED:   "✓ Analizado",
-  INDEXED:    "✓ Indexado",
-  FAILED:     "✗ Error",
+  ANALYZED: "✓ Analizado",
+  INDEXED: "✓ Indexado",
+  FAILED: "✗ Error",
   PROCESSING: "⏳ Procesando",
-  PENDING:    "⏳ Pendiente",
+  PENDING: "⏳ Pendiente",
 };
 
 const certStatusColor: Record<string, string> = {
-  APPROVED:  "bg-cetiem-lime/10 text-cetiem-lime border border-cetiem-lime/20",
+  APPROVED: "bg-cetiem-lime/10 text-cetiem-lime border border-cetiem-lime/20",
   IN_REVIEW: "bg-cetiem-amber/10 text-cetiem-amber border border-cetiem-amber/20",
-  REJECTED:  "bg-cetiem-red/10 text-cetiem-red border border-cetiem-red/20",
+  REJECTED: "bg-cetiem-red/10 text-cetiem-red border border-cetiem-red/20",
+  REVOKED: "bg-cetiem-red/10 text-cetiem-red border border-cetiem-red/20",
+  CAPA_OPEN: "bg-cetiem-amber/10 text-cetiem-amber border border-cetiem-amber/20",
 };
 const certStatusLabel: Record<string, string> = {
-  APPROVED:  "✓ Aprobado",
+  APPROVED: "✓ Aprobado",
   IN_REVIEW: "↩ Cambios",
-  REJECTED:  "✗ Rechazado",
+  REJECTED: "✗ Rechazado",
+  REVOKED: "✗ Revocado",
+  CAPA_OPEN: "⚠ CAPA",
 };
 
 function getLatestCert(certs?: Certification[]) {
@@ -386,16 +390,16 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
                 <div className="flex items-center gap-2 shrink-0">
                   {/* Domain selector — assessor/admin only */}
                   {!isCompany && (
-                  <select
-                    value={doc.domain || "INDUSTRIA"}
-                    onChange={(e) => handleDomainChange(doc.id, e.target.value)}
-                    disabled={processingId === doc.id}
-                    className="h-8 px-2 border border-white/10 rounded-lg text-xs bg-white/5 text-white focus:outline-none focus:border-cetiem-green/40 disabled:opacity-50"
-                  >
-                    <option value="INDUSTRIA" className="bg-cetiem-dark">🏭 Industria</option>
-                    <option value="CONSTRUCCION" className="bg-cetiem-dark">🏗️ Construcción</option>
-                    <option value="TECNOLOGIA" className="bg-cetiem-dark">💻 Tecnología</option>
-                  </select>
+                    <select
+                      value={doc.domain || "INDUSTRIA"}
+                      onChange={(e) => handleDomainChange(doc.id, e.target.value)}
+                      disabled={processingId === doc.id}
+                      className="h-8 px-2 border border-white/10 rounded-lg text-xs bg-white/5 text-white focus:outline-none focus:border-cetiem-green/40 disabled:opacity-50"
+                    >
+                      <option value="INDUSTRIA" className="bg-cetiem-dark">🏭 Industria</option>
+                      <option value="CONSTRUCCION" className="bg-cetiem-dark">🏗️ Construcción</option>
+                      <option value="TECNOLOGIA" className="bg-cetiem-dark">💻 Tecnología</option>
+                    </select>
                   )}
 
                   {/* Process button — assessor/admin only; company must upload new doc */}
