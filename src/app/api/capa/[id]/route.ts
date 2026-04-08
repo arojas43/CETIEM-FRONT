@@ -24,6 +24,22 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Validate state transitions
+    if (status && status !== ticket.status) {
+      const allowed: Record<string, string[]> = {
+        OPEN:        ["IN_PROGRESS", "CLOSED"],
+        IN_PROGRESS: ["CLOSED"],
+        OVERDUE:     ["IN_PROGRESS", "CLOSED"],
+        CLOSED:      [],
+      };
+      if (!allowed[ticket.status]?.includes(status)) {
+        return NextResponse.json(
+          { error: `Transición inválida: ${ticket.status} → ${status}` },
+          { status: 400 }
+        );
+      }
+    }
+
     const updated = await prisma.capaTicket.update({
       where: { id },
       data: {

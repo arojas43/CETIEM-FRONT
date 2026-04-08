@@ -70,6 +70,19 @@ export async function POST(req: NextRequest, { params }: Params) {
   });
   if (!company) return NextResponse.json({ error: "Empresa no encontrada" }, { status: 404 });
 
+  // Validate provided documentIds belong to the company
+  if (documentIds.length > 0) {
+    const validDocs = await prisma.document.findMany({
+      where: { id: { in: documentIds }, userId: companyId },
+      select: { id: true },
+    });
+    const validIds = new Set(validDocs.map((d: { id: string }) => d.id));
+    const invalid = documentIds.filter((id: string) => !validIds.has(id));
+    if (invalid.length > 0) {
+      return NextResponse.json({ error: `DocumentIds inválidos: ${invalid.join(", ")}` }, { status: 400 });
+    }
+  }
+
   // Calcular ESG score: combinación de V.L.A.P. (50%) + ratio de cumplimientos (50%)
   let esgScore: number | null = null;
   const vlapScore = (() => {
@@ -82,16 +95,18 @@ export async function POST(req: NextRequest, { params }: Params) {
     return (passed / total) * 0.7 * 100 + avgConf * 0.3;
   })();
   const findingsScore = (() => {
-    if (findings.length === 0) return 100;
+    if (findings.length === 0) return null; // no findings → don't inflate score
     const comp = findings.filter((f: any) => f.type === "COMPLIANCE").length;
     const nc   = findings.filter((f: any) => f.type === "NON_COMPLIANCE").length;
     const obs  = findings.filter((f: any) => f.type === "OBSERVATION").length;
     // Cumplimientos suman, NC restan fuerte, observaciones restan poco
     return Math.max(0, Math.min(100, ((comp * 1 - nc * 2 - obs * 0.5) / findings.length) * 100 + 50));
   })();
-  if (vlapScore !== null) {
+  if (vlapScore !== null && findingsScore !== null) {
     esgScore = Math.round(vlapScore * 0.5 + findingsScore * 0.5);
-  } else if (findings.length > 0) {
+  } else if (vlapScore !== null) {
+    esgScore = Math.round(vlapScore);
+  } else if (findingsScore !== null) {
     esgScore = Math.round(findingsScore);
   }
 
@@ -153,27 +168,30 @@ export async function POST(req: NextRequest, { params }: Params) {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 30);
 
-    // Usar el primer documentId de la lista si el hallazgo no tiene uno específico
-    const fallbackDocId = documentIds[0] ?? null;
+    // Ensure we have a fallback documentId — prefer from request, then query any company doc
+    let fallbackDocId: string | null = documentIds[0] ?? null;
+    if (!fallbackDocId) {
+      const anyDoc = await prisma.document.findFirst({
+        where: { userId: companyId },
+        select: { id: true },
+        orderBy: { createdAt: "desc" },
+      });
+      fallbackDocId = anyDoc?.id ?? null;
+    }
 
-    const capaData = ncFindings
-      .map((f: any) => {
-        const docId = f.documentId ?? fallbackDocId;
-        if (!docId) return null;
-        return {
-          documentId: docId,
-          userId: companyId,
-          companyCertificationId: cert.id,
-          title: f.title,
-          description: f.description || "",
-          dueDate,
-          status: "OPEN" as const,
-        };
-      })
-      .filter(Boolean) as any[];
-
-    if (capaData.length > 0) {
+    if (fallbackDocId) {
+      const capaData = ncFindings.map((f: any) => ({
+        documentId: f.documentId ?? fallbackDocId,
+        userId: companyId,
+        companyCertificationId: cert.id,
+        title: f.title,
+        description: f.description || "",
+        dueDate,
+        status: "OPEN" as const,
+      }));
       await prisma.capaTicket.createMany({ data: capaData });
+    } else {
+      console.warn(`[Cert] No documentId available for CAPA tickets — company ${companyId} has no documents`);
     }
   }
 

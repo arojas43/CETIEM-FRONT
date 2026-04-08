@@ -23,9 +23,11 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Auto-mark overdue
+    // Auto-mark overdue (OPEN and IN_PROGRESS tickets past their due date)
     const now = new Date();
-    const overdueIds = tickets.filter(t => t.status === "OPEN" && t.dueDate < now).map(t => t.id);
+    const overdueIds = tickets
+      .filter(t => (t.status === "OPEN" || t.status === "IN_PROGRESS") && t.dueDate < now)
+      .map(t => t.id);
     if (overdueIds.length > 0) {
       await prisma.capaTicket.updateMany({ where: { id: { in: overdueIds } }, data: { status: "OVERDUE" } });
       for (const t of tickets) {
