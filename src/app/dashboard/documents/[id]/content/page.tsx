@@ -61,10 +61,16 @@ export default function DocumentContentPage() {
 
   const fetchPage = async (page: number) => {
     setLoading(true);
-    const response = await fetch("/api/documents/" + documentId + "/content?page=" + page);
-    const data = await response.json();
-    setContent(data);
-    setLoading(false);
+    try {
+      const response = await fetch("/api/documents/" + documentId + "/content?page=" + page);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      setContent(data);
+    } catch (err) {
+      console.error("Error al cargar página:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {

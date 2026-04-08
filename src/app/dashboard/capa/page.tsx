@@ -39,22 +39,37 @@ export default function CapaPage() {
 
   const load = async () => {
     setLoading(true);
-    const res = await fetch("/api/capa");
-    if (res.ok) setTickets(await res.json());
-    setLoading(false);
+    try {
+      const res = await fetch("/api/capa");
+      if (res.ok) setTickets(await res.json());
+    } catch {
+      // silencioso — UI muestra lista vacía
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
 
   const updateStatus = async (id: string, status: string, resolution?: string) => {
     setUpdating(id);
-    await fetch(`/api/capa/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, resolution }),
-    });
-    await load();
-    setUpdating(null);
+    try {
+      const res = await fetch(`/api/capa/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, resolution }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Error al actualizar el ticket.");
+        return;
+      }
+      await load();
+    } catch {
+      alert("Error de conexión al actualizar el ticket.");
+    } finally {
+      setUpdating(null);
+    }
   };
 
   const open = tickets.filter(t => t.status === "OPEN" || t.status === "IN_PROGRESS");

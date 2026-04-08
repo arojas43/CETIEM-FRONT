@@ -88,13 +88,23 @@ export function CompaniesView({ users, assessors }: { users: User[]; assessors: 
 
   const handleAssign = async (companyId: string, assessorId: string | null) => {
     setAssigningId(companyId);
-    await fetch(`/api/companies/${companyId}/assign`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ assessorId }),
-    });
-    setLocalAssessors(prev => ({ ...prev, [companyId]: assessorId }));
-    setAssigningId(null);
+    try {
+      const res = await fetch(`/api/companies/${companyId}/assign`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assessorId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Error al asignar assessor.");
+        return;
+      }
+      setLocalAssessors(prev => ({ ...prev, [companyId]: assessorId }));
+    } catch {
+      alert("Error de conexión al asignar assessor.");
+    } finally {
+      setAssigningId(null);
+    }
   };
 
   return (
