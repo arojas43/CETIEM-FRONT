@@ -49,7 +49,11 @@ export default function CapaPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 10000);
+    return () => clearInterval(id);
+  }, []);
 
   const updateStatus = async (id: string, status: string, resolution?: string) => {
     setUpdating(id);

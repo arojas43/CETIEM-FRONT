@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRole } from "@/lib/role-context";
 import {
   Building2, FileText, Eye, Search, ChevronDown, ChevronRight,
@@ -58,6 +59,7 @@ const SPRINT_LABEL: Record<string, string> = {
 
 export function CompaniesView({ users, assessors }: { users: User[]; assessors: Assessor[] }) {
   const { role } = useRole();
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [assigningId, setAssigningId] = useState<string | null>(null);
@@ -100,6 +102,7 @@ export function CompaniesView({ users, assessors }: { users: User[]; assessors: 
         return;
       }
       setLocalAssessors(prev => ({ ...prev, [companyId]: assessorId }));
+      router.refresh(); // re-fetch server data (companyCertifications, dictamen badges)
     } catch {
       alert("Error de conexión al asignar assessor.");
     } finally {

@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useRole } from "@/lib/role-context";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   FileText, Upload, Search, CheckCircle, Clock, AlertCircle,
@@ -802,6 +803,14 @@ function AdminDashboard({ userName, globalStats, allUsers, allDocsGlobal }: Pick
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export function DashboardView(props: Props) {
   const { role } = useRole()
+  const router = useRouter()
+
+  // Company dashboard: poll every 15s to pick up dictamen/CAPA updates from assessor
+  useEffect(() => {
+    if (role !== 'company') return
+    const id = setInterval(() => router.refresh(), 15000)
+    return () => clearInterval(id)
+  }, [role, router])
 
   if (role === 'assessor') return <AssessorDashboard userName={props.userName} globalStats={props.globalStats} allDocsGlobal={props.allDocsGlobal} />
   if (role === 'admin')    return <AdminDashboard    userName={props.userName} globalStats={props.globalStats} allUsers={props.allUsers} allDocsGlobal={props.allDocsGlobal} />
