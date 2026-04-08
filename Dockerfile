@@ -6,10 +6,11 @@
 FROM node:22-slim AS deps
 WORKDIR /app
 
-# Libs del sistema para módulos nativos (canvas, pdfjs, etc.)
+# Libs del sistema para módulos nativos (canvas, pdfjs, etc.) + OpenSSL para Prisma
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ \
     libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
@@ -36,10 +37,11 @@ RUN npm run build
 FROM node:22-slim AS runner
 WORKDIR /app
 
-# Solo libs de RUNTIME (no dev tools)
+# Solo libs de RUNTIME (no dev tools) + OpenSSL para Prisma
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2 libpango-1.0-0 libpangocairo-1.0-0 \
     libjpeg62-turbo libgif7 librsvg2-2 \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
