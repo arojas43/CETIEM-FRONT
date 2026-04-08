@@ -18,6 +18,12 @@ export async function PATCH(
     const ticket = await prisma.capaTicket.findUnique({ where: { id } });
     if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
+    // Companies can only update their own tickets
+    const userRole = (session.user as any).role as string;
+    if (userRole === "COMPANY" && ticket.userId !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const updated = await prisma.capaTicket.update({
       where: { id },
       data: {
@@ -26,6 +32,24 @@ export async function PATCH(
         closedAt: status === "CLOSED" ? new Date() : ticket.closedAt,
       },
     });
+
+    // When a ticket is closed, check if ALL CAPAs for the certification are resolved.
+    // If so, move the cert back to IN_REVIEW so the assessor can re-evaluate.
+    if (status === "CLOSED" && ticket.companyCertificationId) {
+      const openCount = await prisma.capaTicket.count({
+        where: {
+          companyCertificationId: ticket.companyCertificationId,
+          status: { in: ["OPEN", "IN_PROGRESS", "OVERDUE"] },
+          id: { not: id },
+        },
+      });
+      if (openCount === 0) {
+        await prisma.companyCertification.update({
+          where: { id: ticket.companyCertificationId },
+          data: { status: "IN_REVIEW" },
+        });
+      }
+    }
 
     await logAudit({
       userId: session.user.id,

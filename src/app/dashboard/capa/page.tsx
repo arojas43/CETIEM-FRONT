@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ShieldAlert, Clock, CheckCircle, AlertCircle, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRole } from "@/lib/role-context";
 
 interface CapaTicket {
   id: string;
@@ -30,6 +31,8 @@ const SEV_COLOR: Record<string, string> = {
 };
 
 export default function CapaPage() {
+  const { role } = useRole();
+  const isCompany = role === "company";
   const [tickets, setTickets] = useState<CapaTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -220,7 +223,11 @@ export default function CapaPage() {
       <div className="flex items-center justify-between px-8 py-5 border-b border-white/5">
         <div>
           <h1 className="font-heading font-bold text-2xl text-white">Tickets CAPA</h1>
-          <p className="text-cetiem-gray text-sm mt-0.5">Acciones correctivas y preventivas — plazo 30 días.</p>
+          <p className="text-cetiem-gray text-sm mt-0.5">
+            {isCompany
+              ? "Tus acciones correctivas y preventivas — plazo 30 días."
+              : "Seguimiento global de acciones correctivas — todas las empresas."}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           {overdue.length > 0 && (
@@ -235,6 +242,17 @@ export default function CapaPage() {
       </div>
 
       <div className="flex-1 p-8 overflow-auto space-y-8">
+        {/* Completion banner for company: all CAPAs resolved */}
+        {isCompany && tickets.length > 0 && open.length === 0 && overdue.length === 0 && closed.length > 0 && (
+          <div className="bg-cetiem-lime/10 border border-cetiem-lime/30 rounded-2xl px-5 py-4 flex items-center gap-3">
+            <CheckCircle className="h-5 w-5 text-cetiem-lime shrink-0" />
+            <div>
+              <p className="text-cetiem-lime text-sm font-semibold">¡Todas las acciones correctivas completadas!</p>
+              <p className="text-cetiem-gray text-xs mt-0.5">Tu expediente ha vuelto a revisión con el Assessor ESG.</p>
+            </div>
+          </div>
+        )}
+
         {/* Overdue */}
         {overdue.length > 0 && (
           <section>

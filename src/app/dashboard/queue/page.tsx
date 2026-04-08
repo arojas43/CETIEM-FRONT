@@ -38,11 +38,12 @@ type QueueCompany = {
   companyCertifications: { id: string; status: string; esgScore: number | null; createdAt: Date }[];
 };
 
-export default async function QueuePage() {
+export default async function QueuePage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin");
   const userRole = (session.user as any).role;
   if (userRole !== "ASSESSOR" && userRole !== "ADMIN") redirect("/dashboard");
+  const { saved } = await searchParams;
 
   // Empresas que tienen al menos un documento en estado ANALYZED o INDEXED
   const companies: QueueCompany[] = await prisma.user.findMany({
@@ -99,6 +100,12 @@ export default async function QueuePage() {
       </div>
 
       <div className="flex-1 p-8 overflow-auto max-w-4xl space-y-8">
+        {saved === "1" && (
+          <div className="bg-cetiem-lime/10 border border-cetiem-lime/30 rounded-2xl px-5 py-3 flex items-center gap-3">
+            <CheckCircle className="h-4 w-4 text-cetiem-lime shrink-0" />
+            <p className="text-cetiem-lime text-sm font-medium">Dictamen guardado correctamente.</p>
+          </div>
+        )}
 
         {/* Sin dictamen */}
         <section>
