@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { falkorDBService, checkFalkorDBHealth } from "@/lib/falkordb";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +9,10 @@ export const dynamic = "force-dynamic";
  * Global graph statistics for the admin/assessor graph console
  */
 export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const role = (session.user as any).role as string;
+  if (!["ASSESSOR", "ADMIN"].includes(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   try {
     const isHealthy = await checkFalkorDBHealth();
 

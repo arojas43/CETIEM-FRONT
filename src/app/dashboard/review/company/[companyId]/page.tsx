@@ -66,6 +66,15 @@ const TRACK_LABEL: Record<string, string> = {
   A: "Track A — Industria", B: "Track B — Construcción", C: "Track C — Tecnología",
 };
 
+/* Confidence chip levels — replaces slider */
+const CONF_LEVELS = [
+  { label: "–",       value: 0,   active: "text-cetiem-gray/50 bg-white/8       border-white/15" },
+  { label: "Bajo",    value: 60,  active: "text-cetiem-red     bg-cetiem-red/15   border-cetiem-red/30" },
+  { label: "Parcial", value: 75,  active: "text-cetiem-amber   bg-cetiem-amber/15 border-cetiem-amber/30" },
+  { label: "≥85%",    value: 88,  active: "text-cetiem-lime    bg-cetiem-lime/15  border-cetiem-lime/30" },
+  { label: "Pleno",   value: 100, active: "text-cetiem-lime    bg-cetiem-lime/20  border-cetiem-lime/40" },
+] as const;
+
 /* ── VLAP Panel ── */
 function VlapPanel({ vlap, onChange }: {
   vlap: Vlap;
@@ -77,8 +86,8 @@ function VlapPanel({ vlap, onChange }: {
   );
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 mb-3">
+    <div>
+      <div className="flex items-center gap-2 mb-2">
         <ShieldCheck className="h-3.5 w-3.5 text-cetiem-teal" />
         <span className="text-xs font-semibold text-white">Motor V.L.A.P.</span>
         {hasHardStop && (
@@ -87,74 +96,78 @@ function VlapPanel({ vlap, onChange }: {
           </span>
         )}
         {!hasHardStop && allPassed && (
-          <span className="text-[9px] font-bold bg-cetiem-lime/20 text-cetiem-lime px-1.5 py-0.5 rounded-full">
-            ✓ V.L.A.P. OK
-          </span>
+          <span className="text-[9px] font-bold bg-cetiem-lime/20 text-cetiem-lime px-1.5 py-0.5 rounded-full">✓ OK</span>
         )}
       </div>
-      {VLAP_KEYS.map(key => {
-        const item = vlap[key];
-        const meta = VLAP_LABELS[key];
-        const isHS = item.confidence < HARD_STOP && !item.override && item.value !== null;
-        return (
-          <div key={key} className={cn(
-            "bg-white/3 border rounded-xl p-3 space-y-2",
-            isHS            ? "border-cetiem-red/30" :
-            item.value===true  ? "border-cetiem-lime/20" :
-            item.value===false ? "border-cetiem-red/20"  : "border-white/8"
-          )}>
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs font-medium text-white">{meta.label}</span>
-                <p className="text-[10px] text-cetiem-gray/50">{meta.hint}</p>
+
+      <div className="bg-white/3 border border-white/8 rounded-xl overflow-hidden">
+        {VLAP_KEYS.map((key, i) => {
+          const item = vlap[key];
+          const meta = VLAP_LABELS[key];
+          const isHS = item.confidence < HARD_STOP && !item.override && item.value !== null && item.confidence > 0;
+          return (
+            <div key={key} className={cn(
+              "flex items-center gap-2 px-3 py-2.5",
+              i < VLAP_KEYS.length - 1 && "border-b border-white/5",
+              isHS && "bg-cetiem-red/5"
+            )}>
+              {/* Criterion */}
+              <div className="w-[88px] shrink-0">
+                <p className="text-xs font-medium text-white">{meta.label}</p>
+                {isHS && !item.override && (
+                  <span className="text-[9px] text-cetiem-red flex items-center gap-0.5">
+                    <Zap className="h-2 w-2" /> Hard Stop
+                  </span>
+                )}
+                {item.override && (
+                  <span className="text-[9px] text-cetiem-amber">↩ override</span>
+                )}
               </div>
-              <div className="flex items-center gap-1.5">
-                {[true, false].map(val => (
+
+              {/* ✓ / ✗ */}
+              <div className="flex gap-1 shrink-0">
+                {([true, false] as const).map(val => (
                   <button key={String(val)}
                     onClick={() => onChange(key, "value", item.value === val ? null : val)}
+                    title={meta.hint}
                     className={cn(
                       "h-6 w-6 rounded-lg border text-[9px] font-bold transition-all",
                       item.value === val
-                        ? val ? "bg-cetiem-lime/20 border-cetiem-lime/40 text-cetiem-lime" : "bg-cetiem-red/20 border-cetiem-red/40 text-cetiem-red"
-                        : "bg-white/5 border-white/10 text-cetiem-gray/40"
+                        ? val ? "bg-cetiem-lime/20 border-cetiem-lime/40 text-cetiem-lime"
+                               : "bg-cetiem-red/20  border-cetiem-red/40  text-cetiem-red"
+                        : "bg-white/5 border-white/10 text-cetiem-gray/30 hover:text-cetiem-gray"
                     )}
-                  >
-                    {val ? "✓" : "✗"}
-                  </button>
+                  >{val ? "✓" : "✗"}</button>
                 ))}
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-cetiem-gray/50 w-20">Confianza</span>
-              <input type="range" min="0" max="100" value={item.confidence}
-                onChange={e => onChange(key, "confidence", parseInt(e.target.value))}
-                className="flex-1 h-1.5 accent-cetiem-teal"
-              />
-              <span className={cn("text-[10px] font-mono w-8 text-right",
-                item.confidence >= HARD_STOP ? "text-cetiem-lime" : "text-cetiem-red"
-              )}>
-                {item.confidence}%
-              </span>
-            </div>
-            {isHS && (
-              <div className="flex items-center justify-between bg-cetiem-red/10 border border-cetiem-red/20 rounded-lg px-2 py-1.5">
-                <span className="text-[9px] text-cetiem-red flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" /> Hard Stop — confianza &lt; {HARD_STOP}%
-                </span>
-                <button onClick={() => onChange(key, "override", !item.override)}
-                  className="text-[9px] text-cetiem-amber border border-cetiem-amber/30 px-2 py-0.5 rounded-lg hover:bg-cetiem-amber/10">
-                  Override manual
-                </button>
+
+              {/* Confidence chips */}
+              <div className="flex items-center gap-1 flex-1">
+                {CONF_LEVELS.map(lvl => {
+                  const sel = item.confidence === lvl.value;
+                  return (
+                    <button key={lvl.value}
+                      onClick={() => onChange(key, "confidence", lvl.value)}
+                      className={cn(
+                        "text-[9px] font-medium px-1.5 py-0.5 rounded border transition-all whitespace-nowrap",
+                        sel ? lvl.active : "text-cetiem-gray/30 bg-white/3 border-white/8 hover:bg-white/8 hover:text-cetiem-gray/60"
+                      )}
+                    >{lvl.label}</button>
+                  );
+                })}
               </div>
-            )}
-            {item.override && (
-              <p className="text-[9px] text-cetiem-amber bg-cetiem-amber/10 px-2 py-1 rounded-lg">
-                Override activo — revisión manual aplicada
-              </p>
-            )}
-          </div>
-        );
-      })}
+
+              {/* Override */}
+              {isHS && !item.override && (
+                <button onClick={() => onChange(key, "override", true)}
+                  className="text-[9px] text-cetiem-amber border border-cetiem-amber/30 px-1.5 py-0.5 rounded hover:bg-cetiem-amber/10 shrink-0">
+                  Override
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
