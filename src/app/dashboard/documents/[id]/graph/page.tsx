@@ -68,7 +68,7 @@ export default function DocumentGraphPage() {
       <div className="flex items-center justify-between px-8 py-5 border-b border-white/5">
         <div>
           <h1 className="font-heading font-bold text-2xl text-white">Grafo de Conocimiento</h1>
-          <p className="text-cetiem-gray text-sm mt-0.5">Cognee + FalkorDB</p>
+          <p className="text-cetiem-gray text-sm mt-0.5">Entidades y relaciones extraídas por IA</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={loadDebugInfo} disabled={loading}
@@ -143,7 +143,7 @@ export default function DocumentGraphPage() {
         {/* Entities */}
         <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5 mb-4">
           <h2 className="font-heading font-semibold text-white mb-1">Entidades Extraídas</h2>
-          <p className="text-cetiem-gray text-xs mb-4">Entidades identificadas por Cognee en el documento</p>
+          <p className="text-cetiem-gray text-xs mb-4">Entidades identificadas por IA en el documento</p>
 
           {loading ? (
             <div className="text-center py-12">
@@ -204,12 +204,12 @@ export default function DocumentGraphPage() {
 
         {/* Info */}
         <div className="bg-cetiem-teal/5 border border-cetiem-teal/10 rounded-2xl p-5">
-          <h3 className="font-heading font-semibold text-cetiem-teal text-sm mb-3">¿Qué es Cognee?</h3>
+          <h3 className="font-heading font-semibold text-cetiem-teal text-sm mb-3">¿Qué es el Grafo de Conocimiento?</h3>
           <p className="text-cetiem-gray text-sm mb-2">
-            <strong className="text-white">Cognee</strong> es un motor de conocimiento que transforma documentos en grafos de conocimiento persistentes.
+            El motor de IA transforma cada documento en un grafo de conocimiento estructurado y persistente.
           </p>
           <ul className="space-y-1 text-sm text-cetiem-gray">
-            {["Extrae entidades (empresas, normas, requisitos)", "Identifica relaciones entre ellas", "Guarda en FalkorDB para consultas complejas", "Permite búsqueda semántica"].map(item => (
+            {["Extrae entidades clave (empresas, normas, requisitos)", "Identifica y mapea relaciones entre ellas", "Permite búsqueda semántica avanzada sobre el contenido", "Enriquece el análisis del Assessor ESG"].map(item => (
               <li key={item} className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 bg-cetiem-teal rounded-full shrink-0" />{item}
               </li>

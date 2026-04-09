@@ -526,7 +526,7 @@ async function processDocumentIndexing(documentId: string): Promise<void> {
 
     // Encolar análisis con Cognee
     console.log(`[PageIndex] [6/8] Encolando análisis con Cognee...`);
-    await updateProgress(documentId, "Encolando análisis Cognee", 52, { stage: "queueing_analysis" });
+    await updateProgress(documentId, "Preparando análisis de IA...", 52, { stage: "queueing_analysis" });
 
     try {
       const { aiAnalysisQueue } = await import('../queue');
@@ -581,7 +581,7 @@ async function processDocumentAnalysis(documentId: string): Promise<void> {
 
   try {
     // Reportar progreso: Iniciando Cognee
-    await updateProgress(documentId, "Iniciando análisis Cognee", 60, { stage: "cognee_starting" });
+    await updateProgress(documentId, "Iniciando análisis de IA...", 60, { stage: "ai_starting" });
 
     // Obtener documento
     console.log(`[AI Worker] [1/8] Obteniendo documento de BD...`);

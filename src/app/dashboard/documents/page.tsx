@@ -49,7 +49,7 @@ async function DocumentProgress({ userId }: { userId: string }) {
       {/* Título */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-heading font-semibold text-white text-sm">Expediente ESG</h2>
-        <span className="text-[10px] text-cetiem-gray/40 font-medium tracking-wide">NVIDIA NIM</span>
+        <span className="text-[10px] text-cetiem-gray/40 font-medium tracking-wide">Impulsado por NVIDIA</span>
       </div>
 
       {/* Dos etapas: subida + análisis IA */}

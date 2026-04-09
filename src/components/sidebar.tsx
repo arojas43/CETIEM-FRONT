@@ -50,9 +50,9 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
 }
 
 const ROLE_META: Record<string, { label: string; color: string; hint: string }> = {
-  company:  { label: 'Portal Empresa',  color: 'text-cetiem-teal',  hint: 'Consulta documentos con GLM4.7.' },
-  assessor: { label: 'Panel Assessor',  color: 'text-cetiem-amber', hint: 'Revisa expedientes en la cola.' },
-  admin:    { label: 'Super Admin',     color: 'text-cetiem-lime',  hint: 'Gestión global de la plataforma.' },
+  company:  { label: 'Portal Empresa',  color: 'text-cetiem-teal',  hint: 'Tus documentos son analizados con IA de alto nivel impulsada por NVIDIA.' },
+  assessor: { label: 'Panel Assessor',  color: 'text-cetiem-amber', hint: 'Plataforma de dictamen potenciada con IA de alto nivel impulsada por NVIDIA.' },
+  admin:    { label: 'Super Admin',     color: 'text-cetiem-lime',  hint: 'Gestión global de la plataforma y stack tecnológico NVIDIA.' },
 }
 
 interface Notif {

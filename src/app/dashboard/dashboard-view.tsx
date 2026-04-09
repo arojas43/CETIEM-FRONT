@@ -259,7 +259,7 @@ function CompanyDashboard({ userName, stats, recentDocs, companyMeta, certStats 
   // 4 steps: each is independently determined
   const certSteps = [
     { n: 1, label: 'Documentos\nSubidos',       done: stats.total > 0,      active: stats.total === 0 },
-    { n: 2, label: 'Análisis IA\n· NVIDIA NIM', done: stats.analyzed > 0,   active: stats.total > 0 && stats.analyzed === 0 },
+    { n: 2, label: 'Análisis IA\nImpulsado por NVIDIA', done: stats.analyzed > 0,   active: stats.total > 0 && stats.analyzed === 0 },
     { n: 3, label: 'Revisión\nAssessor ESG',    done: hasCert,               active: stats.analyzed > 0 && !hasCert },
     { n: 4, label: 'Certificado\nESG Emitido',  done: certApproved,          active: hasCert && !certApproved },
   ]
@@ -716,6 +716,35 @@ function AdminDashboard({ userName, globalStats, allUsers, allDocsGlobal }: Pick
               </Link>
             )
           })}
+        </div>
+
+        {/* Stack NVIDIA — visible solo para Admin */}
+        <div className="bg-gradient-to-r from-[#1a1a2e] to-[#0d1b2a] border border-[#76b900]/20 rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-7 w-7 rounded-lg bg-[#76b900]/20 flex items-center justify-center shrink-0">
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="#76b900"><path d="M9 3L3 9v12h6V9h6V3H9zm6 6v12h6V9h-6z"/></svg>
+            </div>
+            <div>
+              <h2 className="font-heading font-semibold text-white text-sm">Stack Tecnológico NVIDIA</h2>
+              <p className="text-cetiem-gray/50 text-[10px]">Modelos y APIs activos en la plataforma</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { name: 'NVIDIA NIM', role: 'API de inferencia', desc: 'Orquesta todos los modelos de lenguaje vía NVIDIA Inference Microservices', badge: 'Infraestructura', color: 'border-[#76b900]/30 bg-[#76b900]/5' },
+              { name: 'Llama 3.1 · 70B', role: 'Procesamiento de documentos', desc: 'Extracción de estructura, entidades y relaciones de los PDFs analizados', badge: 'Procesamiento', color: 'border-cetiem-teal/30 bg-cetiem-teal/5' },
+              { name: 'Qwen 3.5 · 122B', role: 'Motor Q&A', desc: 'Generación de respuestas en streaming para consultas sobre documentos', badge: 'Q&A', color: 'border-cetiem-lime/30 bg-cetiem-lime/5' },
+            ].map(item => (
+              <div key={item.name} className={`rounded-xl border p-4 ${item.color}`}>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <span className="font-heading font-bold text-white text-sm">{item.name}</span>
+                  <span className="text-[9px] font-semibold text-[#76b900] bg-[#76b900]/10 px-1.5 py-0.5 rounded-full shrink-0">{item.badge}</span>
+                </div>
+                <p className="text-cetiem-gray/70 text-[10px] font-medium mb-1">{item.role}</p>
+                <p className="text-cetiem-gray/40 text-[10px] leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Acciones administrativas */}

@@ -459,7 +459,7 @@ export default function UploadPage() {
         </div>
         <div className="flex items-center gap-2 text-[11px] text-cetiem-gray/40 font-medium">
           <Cpu className="h-3.5 w-3.5" />
-          Análisis IA · NVIDIA NIM
+          Análisis IA · Impulsado por NVIDIA
         </div>
       </div>
 

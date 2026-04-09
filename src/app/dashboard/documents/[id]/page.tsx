@@ -208,7 +208,7 @@ export default async function DocumentDetailPage({
                   )} />
                   <h3 className="font-heading font-semibold text-white text-sm">Revisión IA</h3>
                 </div>
-                <span className="text-[10px] text-cetiem-gray/40 font-medium tracking-wide">NVIDIA NIM</span>
+                <span className="text-[10px] text-cetiem-gray/40 font-medium tracking-wide">Impulsado por NVIDIA</span>
               </div>
               {document.status === "ANALYZED" ? (
                 <p className="text-cetiem-gray text-sm">
@@ -474,12 +474,12 @@ export default async function DocumentDetailPage({
             <div className="bg-cetiem-green/5 border border-cetiem-green/10 rounded-2xl p-5">
               <h3 className="font-heading font-semibold text-cetiem-green text-sm mb-3 flex items-center gap-2">
                 <Brain className="h-4 w-4" />
-                Integración PageIndex + Cognee + FalkorDB
+                Análisis de IA — Impulsado por NVIDIA
               </h3>
               <div className="space-y-1.5 text-sm text-cetiem-gray">
-                <p><strong className="text-white">PageIndex:</strong> {totalSections} secciones extraídas</p>
-                <p><strong className="text-white">Cognee:</strong> Extrae entidades y relaciones del texto</p>
-                <p><strong className="text-white">FalkorDB:</strong> Grafo de conocimiento aislado por documento</p>
+                <p><strong className="text-white">Estructura:</strong> {totalSections} secciones extraídas del documento</p>
+                <p><strong className="text-white">Entidades:</strong> Conceptos y relaciones identificados por IA</p>
+                <p><strong className="text-white">Grafo:</strong> Mapa de conocimiento persistente y consultable</p>
               </div>
             </div>
           </>

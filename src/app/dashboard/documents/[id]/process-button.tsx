@@ -88,7 +88,7 @@ export default function ProcessDocumentButton({
         <Brain className={cn("h-5 w-5", isPendingOrFailed ? "text-cetiem-amber" : "text-cetiem-gray")} />
       </div>
       <h3 className="font-heading font-semibold text-white mb-1">Procesar Documento</h3>
-      <p className="text-cetiem-gray text-xs mb-4 flex-1">Ejecuta PageIndex + Cognee manualmente</p>
+      <p className="text-cetiem-gray text-xs mb-4 flex-1">Ejecuta el análisis de IA manualmente</p>
 
       <div className="space-y-3">
         {/* Dominio */}

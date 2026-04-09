@@ -112,7 +112,7 @@ export default function DocumentQAPage() {
             <MessageSquare className="h-4 w-4 text-cetiem-teal" />
             Haz una pregunta sobre este documento
           </h2>
-          <p className="text-cetiem-gray text-xs mb-4">La IA buscará en el grafo de conocimiento y el contenido extraído</p>
+          <p className="text-cetiem-gray text-xs mb-4">La IA analizará el contenido del documento para responderte con precisión</p>
 
           <form onSubmit={handleSearch} className="flex gap-2">
             <Input
@@ -254,7 +254,7 @@ export default function DocumentQAPage() {
           <div className="bg-cetiem-card border border-dashed border-white/10 rounded-2xl p-12 text-center">
             <MessageSquare className="h-14 w-14 text-cetiem-gray/20 mx-auto mb-4" />
             <h3 className="font-heading font-semibold text-white mb-2">Haz una pregunta sobre este documento</h3>
-            <p className="text-cetiem-gray text-sm">La IA buscará en el grafo de conocimiento y el contenido extraído para responderte</p>
+            <p className="text-cetiem-gray text-sm">La IA analizará el contenido del documento para responderte con precisión</p>
           </div>
         )}
       </div>

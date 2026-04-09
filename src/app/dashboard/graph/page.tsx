@@ -73,7 +73,7 @@ export default function GraphQueryPage() {
       <div className="flex items-center justify-between px-8 py-5 border-b border-white/5">
         <div>
           <h1 className="font-heading font-bold text-2xl text-white">Consultar Grafo</h1>
-          <p className="text-cetiem-gray text-sm mt-0.5">FalkorDB + Cognee · Cypher Query</p>
+          <p className="text-cetiem-gray text-sm mt-0.5">Grafo de conocimiento global · Consulta Cypher</p>
         </div>
         <button
           onClick={loadStats}

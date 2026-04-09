@@ -21,14 +21,14 @@ flowchart TD
     end
 
     %% ─────────────────────────── PIPELINE IA ────────────────────────────
-    subgraph PIPE ["⚙️  PIPELINE IA"]
-        P1["PDF recibido\nSHA-256 calculado"] --> P2["BullMQ Worker"]
-        P2 --> P3["PageIndex\nestructura jerárquica"]
-        P3 --> P4["Cognee\nentidades + relaciones"]
-        P4 --> P5["FalkorDB\ngrafo de conocimiento"]
-        P5 --> P6{"¿Entidades\nencontradas?"}
+    subgraph PIPE ["⚙️  PIPELINE IA — Impulsado por NVIDIA"]
+        P1["PDF recibido\nSHA-256 calculado"] --> P2["Worker IA"]
+        P2 --> P3["Extracción de estructura\ny texto del documento"]
+        P3 --> P4["Análisis semántico\nentidades + relaciones"]
+        P4 --> P5["Grafo de conocimiento\npersistente"]
+        P5 --> P6{"¿Análisis\ncompletado?"}
         P6 -->|"Sí"| P7(["✅ ANALYZED"])
-        P6 -->|"No"| P8(["⚠️  INDEXED"])
+        P6 -->|"Parcial"| P8(["⚠️  INDEXED"])
         P2 -->|"Error"| P9(["❌ FAILED"])
     end
 
