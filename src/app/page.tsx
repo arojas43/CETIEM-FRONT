@@ -8,8 +8,7 @@ export default function HomePage() {
       <header className="border-b border-white/5 sticky top-0 z-50 bg-cetiem-dark/90 backdrop-blur-sm">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-baseline gap-1.5">
-            <span className="font-heading font-bold text-xl text-white tracking-tight">CETIEM</span>
-            <span className="text-cetiem-gray text-xs font-medium">S.C.</span>
+            <span className="font-heading font-bold text-sm text-white tracking-tight">SECRETARIA DE ECONOMIA</span>
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm text-cetiem-gray">
             <Link href="#como-funciona" className="hover:text-white transition-colors">Cómo funciona</Link>
@@ -217,8 +216,7 @@ export default function HomePage() {
         <div className="container mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
             <div className="flex items-baseline gap-1">
-              <span className="font-heading font-bold text-white">CETIEM</span>
-              <span className="text-cetiem-gray text-xs">S.C.</span>
+              <span className="font-heading font-bold text-xs text-white">SECRETARIA DE ECONOMIA</span>
             </div>
             <span className="text-cetiem-gray/30 text-xs">·</span>
             <span className="text-cetiem-gray/50 text-xs">Sistema de Certificación ESG con IA</span>

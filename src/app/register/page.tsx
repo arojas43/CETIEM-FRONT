@@ -97,8 +97,7 @@ export default function RegisterPage() {
       <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-cetiem-card to-[#050a0f] flex-col justify-between p-12 border-r border-white/5">
         <div>
           <div className="flex items-baseline gap-1.5 mb-12">
-            <span className="font-heading font-bold text-2xl text-white">CETIEM</span>
-            <span className="text-cetiem-gray text-sm font-medium">S.C.</span>
+            <span className="font-heading font-bold text-lg text-white">SECRETARIA DE ECONOMIA</span>
           </div>
           <h2 className="font-heading font-bold text-3xl text-white leading-tight mb-4">
             Comienza tu proceso<br />de certificación hoy

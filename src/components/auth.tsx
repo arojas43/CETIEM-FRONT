@@ -68,8 +68,7 @@ export function SignInPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-baseline gap-1.5 mb-3">
-            <span className="font-heading font-bold text-3xl text-white tracking-tight">CETIEM</span>
-            <span className="text-cetiem-gray text-sm font-medium">S.C.</span>
+            <span className="font-heading font-bold text-2xl text-white tracking-tight">SECRETARIA DE ECONOMIA</span>
           </div>
           <p className="text-cetiem-gray text-sm">Plataforma de certificación ESG</p>
         </div>

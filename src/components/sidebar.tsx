@@ -179,8 +179,7 @@ export function Sidebar({ userName, userEmail }: { userName?: string | null; use
       {/* Logo + role label */}
       <div className="px-5 py-4 border-b border-white/5">
         <div className="flex items-baseline gap-1.5 mb-0.5">
-          <span className="font-heading font-bold text-xl text-white tracking-tight">CETIEM</span>
-          <span className="text-cetiem-gray text-xs font-medium">S.C.</span>
+          <span className="font-heading font-bold text-sm text-white tracking-tight leading-tight">SECRETARIA DE ECONOMIA</span>
         </div>
         <span className={cn('text-[10px] font-semibold uppercase tracking-widest', meta.color)}>
           {meta.label}
