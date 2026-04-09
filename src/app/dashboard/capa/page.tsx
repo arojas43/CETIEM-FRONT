@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ShieldAlert, Clock, CheckCircle, AlertCircle, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRole } from "@/lib/role-context";
@@ -35,6 +36,7 @@ export default function CapaPage() {
   const isCompany = role === "company";
   const [tickets, setTickets] = useState<CapaTicket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
@@ -42,11 +44,16 @@ export default function CapaPage() {
 
   const load = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const res = await fetch("/api/capa");
-      if (res.ok) setTickets(await res.json());
+      if (res.ok) {
+        setTickets(await res.json());
+      } else {
+        setLoadError(true);
+      }
     } catch {
-      // silencioso — UI muestra lista vacía
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -54,9 +61,10 @@ export default function CapaPage() {
 
   useEffect(() => {
     load();
+    if (resolvingId) return;
     const id = setInterval(load, 10000);
     return () => clearInterval(id);
-  }, []);
+  }, [resolvingId]);
 
   const updateStatus = async (id: string, status: string, resolution?: string) => {
     setUpdating(id);
@@ -112,7 +120,11 @@ export default function CapaPage() {
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span className="text-cetiem-gray/50 text-xs truncate">{ticket.user.companyName || ticket.user.name || ticket.user.email}</span>
               <span className="text-cetiem-gray/30 text-xs">·</span>
-              <span className="text-cetiem-gray/50 text-xs truncate">{ticket.document.name}</span>
+              <Link href={`/dashboard/documents/${ticket.document.id}`}
+                className="text-cetiem-gray/50 text-xs truncate hover:text-cetiem-teal transition-colors"
+                onClick={e => e.stopPropagation()}>
+                {ticket.document.name}
+              </Link>
               {ticket.finding && (
                 <>
                   <span className="text-cetiem-gray/30 text-xs">·</span>
@@ -215,6 +227,17 @@ export default function CapaPage() {
   if (loading) return (
     <div className="flex items-center justify-center h-full">
       <RefreshCw className="h-6 w-6 text-cetiem-gray/30 animate-spin" />
+    </div>
+  );
+
+  if (loadError) return (
+    <div className="flex flex-col items-center justify-center h-full gap-3">
+      <AlertCircle className="h-10 w-10 text-cetiem-red/40" />
+      <p className="text-cetiem-gray text-sm">Error al cargar los tickets CAPA.</p>
+      <button onClick={load}
+        className="text-sm border border-white/10 hover:border-cetiem-green/30 text-cetiem-gray hover:text-white px-4 py-2 rounded-xl transition-colors flex items-center gap-2">
+        <RefreshCw className="h-4 w-4" /> Reintentar
+      </button>
     </div>
   );
 

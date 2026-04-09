@@ -87,7 +87,8 @@ export function CompaniesView({ assessors }: { assessors: Assessor[] }) {
   const [search, setSearch]         = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  const [expanded, setExpanded]     = useState<string | null>(null);
+  const [fetchError, setFetchError]   = useState(false);
+  const [expanded, setExpanded]       = useState<string | null>(null);
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [localAssessors, setLocalAssessors] = useState<Record<string, string | null>>({});
 
@@ -99,11 +100,12 @@ export function CompaniesView({ assessors }: { assessors: Assessor[] }) {
 
   const fetchCompanies = useCallback(async () => {
     setLoading(true);
+    setFetchError(false);
     try {
       const params = new URLSearchParams({ page: String(page), limit: "20" });
       if (debouncedSearch) params.set("search", debouncedSearch);
       const res = await fetch(`/api/companies?${params}`);
-      if (!res.ok) return;
+      if (!res.ok) { setFetchError(true); return; }
       const json = await res.json();
       setUsers(json.data);
       setPagination(json.pagination);
@@ -112,6 +114,8 @@ export function CompaniesView({ assessors }: { assessors: Assessor[] }) {
         for (const u of json.data) if (!(u.id in next)) next[u.id] = u.assessorId;
         return next;
       });
+    } catch {
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -179,8 +183,20 @@ export function CompaniesView({ assessors }: { assessors: Assessor[] }) {
           </div>
         )}
 
+        {/* Error state */}
+        {!loading && fetchError && (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <AlertCircle className="h-10 w-10 text-cetiem-red/30" />
+            <p className="text-cetiem-gray text-sm">Error al cargar las empresas.</p>
+            <button onClick={() => fetchCompanies()}
+              className="text-sm border border-white/10 hover:border-cetiem-green/30 text-cetiem-gray hover:text-white px-4 py-2 rounded-xl transition-colors flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" /> Reintentar
+            </button>
+          </div>
+        )}
+
         {/* Companies list */}
-        {!loading && (
+        {!loading && !fetchError && (
           <>
             {users.length === 0 && (
               <div className="text-center py-12">

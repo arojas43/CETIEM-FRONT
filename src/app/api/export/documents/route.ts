@@ -10,7 +10,12 @@ export async function GET(_req: NextRequest) {
     const role = (session.user as any).role as string;
     if (!["ASSESSOR", "ADMIN"].includes(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+    const docWhere = role === "ASSESSOR"
+      ? { user: { assessorId: session.user.id } }
+      : {};
+
     const docs = await prisma.document.findMany({
+      where: docWhere,
       orderBy: { createdAt: "desc" },
       include: {
         user: { select: { name: true, email: true, companyName: true, track: true } },

@@ -22,6 +22,15 @@ export async function GET(
   if (role === "COMPANY" && session.user.id !== id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+  if (role === "ASSESSOR") {
+    const check = await prisma.user.findUnique({
+      where: { id, role: "COMPANY" },
+      select: { assessorId: true },
+    });
+    if (!check || check.assessorId !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
   const company = await prisma.user.findUnique({
     where: { id, role: "COMPANY" },

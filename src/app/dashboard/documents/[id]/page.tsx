@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import {
   FileText, Brain, MessageSquare, Network, ChevronRight,
-  ArrowLeft, Eye, CheckCircle, XCircle, Flag, AlertCircle, Clock,
-  Award, ShieldOff, Download,
+  ArrowLeft, CheckCircle, XCircle, Flag, AlertCircle, Clock,
+  Award, ShieldOff,
 } from "lucide-react";
 import Link from "next/link";
 import ProcessDocumentButton from "./process-button";
 import { cn } from "@/lib/utils";
 import { KillSwitchButton } from "./kill-switch-button";
+import { PdfInlineViewer } from "@/components/pdf-inline-viewer";
 
 const statusColor: Record<string, string> = {
   ANALYZED:   "text-cetiem-lime",
@@ -67,9 +68,18 @@ const certStatusLabel: Record<string, string> = {
   CAPA_OPEN:  "CAPA Abierta",
 };
 
-export default async function DocumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function DocumentDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | undefined>>;
+}) {
   const session = await auth();
   const { id } = await params;
+  const sp = searchParams ? await searchParams : {};
+  const fromReview  = sp?.from === "review";
+  const companyId   = sp?.companyId ?? "";
 
   if (!session?.user) redirect("/auth/signin");
 
@@ -105,9 +115,15 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-4 px-8 py-5 border-b border-white/5">
-        <Link href="/dashboard/documents" className="text-cetiem-gray hover:text-white transition-colors">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
+        {fromReview && companyId ? (
+          <Link href={`/dashboard/review/company/${companyId}`} className="flex items-center gap-1.5 text-cetiem-gray hover:text-white transition-colors text-sm">
+            <ArrowLeft className="h-4 w-4" /> Cola
+          </Link>
+        ) : (
+          <Link href="/dashboard/documents" className="text-cetiem-gray hover:text-white transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+        )}
         <div className="flex-1 min-w-0">
           <h1 className="font-heading font-bold text-xl text-white truncate">{document.name}</h1>
           <p className="text-cetiem-gray text-sm">
@@ -132,19 +148,17 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
           {role === "admin" && latestCert?.status === "APPROVED" && (
             <KillSwitchButton documentId={id} />
           )}
-          <a
-            href={document.storageUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 bg-cetiem-card border border-white/10 hover:border-cetiem-green/40 text-cetiem-gray hover:text-cetiem-green rounded-xl text-sm transition-colors"
-          >
-            <Eye className="h-4 w-4" />
-            Ver PDF
-          </a>
         </div>
       </div>
 
       <div className="flex-1 p-8 overflow-auto">
+
+        {/* PDF inline viewer — visible for all roles */}
+        {document.mimeType === "application/pdf" && (
+          <div className="mb-6">
+            <PdfInlineViewer url={document.storageUrl} />
+          </div>
+        )}
 
         {/* ── COMPANY VIEW ─────────────────────────────── */}
         {isCompany ? (

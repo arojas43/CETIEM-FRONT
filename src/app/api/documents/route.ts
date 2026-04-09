@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ...document,
-      publicUrl: result.url,
+      storageUrl: result.url,
     });
   } catch (error) {
     console.error("Error uploading document:", error);

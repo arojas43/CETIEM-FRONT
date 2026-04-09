@@ -34,7 +34,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const documents = await prisma.document.findMany({
     where: { userId: companyId, status: { in: ["ANALYZED", "INDEXED"] } },
     select: {
-      id: true, name: true, status: true, domain: true, createdAt: true, updatedAt: true,
+      id: true, name: true, status: true, domain: true, storageUrl: true, createdAt: true, updatedAt: true,
       pageIndices: { orderBy: { level: "asc" }, take: 5, select: { id: true, level: true, title: true, page: true } },
     },
     orderBy: { createdAt: "asc" },

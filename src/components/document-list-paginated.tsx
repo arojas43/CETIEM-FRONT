@@ -87,7 +87,8 @@ function getLatestCert(certs?: Certification[]) {
 export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginatedProps) {
   const router = useRouter();
   const { role } = useRole();
-  const isCompany = role === 'company';
+  const isCompany  = role === 'company';
+  const isAssessor = role === 'assessor';
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -437,8 +438,8 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
                     <FileText className="h-3.5 w-3.5" />
                   </button>
 
-                  {/* Edit & delete */}
-                  {editingId !== doc.id && (
+                  {/* Edit & delete — company and admin only, not assessors */}
+                  {editingId !== doc.id && !isAssessor && (
                     <>
                       <button
                         onClick={() => handleEdit(doc)}

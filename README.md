@@ -147,11 +147,13 @@ npm run start            # Servidor de producción
 │   │       ├── companies/    ← Asignación assessor
 │   │       └── graph/        ← Cypher queries + stats
 │   ├── components/
-│   │   ├── sidebar.tsx       ← Navegación por rol
-│   │   └── document-list-paginated.tsx
+│   │   ├── sidebar.tsx              ← Navegación por rol
+│   │   ├── document-list-paginated.tsx
+│   │   └── pdf-inline-viewer.tsx    ← Visor PDF inline con toggle
 │   └── lib/
 │       ├── auth.ts           ← Config NextAuth
 │       ├── audit.ts          ← logAudit() append-only
+│       ├── access.ts         ← canAccessDocument / canAccessCompany (control de acceso por rol)
 │       ├── db.ts             ← Prisma client singleton
 │       ├── role-context.tsx  ← RoleContext + RoleProvider
 │       ├── falkordb.ts       ← Cliente FalkorDB
@@ -197,17 +199,18 @@ npm run start            # Servidor de producción
 
 | Acción | Empresa | Assessor | Admin |
 |--------|---------|----------|-------|
-| Subir documentos | Si | Si | Si |
-| Reprocesar documentos | No | Si | Si |
-| Ver sus propios documentos | Si | Si | Si |
-| Ver documentos de otras empresas | No | Si | Si |
-| Usar Q&A / Grafo de conocimiento | No | Si | Si |
-| Emitir dictamen V.L.A.P. | No | Si | Si |
-| Ver Audit Log | No | No | Si |
-| Exportar CSV | No | Si | Si |
-| Asignar assessors a empresas | No | No | Si |
-| Revocar certificados (Kill-switch) | No | No | Si |
-| Ver Tickets CAPA | Solo propios | Todos | Todos |
+| Subir documentos | Sí | No | No |
+| Reprocesar documentos | No | Sí (solo asignadas) | Sí |
+| Ver sus propios documentos | Sí | No aplica | Sí |
+| Ver documentos de empresas asignadas | No | Sí | Sí (todos) |
+| Usar Q&A / Grafo de conocimiento | No | Sí (solo asignadas) | Sí |
+| Emitir dictamen V.L.A.P. | No | Sí (solo asignadas) | Sí |
+| Ver Audit Log | No | No | Sí |
+| Exportar CSV | No | Sí (solo asignadas) | Sí |
+| Asignar assessors a empresas | No | No | Sí |
+| Revocar certificados (Kill-switch) | No | No | Sí |
+| Ver Tickets CAPA | Solo propios | Empresas asignadas | Todos |
+| Dashboard: stats globales | Propios | Empresas asignadas | Sistema completo |
 
 ---
 

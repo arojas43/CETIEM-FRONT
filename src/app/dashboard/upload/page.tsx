@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useRole } from "@/lib/role-context";
 import {
   Upload, FileText, X, CheckCircle, AlertCircle, Search,
   ChevronDown, ChevronRight, Plus, Cpu, Loader2, FolderOpen,
@@ -338,6 +339,13 @@ function GlobalDropZone({ onFiles }: { onFiles: (files: File[]) => void }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function UploadPage() {
   const router = useRouter();
+  const { role } = useRole();
+
+  // Only COMPANY users can upload documents
+  useEffect(() => {
+    if (role && role !== "company") router.replace("/dashboard");
+  }, [role, router]);
+
   const [cola, setCola] = useState<ItemCola[]>([emptyItem()]);
   const [uploading, setUploading] = useState(false);
   const [done, setDone] = useState(false);

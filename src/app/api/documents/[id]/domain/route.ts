@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { canAccessDocument } from "@/lib/access";
 
 const VALID_DOMAINS = ["INDUSTRIA", "CONSTRUCCION", "TECNOLOGIA"];
 
@@ -39,7 +40,7 @@ export async function PUT(
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
-    if (document.userId !== session.user.id) {
+    if (!(await canAccessDocument(document.userId, session))) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

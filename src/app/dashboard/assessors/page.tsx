@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useRole } from "@/lib/role-context";
 import {
   Users, Building2, FileText, CheckCircle, Plus, X,
@@ -19,7 +20,12 @@ interface Assessor {
 
 export default function AssessorsPage() {
   const { role } = useRole();
-  const isAdmin = role === "admin";
+  const router   = useRouter();
+  const isAdmin  = role === "admin";
+
+  useEffect(() => {
+    if (role && role !== "admin") router.replace("/dashboard");
+  }, [role, router]);
 
   const [assessors, setAssessors] = useState<Assessor[]>([]);
   const [loading, setLoading]     = useState(true);

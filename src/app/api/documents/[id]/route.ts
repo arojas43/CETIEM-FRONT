@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { storageService } from "@/lib/storage";
+import { canAccessDocument } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,13 @@ export async function GET(
     if (!document) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
+
+    // Re-fetch userId for access check (not in select above)
+    const docOwner = await prisma.document.findUnique({ where: { id }, select: { userId: true } });
+    if (!docOwner || !(await canAccessDocument(docOwner.userId, session))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     return NextResponse.json(document);
   } catch (error) {
     console.error("Error fetching document:", error);

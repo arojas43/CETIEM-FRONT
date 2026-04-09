@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   CheckCircle, XCircle, MessageSquare, ChevronLeft,
   Flag, Plus, Trash2, RefreshCw, AlertCircle, FileText,
-  ShieldCheck, ShieldAlert, Clock, Zap, Building2, ChevronDown,
+  ShieldCheck, ShieldAlert, Clock, Zap, Building2, ChevronDown, Eye, EyeOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +24,7 @@ const VLAP_LABELS: Record<typeof VLAP_KEYS[number], { label: string; hint: strin
 const HARD_STOP = 85;
 
 interface DocSummary {
-  id: string; name: string; status: string; domain: string; updatedAt: string;
+  id: string; name: string; status: string; domain: string; storageUrl: string; updatedAt: string;
   pageIndices: { id: string; level: number; title: string; page: number | null }[];
 }
 interface CompanyInfo {
@@ -182,6 +182,7 @@ export default function CompanyReviewPage() {
   const [existingCert, setExistingCert] = useState<ExistingCert | null>(null);
   const [loading, setLoading]       = useState(true);
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
+  const [pdfDocId, setPdfDocId]       = useState<string | null>(null);
 
   const [findings, setFindings]     = useState<Finding[]>([]);
   const [notes, setNotes]           = useState("");
@@ -335,17 +336,28 @@ export default function CompanyReviewPage() {
                 </button>
               );
             })}
-          <button
-            onClick={handleSave}
-            disabled={!verdict || saving}
-            className={cn(
-              "flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
-              verdict && !saving ? "bg-cetiem-green hover:bg-cetiem-green/90 text-white" : "bg-white/5 text-cetiem-gray/40 cursor-not-allowed"
-            )}
-          >
-            {saving && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-            {saving ? "Guardando..." : existingCert ? "Actualizar dictamen" : "Emitir dictamen"}
-          </button>
+          {(() => {
+            const blocked = vlapHardStop && !VLAP_KEYS.every(k => vlap[k].override || vlap[k].confidence >= HARD_STOP);
+            const canSave = verdict && !saving && !blocked;
+            return (
+              <button
+                onClick={handleSave}
+                disabled={!canSave}
+                title={blocked ? "Hard Stop activo: resuelve los criterios V.L.A.P. o añade override" : ""}
+                className={cn(
+                  "flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
+                  canSave
+                    ? "bg-cetiem-green hover:bg-cetiem-green/90 text-white"
+                    : blocked
+                      ? "bg-cetiem-red/20 text-cetiem-red/60 cursor-not-allowed border border-cetiem-red/20"
+                      : "bg-white/5 text-cetiem-gray/40 cursor-not-allowed"
+                )}
+              >
+                {saving && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                {saving ? "Guardando..." : blocked ? "Hard Stop ⚡" : existingCert ? "Actualizar dictamen" : "Emitir dictamen"}
+              </button>
+            );
+          })()}
         </div>
       </div>
 
@@ -415,20 +427,36 @@ export default function CompanyReviewPage() {
                     )} />
                   </button>
 
-                  {/* Secciones PageIndex */}
-                  {expandedDoc === doc.id && doc.pageIndices.length > 0 && (
+                  {/* Secciones PageIndex + PDF viewer */}
+                  {expandedDoc === doc.id && (
                     <div className="border-t border-white/5 px-3 py-2 space-y-1">
-                      <p className="text-[10px] text-cetiem-gray/50 uppercase tracking-widest mb-2">Índice de secciones (IA)</p>
-                      {doc.pageIndices.map(idx => (
-                        <div key={idx.id} className="flex items-baseline gap-2"
-                          style={{ paddingLeft: `${(idx.level - 1) * 12}px` }}>
-                          <span className="text-cetiem-teal/70 text-[10px]">
-                            {idx.page ? `p.${idx.page}` : "—"}
-                          </span>
-                          <span className="text-white/80 text-[11px] truncate">{idx.title}</span>
-                        </div>
-                      ))}
-                      <div className="pt-2 border-t border-white/5 flex gap-2">
+                      {doc.pageIndices.length > 0 && (
+                        <>
+                          <p className="text-[10px] text-cetiem-gray/50 uppercase tracking-widest mb-2">Índice de secciones (IA)</p>
+                          {doc.pageIndices.map(idx => (
+                            <div key={idx.id} className="flex items-baseline gap-2"
+                              style={{ paddingLeft: `${(idx.level - 1) * 12}px` }}>
+                              <span className="text-cetiem-teal/70 text-[10px]">
+                                {idx.page ? `p.${idx.page}` : "—"}
+                              </span>
+                              <span className="text-white/80 text-[11px] truncate">{idx.title}</span>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                      <div className="pt-2 border-t border-white/5 flex flex-wrap items-center gap-2">
+                        <button
+                          onClick={() => setPdfDocId(pdfDocId === doc.id ? null : doc.id)}
+                          className={cn(
+                            "flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg border transition-colors",
+                            pdfDocId === doc.id
+                              ? "text-cetiem-green border-cetiem-green/30 bg-cetiem-green/10"
+                              : "text-cetiem-gray/60 border-white/10 hover:text-cetiem-green hover:border-cetiem-green/20"
+                          )}
+                        >
+                          {pdfDocId === doc.id ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                          {pdfDocId === doc.id ? "Ocultar PDF" : "Ver PDF"}
+                        </button>
                         <a href={`/dashboard/documents/${doc.id}/qa`}
                           target="_blank"
                           className="text-[10px] text-cetiem-teal hover:underline">
@@ -439,12 +467,20 @@ export default function CompanyReviewPage() {
                           className="text-[10px] text-cetiem-lime hover:underline">
                           Grafo →
                         </a>
-                        <a href={`/dashboard/documents/${doc.id}`}
+                        <a href={`/dashboard/documents/${doc.id}?from=review&companyId=${companyId}`}
                           target="_blank"
                           className="text-[10px] text-cetiem-gray hover:underline">
                           Detalle →
                         </a>
                       </div>
+                      {pdfDocId === doc.id && doc.storageUrl && (
+                        <iframe
+                          src={doc.storageUrl}
+                          title={doc.name}
+                          className="w-full mt-2 rounded-xl border border-white/10 bg-white"
+                          style={{ height: "60vh" }}
+                        />
+                      )}
                     </div>
                   )}
                 </div>

@@ -60,39 +60,54 @@ export default async function DashboardPage() {
       }))
     : null
 
-  // Assessor/Admin global stats
-  const allUsers = await prisma.user.findMany({
-    where: { role: 'COMPANY' },
-    select: {
-      id: true, name: true, email: true, companyName: true, createdAt: true,
-      _count: { select: { documents: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 20,
-  })
+  // Assessor/Admin global stats — only fetch for non-company roles
+  const isAdminOrAssessor = role !== 'company'
+  const isAssessor        = role === 'assessor'
 
-  const allDocsGlobal = await prisma.document.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: 10,
-    select: {
-      id: true, name: true, status: true, createdAt: true, domain: true,
-      userId: true,
-      user: { select: { id: true, name: true, email: true, companyName: true } },
-      certifications: { orderBy: { createdAt: 'desc' }, take: 1, select: { status: true } },
-    },
-  })
+  // Assessors only see their assigned companies; admins see everything
+  const assessorUserFilter = isAssessor ? { assessorId: userId } : {}
+  const assessorDocFilter  = isAssessor ? { user: { assessorId: userId } } : {}
+  const assessorCapaFilter = isAssessor ? { user: { assessorId: userId } } : {}
+  const assessorCertFilter = isAssessor ? { company: { assessorId: userId } } : {}
+
+  const allUsers = isAdminOrAssessor
+    ? await prisma.user.findMany({
+        where: { role: 'COMPANY', ...assessorUserFilter },
+        select: {
+          id: true, name: true, email: true, companyName: true, createdAt: true,
+          _count: { select: { documents: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      })
+    : []
+
+  const allDocsGlobal = isAdminOrAssessor
+    ? await prisma.document.findMany({
+        where: assessorDocFilter,
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true, name: true, status: true, createdAt: true, domain: true,
+          userId: true,
+          user: { select: { id: true, name: true, email: true, companyName: true } },
+          certifications: { orderBy: { createdAt: 'desc' }, take: 1, select: { status: true } },
+        },
+      })
+    : []
 
   const [globalTotal, globalProcessing, globalAnalyzed, globalFailed, globalUsers,
-         globalApproved, globalCapa] =
-    await Promise.all([
-      prisma.document.count(),
-      prisma.document.count({ where: { status: 'PROCESSING' } }),
-      prisma.document.count({ where: { status: 'ANALYZED' } }),
-      prisma.document.count({ where: { status: 'FAILED' } }),
-      prisma.user.count({ where: { role: 'COMPANY' } }),
-      prisma.companyCertification.count({ where: { status: 'APPROVED' } }),
-      prisma.capaTicket.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS', 'OVERDUE'] } } }),
-    ])
+         globalApproved, globalCapa] = isAdminOrAssessor
+    ? await Promise.all([
+        prisma.document.count({ where: assessorDocFilter }),
+        prisma.document.count({ where: { ...assessorDocFilter, status: 'PROCESSING' } }),
+        prisma.document.count({ where: { ...assessorDocFilter, status: 'ANALYZED' } }),
+        prisma.document.count({ where: { ...assessorDocFilter, status: 'FAILED' } }),
+        prisma.user.count({ where: { role: 'COMPANY', ...assessorUserFilter } }),
+        prisma.companyCertification.count({ where: { status: 'APPROVED', ...assessorCertFilter } }),
+        prisma.capaTicket.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS', 'OVERDUE'] }, ...assessorCapaFilter } }),
+      ])
+    : [0, 0, 0, 0, 0, 0, 0]
 
   return (
     <DashboardView

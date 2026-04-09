@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
+import { canAccessDocument } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,11 @@ export async function GET(
     if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
+
+    const doc = await prisma.document.findUnique({ where: { id }, select: { userId: true } });
+    if (!doc || !(await canAccessDocument(doc.userId, session))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const cert = await prisma.certification.findFirst({
       where: { documentId: id },
@@ -55,8 +61,13 @@ export async function POST(
       return NextResponse.json({ error: "Veredicto inválido" }, { status: 400 });
     }
 
-    const document = await prisma.document.findUnique({ where: { id }, include: { user: { select: { id: true } } } });
+    const document = await prisma.document.findUnique({ where: { id }, include: { user: { select: { id: true, assessorId: true } } } });
     if (!document) return NextResponse.json({ error: "Document not found" }, { status: 404 });
+
+    // ASSESSOR must be assigned to the company owning the document
+    if (role === "ASSESSOR" && document.user.assessorId !== session.user.id) {
+      return NextResponse.json({ error: "No tienes asignada esta empresa" }, { status: 403 });
+    }
 
     const statusMap: Record<string, "APPROVED" | "IN_REVIEW" | "REJECTED" | "CAPA_OPEN"> = {
       APPROVED:          "APPROVED",

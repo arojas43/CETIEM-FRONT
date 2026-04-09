@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { falkorDBService, checkFalkorDBHealth } from "@/lib/falkordb";
+import { canAccessDocument } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +32,7 @@ export async function GET(
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
-    const userRole = (session.user as any).role;
-    const canAccessAll = userRole === "ASSESSOR" || userRole === "ADMIN";
-    if (!canAccessAll && document.userId !== session.user.id) {
+    if (!(await canAccessDocument(document.userId, session))) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

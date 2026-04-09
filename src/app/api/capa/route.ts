@@ -11,7 +11,10 @@ export async function GET(req: NextRequest) {
     if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const role = (session.user as any).role as string;
 
-    const where = role === "COMPANY" ? { userId: session.user.id } : {};
+    const where: any =
+      role === "COMPANY"   ? { userId: session.user.id } :
+      role === "ASSESSOR"  ? { user: { assessorId: session.user.id } } :
+      {}; // ADMIN: all tickets
 
     const tickets = await prisma.capaTicket.findMany({
       where,

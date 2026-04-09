@@ -6,6 +6,8 @@ import { CompaniesView } from "./companies-view";
 export default async function CompaniesPage() {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin");
+  const role = (session.user as any).role as string;
+  if (!["ASSESSOR", "ADMIN"].includes(role)) redirect("/dashboard");
 
   // Only assessors list is fetched server-side — companies are paginated client-side via /api/companies
   const assessors = await prisma.user.findMany({

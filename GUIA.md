@@ -165,78 +165,88 @@ NO PUEDE:
 
 ## 3. Flujo Assessor (ASSESSOR)
 
+> **Aislamiento de datos:** Un assessor solo puede ver, procesar y dictaminar
+> documentos y empresas que le han sido asignadas por el Admin. Intentar acceder
+> a recursos de otras empresas devuelve 403 a nivel de API.
+
 ### 3.1 Cola de revisión
 
 ```
-/dashboard/queue
+/dashboard/queue  (solo documentos de empresas asignadas al assessor)
 │
 ├── Sección "Sin dictamen" (documentos ANALYZED o INDEXED sin cert)
-│   • Botón "Iniciar Revisión" → /dashboard/review/[id]
+│   • Botón "Iniciar Revisión" → /dashboard/review/company/[companyId]
 │
 └── Sección "Ya dictaminados" (tienen cert)
     • Badge con cert status (APPROVED / IN_REVIEW / etc.)
-    • Botón "Re-revisar" → /dashboard/review/[id]
+    • Botón "Re-revisar" → /dashboard/review/company/[companyId]
 ```
 
-### 3.2 Consola Split-View (Motor V.L.A.P.)
+### 3.2 Consola de revisión de empresa (Motor V.L.A.P.)
 
 ```
-/dashboard/review/[id]
+/dashboard/review/company/[companyId]
 │
-├── IZQUIERDA: Visor PDF embebido
-│   • PDF del documento de la empresa
+├── Lista de documentos del expediente (acordeón expandible)
+│   • Visor PDF inline por documento (toggle [Ver PDF / Ocultar PDF])
+│   • Índice de secciones (PageIndex)
+│   • Enlace a detalle → /dashboard/documents/[id]?from=review
 │
-└── DERECHA: Formulario de dictamen
+└── Formulario de dictamen (empresa completa)
     │
     ├── Panel V.L.A.P.
-    │   ┌─────────────────────────────────────────┐
-    │   │  Vigencia     [✓][✗]  Confianza: [===] 92% │
-    │   │  Legibilidad  [✓][✗]  Confianza: [===] 78% ⚠ HARD STOP
-    │   │  Autoría      [✓][✗]  Confianza: [===] 88% │
-    │   │  Pertinencia  [✓][✗]  Confianza: [===] 95% │
-    │   │                                             │
-    │   │  Score VLAP: 88%    [Override si justificado]│
-    │   └─────────────────────────────────────────┘
-    │   Hard Stop si algún criterio < 85% sin override
+    │   ┌─────────────────────────────────────────────┐
+    │   │  Vigencia     [✓][✗]  Confianza: [===] 92%   │
+    │   │  Legibilidad  [✓][✗]  Confianza: [===] 78% ⚠  │  ← Hard Stop activo
+    │   │  Autoría      [✓][✗]  Confianza: [===] 88%   │
+    │   │  Pertinencia  [✓][✗]  Confianza: [===] 95%   │
+    │   │                                               │
+    │   │  Score ESG: 88%    [Override si justificado]  │
+    │   └─────────────────────────────────────────────┘
+    │   • Hard Stop: botón "Guardar" DESHABILITADO si cualquier criterio
+    │     < 85% y no tiene override marcado
     │
     ├── Hallazgos
     │   • Tipo: COMPLIANCE / NON_COMPLIANCE / OBSERVATION / RECOMMENDATION
     │   • Severidad: LOW / MEDIUM / HIGH / CRITICAL
     │   • Página de referencia (opcional)
-    │   • Nota: NON_COMPLIANCE → genera CAPA 30 días automáticamente
+    │   • NON_COMPLIANCE → genera ticket CAPA automáticamente (30 días)
     │
     ├── Notas generales (visibles a la empresa)
     │
     └── Veredicto
-        ┌─────────────────────────────────────────────┐
+        ┌──────────────────────────────────────────────┐
         │  [APROBAR]  [SOLICITAR CAMBIOS]  [RECHAZAR]  │
-        └─────────────────────────────────────────────┘
+        └──────────────────────────────────────────────┘
               │              │                  │
               ▼              ▼                  ▼
-         APPROVED       IN_REVIEW /         REJECTED
-        + Cert ESG      CAPA_OPEN
-        + UUID          (si NC findings)
+         APPROVED        IN_REVIEW /         REJECTED
+        + Cert ESG       CAPA_OPEN
+        + UUID           (si NC findings)
         + SHA-256
 ```
 
 ### 3.3 Herramientas del Assessor por documento
 
 ```
-/dashboard/documents/[id]  (vista assessor)
+/dashboard/documents/[id]  (vista assessor — solo empresa asignada)
 │
-├── [Procesar]      → /api/documents/[id]/process
+├── Visor PDF inline    → toggle [Ver PDF / Ocultar PDF] en la cabecera
+│     • Si viene de /review → botón "← Cola" de regreso
+│
+├── [Procesar]          → /api/documents/[id]/process
 │     • Selecciona dominio: Industria / Construcción / Tecnología
 │     • Modos: Auto / Mixto / Dirigido
 │
-├── [Preguntar]     → /dashboard/documents/[id]/qa
-│     • Q&A con GLM4.7 sobre el contenido del documento
+├── [Preguntar]         → /dashboard/documents/[id]/qa
+│     • Q&A con Qwen 3.5 122B sobre el contenido del documento
 │     • Búsqueda paralela: FalkorDB + PageIndex + keyword
 │
-├── [Ver Contenido] → /dashboard/documents/[id]/content
+├── [Ver Contenido]     → /dashboard/documents/[id]/content
 │     • Texto estructurado extraído por PageIndex
 │     • Secciones con jerarquía de niveles
 │
-└── [Ver Grafo]     → /dashboard/documents/[id]/graph
+└── [Ver Grafo]         → /dashboard/documents/[id]/graph
       • Grafo de entidades y relaciones (Cognee + FalkorDB)
       • Visualización interactiva
 ```
@@ -245,12 +255,17 @@ NO PUEDE:
 
 ## 4. Flujo Administrador (ADMIN)
 
+> **Acceso total:** El Admin ve todos los recursos del sistema sin restricción.
+> Solo el Admin puede asignar assessors, revocar certificados y ver el Audit Log.
+> Las páginas `/dashboard/companies`, `/dashboard/assessors` y `/dashboard/logs`
+> redirigen a `/dashboard` para cualquier rol que no sea ADMIN o ASSESSOR.
+
 ### 4.1 Gestión de empresas
 
 ```
 /dashboard/companies
 │
-├── Stats globales: total, Track A/B/C, sin assessor
+├── Stats globales: total empresas, Track A/B/C, sin assessor asignado
 │
 ├── Por empresa:
 │   • Track badge (A/B/C)
@@ -259,6 +274,7 @@ NO PUEDE:
 │   • Dropdown para asignar/cambiar assessor
 │     → PATCH /api/companies/[id]/assign
 │     → AuditLog: ASSESSOR_ASSIGNED
+│   • Botón "Revisar" → /dashboard/review/company/[id]
 │
 └── Documentos por empresa:
     • Estado IA + Cert status badge (APPROVED/CAPA_OPEN/etc.)
@@ -550,27 +566,49 @@ Públicas:
   /register            Registro de empresa
 
 Empresa (COMPANY):
-  /dashboard           Dashboard con progreso y KPIs
-  /dashboard/documents Lista de mis documentos
-  /dashboard/documents/[id]  Detalle del documento + dictamen
-  /dashboard/upload    Subir nuevo documento
-  /dashboard/capa      Mis tickets CAPA
+  /dashboard                     Dashboard con progreso y KPIs propios
+  /dashboard/documents           Lista de mis documentos
+  /dashboard/documents/[id]      Detalle del documento + dictamen recibido
+  /dashboard/upload              Subir nuevos documentos (solo COMPANY)
+  /dashboard/capa                Mis tickets CAPA
+  /dashboard/mi-certificado      Certificado ESG vigente (si APPROVED)
 
 Assessor (ASSESSOR):
-  /dashboard           Dashboard con cola y estadísticas
-  /dashboard/queue     Cola de revisión
-  /dashboard/review/[id]  Consola Split-View + V.L.A.P.
-  /dashboard/documents    Todos los documentos
-  /dashboard/documents/[id]  Detalle + procesamiento + Q&A + grafo
-  /dashboard/companies    Empresas asignadas
-  /dashboard/capa         Todos los tickets CAPA
-  /dashboard/graph        Grafo global (Cypher)
+  /dashboard                     Dashboard con stats de empresas asignadas
+  /dashboard/queue               Cola de revisión (solo empresas asignadas)
+  /dashboard/review/company/[id] Consola de dictamen empresa + V.L.A.P.
+  /dashboard/documents           Documentos de empresas asignadas
+  /dashboard/documents/[id]      Detalle + procesamiento + Q&A + grafo
+  /dashboard/companies           Empresas asignadas
+  /dashboard/capa                Tickets CAPA de empresas asignadas
+  /dashboard/graph               Grafo global (Cypher)
 
 Admin (ADMIN):
-  [Todo lo de Assessor, más:]
-  /dashboard/assessors    Lista de assessors
-  /dashboard/logs         Audit Log global
+  [Todo lo de Assessor sobre todos los recursos, más:]
+  /dashboard/assessors           Crear y gestionar assessors
+  /dashboard/logs                Audit Log global + exportar CSV
   [Kill-switch en detalle de documento si cert=APPROVED]
   [Asignación assessor en /dashboard/companies]
-  [Exportar CSV desde /dashboard/logs o /api/export/documents]
 ```
+
+---
+
+## Apéndice: Control de acceso a nivel de API
+
+El helper `src/lib/access.ts` centraliza la lógica de autorización:
+
+```
+canAccessDocument(documentUserId, session)
+  ADMIN   → siempre permitido
+  COMPANY → solo si documentUserId === session.user.id
+  ASSESSOR → solo si document.owner.assessorId === session.user.id
+
+canAccessCompany(companyId, session)
+  ADMIN   → siempre permitido
+  COMPANY → solo si companyId === session.user.id
+  ASSESSOR → solo si company.assessorId === session.user.id
+```
+
+Todas las rutas bajo `/api/documents/[id]/*` y `/api/companies/[id]/*`
+usan estas funciones. Un assessor que intenta acceder a recursos de una
+empresa no asignada recibe `403 Forbidden`.
