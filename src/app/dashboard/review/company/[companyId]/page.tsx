@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import {
   CheckCircle, XCircle, MessageSquare, ChevronLeft,
   Flag, Plus, Trash2, RefreshCw, AlertCircle, FileText,
-  ShieldCheck, ShieldAlert, Clock, Zap, Building2, ChevronDown, Eye, EyeOff,
+  ShieldCheck, ShieldAlert, Clock, Zap, Building2, ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PdfInlineViewer } from "@/components/pdf-inline-viewer";
 
 /* ── Types ── */
 interface VlapBool { value: boolean | null; confidence: number; override: boolean }
@@ -182,7 +183,6 @@ export default function CompanyReviewPage() {
   const [existingCert, setExistingCert] = useState<ExistingCert | null>(null);
   const [loading, setLoading]       = useState(true);
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
-  const [pdfDocId, setPdfDocId]       = useState<string | null>(null);
 
   const [findings, setFindings]     = useState<Finding[]>([]);
   const [notes, setNotes]           = useState("");
@@ -445,18 +445,6 @@ export default function CompanyReviewPage() {
                         </>
                       )}
                       <div className="pt-2 border-t border-white/5 flex flex-wrap items-center gap-2">
-                        <button
-                          onClick={() => setPdfDocId(pdfDocId === doc.id ? null : doc.id)}
-                          className={cn(
-                            "flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg border transition-colors",
-                            pdfDocId === doc.id
-                              ? "text-cetiem-green border-cetiem-green/30 bg-cetiem-green/10"
-                              : "text-cetiem-gray/60 border-white/10 hover:text-cetiem-green hover:border-cetiem-green/20"
-                          )}
-                        >
-                          {pdfDocId === doc.id ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                          {pdfDocId === doc.id ? "Ocultar PDF" : "Ver PDF"}
-                        </button>
                         <a href={`/dashboard/documents/${doc.id}/qa`}
                           target="_blank"
                           className="text-[10px] text-cetiem-teal hover:underline">
@@ -473,14 +461,11 @@ export default function CompanyReviewPage() {
                           Detalle →
                         </a>
                       </div>
-                      {pdfDocId === doc.id && doc.storageUrl && (
-                        <iframe
-                          src={doc.storageUrl}
-                          title={doc.name}
-                          className="w-full mt-2 rounded-xl border border-white/10 bg-white"
-                          style={{ height: "60vh" }}
-                        />
-                      )}
+                      <PdfInlineViewer
+                        url={doc.storageUrl ?? ""}
+                        height="60vh"
+                        className="mt-2"
+                      />
                     </div>
                   )}
                 </div>

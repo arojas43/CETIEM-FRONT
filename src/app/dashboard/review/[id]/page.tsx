@@ -202,6 +202,7 @@ export default function ReviewPage() {
   const [doc, setDoc] = useState<DocInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfError, setPdfError] = useState(false);
   const [existingCert, setExistingCert] = useState<ExistingCert | null>(null);
 
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -410,12 +411,28 @@ export default function ReviewPage() {
             <div className="flex-1 flex items-center justify-center">
               <RefreshCw className="h-6 w-6 text-cetiem-gray/30 animate-spin" />
             </div>
-          ) : pdfUrl ? (
-            <iframe src={pdfUrl} className="flex-1 w-full" title="Documento PDF" />
+          ) : pdfUrl && !pdfError ? (
+            <iframe
+              src={pdfUrl}
+              className="flex-1 w-full"
+              title="Documento PDF"
+              onError={() => setPdfError(true)}
+            />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-3">
               <AlertCircle className="h-10 w-10 text-cetiem-red/40" />
               <p className="text-cetiem-gray text-sm">No se pudo cargar el PDF</p>
+              {pdfUrl && (
+                <a
+                  href={pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-xs bg-cetiem-green hover:bg-cetiem-green/90 text-white font-medium px-4 py-2 rounded-xl transition-colors"
+                >
+                  <FileText className="h-4 w-4" />
+                  Abrir PDF en nueva pestaña
+                </a>
+              )}
             </div>
           )}
         </div>

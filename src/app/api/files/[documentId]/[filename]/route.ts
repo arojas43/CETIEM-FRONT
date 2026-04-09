@@ -17,14 +17,20 @@ export async function GET(
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return new NextResponse(
+        `<html><body style="font-family:sans-serif;padding:2rem;color:#555">
+          <h3>Sesión requerida</h3>
+          <p>Inicia sesión para ver este archivo.</p>
+        </body></html>`,
+        { status: 401, headers: { "Content-Type": "text/html" } }
+      );
     }
 
     const { documentId, filename } = await params;
     const safeFilename = path.basename(filename); // prevent path traversal
     const role = (session.user as any).role as string;
 
-    // Access control: COMPANY can only access their own documents
+    // ── Access control ──────────────────────────────────────────────────────
     if (role === "COMPANY") {
       const doc = await prisma.document.findUnique({
         where: { id: documentId },
@@ -34,7 +40,6 @@ export async function GET(
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     } else if (role === "ASSESSOR") {
-      // ASSESSOR can only access files from their assigned companies
       const doc = await prisma.document.findUnique({
         where: { id: documentId },
         select: { user: { select: { assessorId: true } } },
@@ -45,6 +50,7 @@ export async function GET(
     }
     // ADMIN: access all
 
+    // ── Resolve file path ────────────────────────────────────────────────────
     const basePath = process.env.LOCAL_STORAGE_PATH || path.join(process.cwd(), "uploads");
     const filePath = path.join(basePath, documentId, safeFilename);
 
@@ -54,37 +60,46 @@ export async function GET(
     }
 
     if (!fs.existsSync(filePath)) {
-      return NextResponse.json({ error: "File not found" }, { status: 404 });
+      return new NextResponse(
+        `<html><body style="font-family:sans-serif;padding:2rem;color:#555">
+          <h3>Archivo no encontrado</h3>
+          <p>El PDF no está disponible en el servidor.</p>
+        </body></html>`,
+        { status: 404, headers: { "Content-Type": "text/html" } }
+      );
     }
 
-    const file = fs.readFileSync(filePath);
-    const ext = path.extname(filename).toLowerCase();
-    
-    // Determinar Content-Type
+    // ── Read and serve ────────────────────────────────────────────────────────
+    const fileBuffer = fs.readFileSync(filePath);
+    const ext = path.extname(safeFilename).toLowerCase();
+
     const contentTypes: Record<string, string> = {
-      ".pdf": "application/pdf",
-      ".png": "image/png",
-      ".jpg": "image/jpeg",
+      ".pdf":  "application/pdf",
+      ".png":  "image/png",
+      ".jpg":  "image/jpeg",
       ".jpeg": "image/jpeg",
-      ".gif": "image/gif",
-      ".svg": "image/svg+xml",
-      ".txt": "text/plain",
+      ".gif":  "image/gif",
+      ".svg":  "image/svg+xml",
+      ".txt":  "text/plain",
       ".json": "application/json",
     };
 
-    const contentType = contentTypes[ext] || "application/octet-stream";
+    const contentType = contentTypes[ext] ?? "application/octet-stream";
 
-    return new NextResponse(file, {
+    return new NextResponse(fileBuffer, {
+      status: 200,
       headers: {
-        "Content-Type": contentType,
-        "Content-Disposition": `inline; filename="${filename}"`,
+        "Content-Type":        contentType,
+        "Content-Disposition": `inline; filename="${safeFilename}"`,
+        "Content-Length":      fileBuffer.byteLength.toString(),
+        "Accept-Ranges":       "bytes",
+        "Cache-Control":       "private, max-age=3600",
+        // Allow embedding in same-origin iframes
+        "X-Frame-Options":     "SAMEORIGIN",
       },
     });
   } catch (error) {
     console.error("Error serving file:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
