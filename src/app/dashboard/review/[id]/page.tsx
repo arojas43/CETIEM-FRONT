@@ -360,7 +360,7 @@ export default function ReviewPage() {
         ) : (
           <div className="flex items-center gap-3">
             <FileText className="h-4 w-4 text-economia-warning" />
-            <span className="font-heading font-semibold text-foreground text-sm">{doc?.name}</span>
+            <span className="font-sans font-semibold text-foreground text-sm">{doc?.name}</span>
             <span className="text-muted-foreground/50 text-xs">{doc?.user?.name || doc?.user?.email || "Empresa"}</span>
             {existingCert && (
               <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border", certStatusColor[existingCert.status])}>
@@ -402,7 +402,7 @@ export default function ReviewPage() {
             disabled={!verdict || saving}
             className={cn(
               "flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
-              verdict && !saving ? "bg-economia-guinda hover:bg-economia-guinda/90 text-primary-foreground" : "bg-muted text-muted-foreground/40 cursor-not-allowed"
+              verdict && !saving ? "bg-[#00D47A] hover:bg-[#00D47A]/90 text-primary-foreground" : "bg-muted text-muted-foreground/40 cursor-not-allowed"
             )}
           >
             {saving && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
@@ -452,7 +452,7 @@ export default function ReviewPage() {
                   href={pdfUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-xs bg-economia-guinda hover:bg-economia-guinda/90 text-primary-foreground font-medium px-4 py-2 rounded-xl transition-colors"
+                  className="flex items-center gap-2 text-xs bg-[#00D47A] hover:bg-[#00D47A]/90 text-primary-foreground font-medium px-4 py-2 rounded-xl transition-colors"
                 >
                   <FileText className="h-4 w-4" />
                   Abrir PDF en nueva pestaña
@@ -574,7 +574,7 @@ export default function ReviewPage() {
                   )}
                 </span>
                 <button onClick={() => setShowNewFinding(!showNewFinding)}
-                  className="flex items-center gap-1 text-[10px] text-economia-guinda hover:text-economia-success transition-colors">
+                  className="flex items-center gap-1 text-[10px] text-[#00D47A] hover:text-economia-success transition-colors">
                   <Plus className="h-3 w-3" /> Añadir
                 </button>
               </div>

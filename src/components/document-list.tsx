@@ -81,11 +81,11 @@ export function DocumentList({ documents, onDocumentDeleted }: DocumentListProps
   if (documents.length === 0) {
     return (
       <div className="text-center py-12">
-        <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <FileText className="h-16 w-16 text-white/30 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-white/90 mb-2">
           No hay documentos
         </h3>
-        <p className="text-gray-500 mb-6">
+        <p className="text-white/50 mb-6">
           Sube tu primer documento para comenzar
         </p>
       </div>
@@ -99,7 +99,7 @@ export function DocumentList({ documents, onDocumentDeleted }: DocumentListProps
           key={doc.id}
           className={cn(
             "flex items-center justify-between p-4 border rounded-lg transition-all",
-            deletingId === doc.id ? "bg-red-50 border-red-200" : "hover:bg-gray-50"
+            deletingId === doc.id ? "bg-red-50 border-red-200" : "hover:bg-white/4"
           )}
         >
           <div className="flex items-center gap-4 flex-1">
@@ -127,13 +127,13 @@ export function DocumentList({ documents, onDocumentDeleted }: DocumentListProps
                     variant="ghost"
                     onClick={handleCancelEdit}
                   >
-                    <X className="h-4 w-4 text-gray-600" />
+                    <X className="h-4 w-4 text-white/60" />
                   </Button>
                 </div>
               ) : (
                 <>
-                  <p className="font-medium text-gray-900">{doc.name}</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="font-medium text-white/90">{doc.name}</p>
+                  <p className="text-sm text-white/50">
                     {doc.description || "Sin descripción"}
                   </p>
                 </>
@@ -172,7 +172,7 @@ export function DocumentList({ documents, onDocumentDeleted }: DocumentListProps
               </>
             )}
             {deletingId === doc.id && (
-              <span className="text-xs text-gray-500">Eliminando...</span>
+              <span className="text-xs text-white/50">Eliminando...</span>
             )}
             <div
               className={cn(
@@ -183,7 +183,7 @@ export function DocumentList({ documents, onDocumentDeleted }: DocumentListProps
                   ? "bg-yellow-100 text-yellow-700"
                   : doc.status === "FAILED"
                   ? "bg-red-100 text-red-700"
-                  : "bg-gray-100 text-gray-700"
+                  : "bg-white/6 text-white/70"
               )}
             >
               {doc.status === "INDEXED" && "✓ Listo"}

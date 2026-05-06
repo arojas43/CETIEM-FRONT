@@ -76,7 +76,7 @@ export default function DocumentQAPage() {
       {/* Page header */}
       <div className="flex items-center justify-between px-8 py-5 border-b border-border">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-foreground">Preguntar al Documento</h1>
+          <h1 className="font-sans font-bold text-2xl text-foreground">Preguntar al Documento</h1>
           <p className="text-muted-foreground text-sm mt-0.5">IA + Grafo de Conocimiento</p>
         </div>
         <button onClick={() => window.history.back()} className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 border border-border rounded-lg">
@@ -100,7 +100,7 @@ export default function DocumentQAPage() {
                     <span className="text-xs text-muted-foreground">{s.label}</span>
                     <Icon className={`h-4 w-4 text-${s.color}`} />
                   </div>
-                  <div className="text-2xl font-heading font-bold text-foreground">{s.value}</div>
+                  <div className="text-2xl font-sans font-bold text-foreground">{s.value}</div>
                   <p className="text-xs text-muted-foreground mt-1">{s.sub}</p>
                 </div>
               );
@@ -110,7 +110,7 @@ export default function DocumentQAPage() {
 
         {/* Search */}
         <div className="bg-card border border-border rounded-2xl p-5 mb-6">
-          <h2 className="font-heading font-semibold text-foreground mb-1 flex items-center gap-2">
+          <h2 className="font-sans font-semibold text-foreground mb-1 flex items-center gap-2">
             <MessageSquare className="h-4 w-4 text-economia-info" />
             Haz una pregunta sobre este documento
           </h2>
@@ -138,7 +138,7 @@ export default function DocumentQAPage() {
             <span className="text-xs text-muted-foreground self-center">Sugerencias:</span>
             {suggested.map((q, i) => (
               <button key={i} onClick={() => setQuestion(q)}
-                className="text-xs border border-border hover:border-economia-guinda/40 text-muted-foreground hover:text-foreground px-3 py-1 rounded-lg transition-colors">
+                className="text-xs border border-border hover:border-[#00D47A]/40 text-muted-foreground hover:text-foreground px-3 py-1 rounded-lg transition-colors">
                 {q}
               </button>
             ))}
@@ -149,7 +149,7 @@ export default function DocumentQAPage() {
         {response && (
           <div className="space-y-4">
             <div className="bg-economia-info/5 border border-economia-info/20 rounded-2xl p-5">
-              <h3 className="font-heading font-semibold text-economia-info mb-3 flex items-center gap-2">
+              <h3 className="font-sans font-semibold text-economia-info mb-3 flex items-center gap-2">
                 <Sparkles className="h-4 w-4" /> Respuesta
               </h3>
               <div className="text-foreground text-sm">
@@ -168,7 +168,7 @@ export default function DocumentQAPage() {
                   className="w-full flex items-center justify-between p-5 text-left hover:bg-muted transition-colors"
                   onClick={() => setShowEntities(!showEntities)}
                 >
-                  <span className="font-heading font-semibold text-foreground flex items-center gap-2">
+                  <span className="font-sans font-semibold text-foreground flex items-center gap-2">
                     <Brain className="h-4 w-4 text-economia-info" /> Entidades Encontradas ({response.entities.length})
                   </span>
                   <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${showEntities ? "rotate-90" : ""}`} />
@@ -200,7 +200,7 @@ export default function DocumentQAPage() {
                   className="w-full flex items-center justify-between p-5 text-left hover:bg-muted transition-colors"
                   onClick={() => setShowRelations(!showRelations)}
                 >
-                  <span className="font-heading font-semibold text-foreground flex items-center gap-2">
+                  <span className="font-sans font-semibold text-foreground flex items-center gap-2">
                     <Network className="h-4 w-4 text-economia-success" /> Relaciones ({response.relations.length})
                   </span>
                   <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${showRelations ? "rotate-90" : ""}`} />
@@ -221,14 +221,14 @@ export default function DocumentQAPage() {
 
             {response.references && response.references.length > 0 && (
               <div className="bg-card border border-border rounded-2xl p-5">
-                <h3 className="font-heading font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <BookOpen className="h-4 w-4 text-economia-guinda" /> Referencias en el Documento
+                <h3 className="font-sans font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-[#00D47A]" /> Referencias en el Documento
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {response.references
                     .filter((r, i, arr) => arr.findIndex(x => `${x.page ?? ''}-${x.section ?? ''}` === `${r.page ?? ''}-${r.section ?? ''}`) === i)
                     .map((ref, i) => (
-                      <div key={i} className="flex items-center gap-1.5 bg-economia-guinda/10 border border-economia-guinda/20 rounded-full px-3 py-1 text-xs text-economia-guinda">
+                      <div key={i} className="flex items-center gap-1.5 bg-[#00D47A]/10 border border-[#00D47A]/20 rounded-full px-3 py-1 text-xs text-[#00D47A]">
                         <BookOpen className="h-3 w-3" />
                         {ref.page && <span className="font-medium">Pág. {ref.page}</span>}
                         {ref.page && ref.section && <span className="opacity-40">·</span>}
@@ -241,7 +241,7 @@ export default function DocumentQAPage() {
 
             {response.context && (
               <div className="bg-card border border-border rounded-2xl p-5">
-                <h3 className="font-heading font-semibold text-foreground mb-3 flex items-center gap-2">
+                <h3 className="font-sans font-semibold text-foreground mb-3 flex items-center gap-2">
                   <FileText className="h-4 w-4 text-muted-foreground" /> Contexto del Documento
                 </h3>
                 <pre className="whitespace-pre-wrap text-xs text-muted-foreground bg-muted p-4 rounded-xl max-h-72 overflow-y-auto">
@@ -255,7 +255,7 @@ export default function DocumentQAPage() {
         {!response && !loading && (
           <div className="bg-card border border-dashed border-border rounded-2xl p-12 text-center">
             <MessageSquare className="h-14 w-14 text-muted-foreground/20 mx-auto mb-4" />
-            <h3 className="font-heading font-semibold text-foreground mb-2">Haz una pregunta sobre este documento</h3>
+            <h3 className="font-sans font-semibold text-foreground mb-2">Haz una pregunta sobre este documento</h3>
             <p className="text-muted-foreground text-sm">La IA analizará el contenido del documento para responderte con precisión</p>
           </div>
         )}

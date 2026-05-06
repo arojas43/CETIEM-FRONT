@@ -150,8 +150,8 @@ export async function GET(
       <div>Assessor: ${req?.assessorEmail || "ECONOMIA"}</div>
     </div>
     <div class="issued">
-      <strong>Secretaría de Economía</strong>
-      <span>Innovación · Tecnología · Emprendimiento</span>
+      <strong>CETIEM S.C.</strong>
+      <span>Agile Audit Hub · Certificación ESG</span>
     </div>
   </div>
 </div>

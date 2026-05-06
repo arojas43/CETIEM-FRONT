@@ -241,7 +241,7 @@ export default function CapaPage() {
       <AlertCircle className="h-10 w-10 text-economia-error/40" />
       <p className="text-muted-foreground text-sm">Error al cargar los tickets CAPA.</p>
       <button onClick={load}
-        className="text-sm border border-border hover:border-economia-guinda/30 text-muted-foreground hover:text-foreground px-4 py-2 rounded-xl transition-colors flex items-center gap-2">
+        className="text-sm border border-border hover:border-[#00D47A]/30 text-muted-foreground hover:text-foreground px-4 py-2 rounded-xl transition-colors flex items-center gap-2">
         <RefreshCw className="h-4 w-4" /> Reintentar
       </button>
     </div>
@@ -251,7 +251,7 @@ export default function CapaPage() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-8 py-5 border-b border-border">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-foreground">Tickets CAPA</h1>
+          <h1 className="font-sans font-bold text-2xl text-foreground">Tickets CAPA</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
             {isCompany
               ? "Tus acciones correctivas y preventivas — plazo 30 días."

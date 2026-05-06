@@ -81,11 +81,11 @@ export default function DocumentContentPage() {
     return (
       <div className="flex flex-col h-full">
         <div className="px-8 py-5 border-b border-border">
-          <h1 className="font-heading font-bold text-2xl text-foreground">Contenido Extraído</h1>
+          <h1 className="font-sans font-bold text-2xl text-foreground">Contenido Extraído</h1>
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin h-8 w-8 border-2 border-economia-guinda rounded-full border-t-transparent mx-auto mb-4" />
+            <div className="animate-spin h-8 w-8 border-2 border-[#00D47A] rounded-full border-t-transparent mx-auto mb-4" />
             <p className="text-muted-foreground text-sm">Cargando contenido...</p>
           </div>
         </div>
@@ -97,7 +97,7 @@ export default function DocumentContentPage() {
     return (
       <div className="flex flex-col h-full">
         <div className="px-8 py-5 border-b border-border">
-          <h1 className="font-heading font-bold text-2xl text-foreground">Contenido Extraído</h1>
+          <h1 className="font-sans font-bold text-2xl text-foreground">Contenido Extraído</h1>
         </div>
         <div className="p-8">
           <div className="bg-card border border-border rounded-2xl p-6">
@@ -116,17 +116,17 @@ export default function DocumentContentPage() {
       {/* Page header */}
       <div className="flex items-center justify-between px-8 py-5 border-b border-border">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-foreground">Contenido Extraído</h1>
+          <h1 className="font-sans font-bold text-2xl text-foreground">Contenido Extraído</h1>
           <p className="text-muted-foreground text-sm mt-0.5 truncate max-w-md">{content.document.name}</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowFullText(!showFullText)}
-            className="flex items-center gap-2 text-xs border border-border hover:border-economia-guinda/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors">
+            className="flex items-center gap-2 text-xs border border-border hover:border-[#00D47A]/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors">
             <FileText className="h-3.5 w-3.5" />
             {showFullText ? "Ver Secciones" : "Ver Todo"}
           </button>
           <button onClick={downloadText}
-            className="flex items-center gap-2 text-xs border border-border hover:border-economia-guinda/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors">
+            className="flex items-center gap-2 text-xs border border-border hover:border-[#00D47A]/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors">
             <Download className="h-3.5 w-3.5" /> Descargar
           </button>
         </div>
@@ -135,7 +135,7 @@ export default function DocumentContentPage() {
       <div className="flex-1 p-8 overflow-auto">
         {showFullText ? (
           <div className="bg-card border border-border rounded-2xl p-6">
-            <h2 className="font-heading font-semibold text-foreground mb-1">Texto Completo Extraído</h2>
+            <h2 className="font-sans font-semibold text-foreground mb-1">Texto Completo Extraído</h2>
             <p className="text-muted-foreground text-xs mb-4">{getTotalChars().toLocaleString()} caracteres</p>
             <pre className="whitespace-pre-wrap text-xs text-muted-foreground font-mono bg-muted p-5 rounded-xl max-h-[65vh] overflow-y-auto">
               {getFullText()}
@@ -158,7 +158,7 @@ export default function DocumentContentPage() {
                       onClick={() => toggleSection(section.id)}
                     >
                       {section.level === 0
-                        ? <FolderOpen className="h-4 w-4 text-economia-guinda shrink-0" />
+                        ? <FolderOpen className="h-4 w-4 text-[#00D47A] shrink-0" />
                         : <ChevronRight className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${expandedSections.has(section.id) ? "rotate-90" : ""}`} />
                       }
                       <div className="flex-1 min-w-0">
@@ -187,12 +187,12 @@ export default function DocumentContentPage() {
                     </p>
                     <div className="flex items-center gap-2">
                       <button onClick={() => fetchPage(pagination.page - 1)} disabled={!pagination.hasPrev}
-                        className="flex items-center gap-1 text-xs border border-border hover:border-economia-guinda/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30">
+                        className="flex items-center gap-1 text-xs border border-border hover:border-[#00D47A]/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30">
                         <ChevronLeft className="h-3.5 w-3.5" /> Anterior
                       </button>
                       <span className="text-xs text-muted-foreground">Pág {pagination.page} de {pagination.totalPages}</span>
                       <button onClick={() => fetchPage(pagination.page + 1)} disabled={!pagination.hasMore}
-                        className="flex items-center gap-1 text-xs border border-border hover:border-economia-guinda/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30">
+                        className="flex items-center gap-1 text-xs border border-border hover:border-[#00D47A]/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30">
                         Siguiente <ChevronRight className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -205,7 +205,7 @@ export default function DocumentContentPage() {
 
         {/* Stats */}
         <div className="bg-card border border-border rounded-2xl p-5 mt-6">
-          <h3 className="font-heading font-semibold text-foreground text-sm mb-4">Estadísticas de Extracción</h3>
+          <h3 className="font-sans font-semibold text-foreground text-sm mb-4">Estadísticas de Extracción</h3>
           <div className="grid md:grid-cols-4 gap-4">
             {[
               ["Total Caracteres", getTotalChars().toLocaleString()],
@@ -215,7 +215,7 @@ export default function DocumentContentPage() {
             ].map(([label, value]) => (
               <div key={label}>
                 <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
-                <p className="font-heading font-bold text-xl text-foreground">{value}</p>
+                <p className="font-sans font-bold text-xl text-foreground">{value}</p>
               </div>
             ))}
           </div>

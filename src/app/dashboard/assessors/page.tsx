@@ -76,7 +76,7 @@ export default function AssessorsPage() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-8 py-5 border-b border-border">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-foreground">Assessors</h1>
+          <h1 className="font-sans font-bold text-2xl text-foreground">Assessors</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
             {loading ? "Cargando…" : `${assessors.length} assessor${assessors.length !== 1 ? "es" : ""} registrado${assessors.length !== 1 ? "s" : ""}`}
           </p>
@@ -84,7 +84,7 @@ export default function AssessorsPage() {
         {isAdmin && (
           <button
             onClick={() => { setShowForm(true); setFormError(""); }}
-            className="flex items-center gap-2 bg-economia-guinda hover:bg-economia-guinda/90 text-primary-foreground text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+            className="flex items-center gap-2 bg-[#00D47A] hover:bg-[#00D47A]/90 text-primary-foreground text-sm font-medium px-4 py-2 rounded-xl transition-colors"
           >
             <Plus className="h-4 w-4" /> Nuevo Assessor
           </button>
@@ -104,7 +104,7 @@ export default function AssessorsPage() {
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="font-heading font-bold text-foreground text-lg">Crear Assessor ESG</h2>
+              <h2 className="font-sans font-bold text-foreground text-lg">Crear Assessor ESG</h2>
               <button onClick={() => setShowForm(false)} className="text-muted-foreground/50 hover:text-foreground">
                 <X className="h-5 w-5" />
               </button>
@@ -116,7 +116,7 @@ export default function AssessorsPage() {
                   type="text" value={form.name}
                   onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                   placeholder="Ej: María García"
-                  className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-xl text-foreground placeholder-foreground/20 focus:outline-none focus:border-economia-guinda"
+                  className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-xl text-foreground placeholder-foreground/20 focus:outline-none focus:border-[#00D47A]"
                 />
               </div>
               <div>
@@ -125,7 +125,7 @@ export default function AssessorsPage() {
                   type="email" value={form.email} required
                   onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
                   placeholder="assessor@empresa.com"
-                  className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-xl text-foreground placeholder-foreground/20 focus:outline-none focus:border-economia-guinda"
+                  className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-xl text-foreground placeholder-foreground/20 focus:outline-none focus:border-[#00D47A]"
                 />
               </div>
               <div>
@@ -136,7 +136,7 @@ export default function AssessorsPage() {
                     onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
                     placeholder="••••••••"
                     minLength={8}
-                    className="w-full px-3 py-2 pr-10 text-sm bg-muted border border-border rounded-xl text-foreground placeholder-foreground/20 focus:outline-none focus:border-economia-guinda"
+                    className="w-full px-3 py-2 pr-10 text-sm bg-muted border border-border rounded-xl text-foreground placeholder-foreground/20 focus:outline-none focus:border-[#00D47A]"
                   />
                   <button type="button" onClick={() => setShowPwd(p => !p)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-foreground">
@@ -153,7 +153,7 @@ export default function AssessorsPage() {
                   Cancelar
                 </button>
                 <button type="submit" disabled={saving}
-                  className="flex-1 py-2 text-sm bg-economia-guinda hover:bg-economia-guinda/90 text-primary-foreground font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                  className="flex-1 py-2 text-sm bg-[#00D47A] hover:bg-[#00D47A]/90 text-primary-foreground font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                   {saving && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
                   {saving ? "Creando…" : "Crear Assessor"}
                 </button>
@@ -174,7 +174,7 @@ export default function AssessorsPage() {
             <p className="text-lg font-medium">No hay assessors registrados</p>
             {isAdmin && (
               <button onClick={() => setShowForm(true)}
-                className="mt-4 flex items-center gap-2 text-economia-guinda hover:text-economia-success text-sm">
+                className="mt-4 flex items-center gap-2 text-[#00D47A] hover:text-economia-success text-sm">
                 <Plus className="h-4 w-4" /> Crear el primer assessor
               </button>
             )}
@@ -197,7 +197,7 @@ export default function AssessorsPage() {
                         </span>
                       </div>
                       <div>
-                        <p className="font-heading font-semibold text-foreground">{assessor.name || "Sin nombre"}</p>
+                        <p className="font-sans font-semibold text-foreground">{assessor.name || "Sin nombre"}</p>
                         <p className="text-muted-foreground text-sm">{assessor.email}</p>
                         <p className="text-muted-foreground/40 text-xs mt-0.5">
                           Desde {new Date(assessor.createdAt).toLocaleDateString("es-MX")}
@@ -211,7 +211,7 @@ export default function AssessorsPage() {
                         { icon: CheckCircle, value: totalApproved, label: "Aprobados", color: "text-economia-success" },
                       ].map(({ icon: Icon, value, label, color }) => (
                         <div key={label}>
-                          <p className={cn("text-xl font-heading font-bold", color)}>{value}</p>
+                          <p className={cn("text-xl font-sans font-bold", color)}>{value}</p>
                           <p className="text-[10px] text-muted-foreground flex items-center gap-1 justify-center">
                             <Icon className="h-3 w-3" /> {label}
                           </p>

@@ -125,7 +125,7 @@ export default async function DocumentDetailPage({
           </Link>
         )}
         <div className="flex-1 min-w-0">
-          <h1 className="font-heading font-bold text-xl text-foreground truncate">{document.name}</h1>
+          <h1 className="font-sans font-bold text-xl text-foreground truncate">{document.name}</h1>
           <p className="text-muted-foreground text-sm">
             <span className={statusColor[document.status] || "text-muted-foreground"}>{document.status}</span>
             {totalSections > 0 && <>{" · "}{totalSections} secciones</>}
@@ -166,7 +166,7 @@ export default async function DocumentDetailPage({
 
             {/* Document info */}
             <div className="bg-card border border-border rounded-2xl p-6">
-              <h2 className="font-heading font-semibold text-foreground mb-4">Información</h2>
+              <h2 className="font-sans font-semibold text-foreground mb-4">Información</h2>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 {[
                   ["Estado", <span className={statusColor[document.status] || "text-foreground"}>{document.status}</span>],
@@ -206,7 +206,7 @@ export default async function DocumentDetailPage({
                     document.status === "INDEXED"   ? "text-economia-info" :
                     document.status === "FAILED"    ? "text-economia-error"  : "text-muted-foreground"
                   )} />
-                  <h3 className="font-heading font-semibold text-foreground text-sm">Revisión IA</h3>
+                  <h3 className="font-sans font-semibold text-foreground text-sm">Revisión IA</h3>
                 </div>
                 <span className="text-[10px] text-muted-foreground/40 font-medium tracking-wide">Impulsado por NVIDIA</span>
               </div>
@@ -244,7 +244,7 @@ export default async function DocumentDetailPage({
                     const Icon = certStatusIcon[latestCert.status] ?? AlertCircle;
                     return <Icon className={cn("h-4 w-4", certStatusColor[latestCert.status])} />;
                   })()}
-                  <h3 className="font-heading font-semibold text-foreground text-sm">
+                  <h3 className="font-sans font-semibold text-foreground text-sm">
                     Assessor ESG — {certStatusLabel[latestCert.status] ?? latestCert.status}
                   </h3>
                 </div>
@@ -302,7 +302,7 @@ export default async function DocumentDetailPage({
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <AlertCircle className="h-4 w-4 text-economia-warning" />
-                    <h3 className="font-heading font-semibold text-foreground text-sm">
+                    <h3 className="font-sans font-semibold text-foreground text-sm">
                       Acciones correctivas ({capaTickets.length})
                     </h3>
                   </div>
@@ -352,7 +352,7 @@ export default async function DocumentDetailPage({
                   <div className="h-10 w-10 bg-economia-info/10 rounded-xl flex items-center justify-center mb-3">
                     <MessageSquare className="h-5 w-5 text-economia-info" />
                   </div>
-                  <h3 className="font-heading font-semibold text-foreground mb-1">Preguntar al Documento</h3>
+                  <h3 className="font-sans font-semibold text-foreground mb-1">Preguntar al Documento</h3>
                   <p className="text-muted-foreground text-xs mb-4">Haz preguntas sobre el contenido</p>
                   <div className="flex items-center gap-1 text-economia-info text-sm font-medium">
                     Iniciar Q&A <ChevronRight className="h-4 w-4" />
@@ -361,13 +361,13 @@ export default async function DocumentDetailPage({
               </Link>
 
               <Link href={`/dashboard/documents/${id}/content`}>
-                <div className="bg-card border border-border rounded-2xl p-5 hover:border-economia-guinda/20 transition-colors cursor-pointer h-full">
-                  <div className="h-10 w-10 bg-economia-guinda/10 rounded-xl flex items-center justify-center mb-3">
-                    <FileText className="h-5 w-5 text-economia-guinda" />
+                <div className="bg-card border border-border rounded-2xl p-5 hover:border-[#00D47A]/20 transition-colors cursor-pointer h-full">
+                  <div className="h-10 w-10 bg-[#00D47A]/10 rounded-xl flex items-center justify-center mb-3">
+                    <FileText className="h-5 w-5 text-[#00D47A]" />
                   </div>
-                  <h3 className="font-heading font-semibold text-foreground mb-1">Ver Contenido</h3>
+                  <h3 className="font-sans font-semibold text-foreground mb-1">Ver Contenido</h3>
                   <p className="text-muted-foreground text-xs mb-4">Texto extraído y secciones</p>
-                  <div className="flex items-center gap-1 text-economia-guinda text-sm font-medium">
+                  <div className="flex items-center gap-1 text-[#00D47A] text-sm font-medium">
                     Ver Texto <ChevronRight className="h-4 w-4" />
                   </div>
                 </div>
@@ -378,7 +378,7 @@ export default async function DocumentDetailPage({
                   <div className="h-10 w-10 bg-economia-success/10 rounded-xl flex items-center justify-center mb-3">
                     <Network className="h-5 w-5 text-economia-success" />
                   </div>
-                  <h3 className="font-heading font-semibold text-foreground mb-1">Grafo de Conocimiento</h3>
+                  <h3 className="font-sans font-semibold text-foreground mb-1">Grafo de Conocimiento</h3>
                   <p className="text-muted-foreground text-xs mb-4">Entidades y relaciones</p>
                   <div className="flex items-center gap-1 text-economia-success text-sm font-medium">
                     Ver Grafo <ChevronRight className="h-4 w-4" />
@@ -389,7 +389,7 @@ export default async function DocumentDetailPage({
 
             {/* Document info */}
             <div className="bg-card border border-border rounded-2xl p-6 mb-4">
-              <h2 className="font-heading font-semibold text-foreground mb-4">Información del Documento</h2>
+              <h2 className="font-sans font-semibold text-foreground mb-4">Información del Documento</h2>
               <div className="grid md:grid-cols-2 gap-4">
                 {[
                   ["Nombre",          document.name],
@@ -416,15 +416,15 @@ export default async function DocumentDetailPage({
             {/* Sections preview */}
             {document.pageIndices.length > 0 && (
               <div className="bg-card border border-border rounded-2xl p-6 mb-4">
-                <h2 className="font-heading font-semibold text-foreground mb-1">Vista Previa de Secciones</h2>
+                <h2 className="font-sans font-semibold text-foreground mb-1">Vista Previa de Secciones</h2>
                 <p className="text-muted-foreground text-xs mb-4">
                   Primeras {document.pageIndices.length} de {totalSections} secciones
                 </p>
                 <div className="space-y-2">
                   {document.pageIndices.map((index) => (
                     <div key={index.id} className="flex items-center gap-3 p-3 bg-muted rounded-xl">
-                      <div className="h-7 w-7 bg-economia-guinda/10 rounded-lg flex items-center justify-center">
-                        <span className="text-xs font-bold text-economia-guinda">{index.level}</span>
+                      <div className="h-7 w-7 bg-[#00D47A]/10 rounded-lg flex items-center justify-center">
+                        <span className="text-xs font-bold text-[#00D47A]">{index.level}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-foreground text-sm truncate">{index.title}</p>
@@ -441,7 +441,7 @@ export default async function DocumentDetailPage({
               <div className="bg-card border border-border rounded-2xl p-6 mb-4">
                 <div className="flex items-center gap-2 mb-4">
                   <Flag className="h-4 w-4 text-economia-warning" />
-                  <h2 className="font-heading font-semibold text-foreground">
+                  <h2 className="font-sans font-semibold text-foreground">
                     Dictamen — {certStatusLabel[latestCert.status] ?? latestCert.status}
                   </h2>
                 </div>
@@ -471,8 +471,8 @@ export default async function DocumentDetailPage({
             )}
 
             {/* AI info */}
-            <div className="bg-economia-guinda/5 border border-economia-guinda/10 rounded-2xl p-5">
-              <h3 className="font-heading font-semibold text-economia-guinda text-sm mb-3 flex items-center gap-2">
+            <div className="bg-[#00D47A]/5 border border-[#00D47A]/10 rounded-2xl p-5">
+              <h3 className="font-sans font-semibold text-[#00D47A] text-sm mb-3 flex items-center gap-2">
                 <Brain className="h-4 w-4" />
                 Análisis de IA — Impulsado por NVIDIA
               </h3>

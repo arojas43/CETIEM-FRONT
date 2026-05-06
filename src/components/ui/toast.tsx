@@ -104,26 +104,26 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
 
   // Colores oficiales Gobierno de México
   // success: #13322e (verde oscuro), error: #9d2449 (guinda),
-  // warning: #BC955C (dorado), info: #611232 (guinda oscuro)
+  // warning: #00C8E0 (dorado), info: #00D47A (guinda oscuro)
   const icons = {
     success: <CheckCircle className="h-5 w-5" style={{ color: "#13322e" }} />,
     error: <AlertCircle className="h-5 w-5" style={{ color: "#9d2449" }} />,
-    warning: <AlertTriangle className="h-5 w-5" style={{ color: "#BC955C" }} />,
-    info: <Info className="h-5 w-5" style={{ color: "#611232" }} />,
+    warning: <AlertTriangle className="h-5 w-5" style={{ color: "#00C8E0" }} />,
+    info: <Info className="h-5 w-5" style={{ color: "#00D47A" }} />,
   };
 
   const bgColors = {
     success: "bg-[#13322e]/5 border-[#13322e]/20",
     error: "bg-[#9d2449]/5 border-[#9d2449]/20",
-    warning: "bg-[#BC955C]/5 border-[#BC955C]/20",
-    info: "bg-[#611232]/5 border-[#611232]/20",
+    warning: "bg-[#00C8E0]/5 border-[#00C8E0]/20",
+    info: "bg-[#00D47A]/5 border-[#00D47A]/20",
   };
 
   const textColors = {
     success: "text-[#13322e]",
     error: "text-[#9d2449]",
-    warning: "text-[#BC955C]",
-    info: "text-[#611232]",
+    warning: "text-[#00C8E0]",
+    info: "text-[#00D47A]",
   };
 
   return (
@@ -142,7 +142,7 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
       </div>
       <button
         onClick={onClose}
-        className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+        className="flex-shrink-0 text-white/40 hover:text-white/60 transition-colors"
       >
         <X className="h-4 w-4" />
       </button>

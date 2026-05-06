@@ -36,8 +36,8 @@ export function PdfInlineViewer({ url, height = "70vh", className }: PdfInlineVi
             unavailable
               ? "opacity-40 cursor-not-allowed border-border text-muted-foreground"
               : open
-                ? "bg-economia-guinda/10 border-economia-guinda/30 text-economia-guinda hover:bg-economia-guinda/20"
-                : "bg-card border-border text-muted-foreground hover:border-economia-guinda/40 hover:text-economia-guinda"
+                ? "bg-[#00D47A]/10 border-[#00D47A]/30 text-[#00D47A] hover:bg-[#00D47A]/20"
+                : "bg-card border-border text-muted-foreground hover:border-[#00D47A]/40 hover:text-[#00D47A]"
           )}
           title={unavailable ? "PDF no disponible" : open ? "Ocultar PDF" : "Ver PDF inline"}
         >
@@ -64,7 +64,7 @@ export function PdfInlineViewer({ url, height = "70vh", className }: PdfInlineVi
       </div>
 
       {open && (
-        <div className="mt-3 rounded-xl border border-border overflow-hidden bg-white" style={{ height }}>
+        <div className="mt-3 rounded-xl border border-border overflow-hidden bg-[#111111]" style={{ height }}>
           {state === "error" ? (
             /* ── Error fallback ─────────────────────────────────────── */
             <div className="flex flex-col items-center justify-center h-full gap-3 bg-economia-verdeDark p-6">
@@ -76,7 +76,7 @@ export function PdfInlineViewer({ url, height = "70vh", className }: PdfInlineVi
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-xs bg-economia-guinda hover:bg-economia-guinda/90 text-primary-foreground font-medium px-4 py-2 rounded-xl transition-colors"
+                className="flex items-center gap-2 text-xs bg-[#00D47A] hover:bg-[#00D47A]/90 text-primary-foreground font-medium px-4 py-2 rounded-xl transition-colors"
               >
                 <FileText className="h-4 w-4" />
                 Abrir PDF en nueva pestaña
@@ -87,7 +87,7 @@ export function PdfInlineViewer({ url, height = "70vh", className }: PdfInlineVi
             <>
               {state === "loading" && (
                 <div className="absolute inset-0 flex items-center justify-center bg-economia-verdeDark/80 z-10">
-                  <Loader2 className="h-8 w-8 text-economia-guinda animate-spin" />
+                  <Loader2 className="h-8 w-8 text-[#00D47A] animate-spin" />
                 </div>
               )}
               <iframe

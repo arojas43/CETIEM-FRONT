@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Acceso — SECRETARIA DE ECONOMIA",
-    description: "Acceso al sistema de certificación de la Secretaría de Economía",
+    title: "Acceso — CETIEM · Agile Audit Hub",
+    description: "Acceso a la plataforma de certificación ESG — CETIEM S.C.",
 };
 
 /**

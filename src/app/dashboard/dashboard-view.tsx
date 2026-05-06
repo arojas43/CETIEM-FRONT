@@ -61,18 +61,18 @@ interface Props {
 
 const DOC_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ComponentType<{ className?: string }> }> = {
   PENDING: { label: 'Pendiente', color: 'text-muted-foreground', bg: 'bg-economia-gris/10', icon: Clock },
-  PROCESSING: { label: 'Procesando', color: 'text-economia-warning', bg: 'bg-economia-warning/10', icon: RefreshCw },
-  INDEXED: { label: 'Indexado', color: 'text-economia-info', bg: 'bg-economia-info/10', icon: Search },
-  ANALYZED: { label: 'Analizado', color: 'text-economia-success', bg: 'bg-economia-success/10', icon: CheckCircle },
+  PROCESSING: { label: 'Procesando', color: 'text-[#FBBF24]', bg: 'bg-economia-warning/10', icon: RefreshCw },
+  INDEXED: { label: 'Indexado', color: 'text-[#00C8E0]', bg: 'bg-economia-info/10', icon: Search },
+  ANALYZED: { label: 'Analizado', color: 'text-[#00D47A]', bg: 'bg-economia-success/10', icon: CheckCircle },
   FAILED: { label: 'Fallido', color: 'text-economia-error', bg: 'bg-economia-error/10', icon: AlertCircle },
 }
 
 const CERT_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  APPROVED: { label: 'Aprobado', color: 'text-economia-success', bg: 'bg-economia-success/10' },
-  IN_REVIEW: { label: 'En revisión', color: 'text-economia-warning', bg: 'bg-economia-warning/10' },
+  APPROVED: { label: 'Aprobado', color: 'text-[#00D47A]', bg: 'bg-economia-success/10' },
+  IN_REVIEW: { label: 'En revisión', color: 'text-[#FBBF24]', bg: 'bg-economia-warning/10' },
   REJECTED: { label: 'Rechazado', color: 'text-economia-error', bg: 'bg-economia-error/10' },
   REVOKED: { label: 'Revocado', color: 'text-economia-error', bg: 'bg-economia-error/10' },
-  CAPA_OPEN: { label: 'CAPA Abierta', color: 'text-economia-warning', bg: 'bg-economia-warning/10' },
+  CAPA_OPEN: { label: 'CAPA Abierta', color: 'text-[#FBBF24]', bg: 'bg-economia-warning/10' },
   DRAFT: { label: 'Borrador', color: 'text-muted-foreground', bg: 'bg-muted' },
 }
 
@@ -102,10 +102,10 @@ function DonutChart({ analyzed, processing, indexed, failed, total }: DocStats) 
   const r = 44; const cx = 56; const cy = 56
   const circ = 2 * Math.PI * r
   const data = [
-    { pct: analyzed / safeTotal, color: '#1e5b4f' }, // verde — aprobado
-    { pct: processing / safeTotal, color: '#a57f2c' }, // dorado — en proceso
-    { pct: indexed / safeTotal, color: '#98989a' }, // gris — revisión
-    { pct: failed / safeTotal, color: '#9b2247' }, // guinda — fallido
+    { pct: analyzed / safeTotal, color: '#00D47A' },
+    { pct: processing / safeTotal, color: '#ADFF4F' },
+    { pct: indexed / safeTotal, color: '#00C8E0' },
+    { pct: failed / safeTotal, color: '#EF4444' },
   ]
   let offset = 0
   const segments = data.filter(d => d.pct > 0).map(d => {
@@ -139,15 +139,15 @@ function DictamenBanner({ certStats, companyId: _companyId }: { certStats: CertS
 
   if (certStatus === 'APPROVED') {
     return (
-      <div role="alert" aria-live="polite" className="bg-gradient-to-r from-economia-success/15 to-economia-guinda/10 border border-economia-success/30 rounded-2xl p-5">
+      <div role="alert" aria-live="polite" className="bg-gradient-to-r from-[#00D47A]/10 to-cetiem-green/10 border border-economia-success/30 rounded-2xl p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <Award className="h-8 w-8 text-economia-success shrink-0 mt-0.5" aria-hidden="true" />
+            <Award className="h-8 w-8 text-[#00D47A] shrink-0 mt-0.5" aria-hidden="true" />
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-heading font-bold text-economia-success text-base">Certificado ESG Aprobado</h3>
+                <h3 className="font-sans font-bold text-[#00D47A] text-base">Certificado ESG Aprobado</h3>
                 {esgScore !== null && esgScore !== undefined && (
-                  <span className="text-xs font-bold bg-economia-success/20 text-economia-success px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-bold bg-economia-success/20 text-[#00D47A] px-2 py-0.5 rounded-full">
                     Score {Math.round(esgScore)}%
                   </span>
                 )}
@@ -177,7 +177,7 @@ function DictamenBanner({ certStats, companyId: _companyId }: { certStats: CertS
         <div className="flex items-start gap-3">
           <XCircle className="h-6 w-6 text-economia-error shrink-0 mt-0.5" aria-hidden="true" />
           <div className="flex-1">
-            <h3 className="font-heading font-semibold text-economia-error text-sm mb-2">Dictamen: No aprobado</h3>
+            <h3 className="font-sans font-semibold text-economia-error text-sm mb-2">Dictamen: No aprobado</h3>
             {certNotes && <p className="text-foreground/70 text-sm italic mb-2">&ldquo;{certNotes}&rdquo;</p>}
             {findingsSummary.nc > 0 && (
               <p className="text-muted-foreground text-xs">{findingsSummary.nc} no conformidad{findingsSummary.nc !== 1 ? 'es' : ''} identificada{findingsSummary.nc !== 1 ? 's' : ''}</p>
@@ -193,10 +193,10 @@ function DictamenBanner({ certStats, companyId: _companyId }: { certStats: CertS
   return (
     <div className="bg-economia-warning/10 border border-economia-warning/30 rounded-2xl p-5">
       <div className="flex items-start gap-3">
-        <MessageSquare className="h-6 w-6 text-economia-warning shrink-0 mt-0.5" />
+        <MessageSquare className="h-6 w-6 text-[#FBBF24] shrink-0 mt-0.5" />
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <h3 className="font-heading font-semibold text-economia-warning text-sm">
+            <h3 className="font-sans font-semibold text-[#FBBF24] text-sm">
               {certStatus === 'CAPA_OPEN' ? 'Acciones correctivas requeridas' : 'Revisión en curso — feedback del Assessor'}
             </h3>
           </div>
@@ -212,12 +212,12 @@ function DictamenBanner({ certStats, companyId: _companyId }: { certStats: CertS
               </span>
             )}
             {findingsSummary.obs > 0 && (
-              <span className="bg-economia-warning/15 text-economia-warning px-2 py-1 rounded-lg font-medium">
+              <span className="bg-economia-warning/15 text-[#FBBF24] px-2 py-1 rounded-lg font-medium">
                 {findingsSummary.obs} Observación{findingsSummary.obs !== 1 ? 'es' : ''}
               </span>
             )}
             {findingsSummary.comp > 0 && (
-              <span className="bg-economia-success/10 text-economia-success px-2 py-1 rounded-lg font-medium">
+              <span className="bg-economia-success/10 text-[#00D47A] px-2 py-1 rounded-lg font-medium">
                 {findingsSummary.comp} Cumplimiento{findingsSummary.comp !== 1 ? 's' : ''}
               </span>
             )}
@@ -257,9 +257,9 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
 
   return (
     <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#F5F5F5]/30">
-      {/* Breadcrumbs — gob.mx v3 spec: ol.breadcrumb con icon-home */}
+      {/* Breadcrumbs — ol.breadcrumb con icon-home */}
       <nav aria-label="Ubicación" className="mb-2">
-        <ol className="breadcrumb-gob">
+        <ol className="breadcrumb">
           <li>
             <Link href="/" aria-label="Inicio">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
@@ -271,12 +271,12 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
 
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-[#1B1B1B] leading-tight mb-2">Panel de Certificación</h1>
+          <h1 className="text-3xl font-sans font-bold text-white/90 leading-tight mb-2">Panel de Certificación</h1>
           <div className="pleca-dorada" />
           <p className="text-muted-foreground text-sm font-medium">Gestión de cumplimiento ambiental, social y de gobernanza.</p>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/dashboard/upload" className="btn-gob-primary !px-10 !py-3 flex items-center gap-2">
+          <Link href="/dashboard/upload" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg font-black text-black text-sm uppercase tracking-widest transition-all !px-10 !py-3 flex items-center gap-2">
             <Upload className="h-4 w-4" /> SUBIR DOCUMENTACIÓN
           </Link>
         </div>
@@ -287,22 +287,22 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
           {certStats && <DictamenBanner certStats={certStats} />}
 
           {capaOpen > 0 && (!certStats?.certStatus || certStats.certStatus === 'DRAFT') && (
-            <Link href="/dashboard/capa" className="flex items-center gap-3 bg-economia-warning/10 border border-economia-warning/30 rounded-2xl p-6 hover:border-economia-warning/50 transition-colors shadow-gob">
-              <ShieldAlert className="h-6 w-6 text-economia-warning shrink-0" />
+            <Link href="/dashboard/capa" className="flex items-center gap-3 bg-economia-warning/10 border border-economia-warning/30 rounded-2xl p-6 hover:border-economia-warning/50 transition-colors ">
+              <ShieldAlert className="h-6 w-6 text-[#FBBF24] shrink-0" />
               <div className="flex-1">
-                <p className="text-economia-warning font-black text-sm uppercase tracking-widest">
+                <p className="text-[#FBBF24] font-black text-sm uppercase tracking-widest">
                   {capaOpen} ACCIÓN CORRECTIVA {capaOpen !== 1 ? 'S' : ''} PENDIENTE{capaOpen !== 1 ? 'S' : ''}
                 </p>
                 <p className="text-muted-foreground text-xs font-medium">Tienes hallazgos que requieren atención inmediata. Haz clic para gestionarlos.</p>
               </div>
-              <ChevronRight className="h-5 w-5 text-economia-warning shrink-0" />
+              <ChevronRight className="h-5 w-5 text-[#FBBF24] shrink-0" />
             </Link>
           )}
 
-          <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-gob">
+          <div className="bg-card border border-border/60 rounded-2xl p-5 ">
             <div className="flex items-center gap-3 mb-8">
               <div className="pleca-dorada w-1 h-6" />
-              <h2 className="text-lg font-heading font-bold text-[#1B1B1B] uppercase tracking-wider">Flujo Institucional</h2>
+              <h2 className="text-lg font-sans font-bold text-white/90 uppercase tracking-wider">Flujo Institucional</h2>
             </div>
             <div className="flex items-center gap-0">
               {certSteps.map((step, i) => (
@@ -310,19 +310,19 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
                   <div className="flex flex-col items-center flex-1">
                     <div className={cn(
                       "h-12 w-12 rounded-full flex items-center justify-center text-sm font-black border-2 mb-3 shadow-sm transition-all",
-                      step.done ? "bg-economia-guinda border-economia-guinda text-white" :
-                        step.active ? "bg-economia-warning/20 border-economia-warning text-economia-warning animate-pulse" :
+                      step.done ? "bg-[#00D47A] border-[#00D47A] text-white" :
+                        step.active ? "bg-economia-warning/20 border-economia-warning text-[#FBBF24] animate-pulse" :
                           "bg-muted border-border text-muted-foreground/60"
                     )}>
                       {step.done ? <CheckCircle className="h-6 w-6" /> : step.n}
                     </div>
                     <span className={cn("text-xs text-center font-black leading-tight whitespace-pre-line uppercase tracking-widest",
-                      step.done ? "text-economia-guinda" : step.active ? "text-economia-warning" : "text-muted-foreground/60"
+                      step.done ? "text-[#00D47A]" : step.active ? "text-[#FBBF24]" : "text-muted-foreground/60"
                     )}>{step.label}</span>
                   </div>
                   {i < certSteps.length - 1 && (
                     <div className={cn("h-1 w-full mx-2 mb-8 rounded-full",
-                      step.done ? "bg-economia-guinda" : "bg-muted"
+                      step.done ? "bg-[#00D47A]" : "bg-muted"
                     )} />
                   )}
                 </div>
@@ -331,45 +331,45 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-economia-guinda rounded-2xl p-6 shadow-gob group hover:scale-[1.02] transition-transform">
+            <div className="bg-[#00D47A] rounded-2xl p-6  group hover:scale-[1.02] transition-transform">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-white/70 text-sm font-bold uppercase tracking-widest">Documentos</span>
                 <FileText className="h-5 w-5 text-white/60" />
               </div>
-              <div className="text-4xl font-heading font-bold text-white">{stats.total}</div>
+              <div className="text-4xl font-sans font-bold text-white">{stats.total}</div>
               <Link href="/dashboard/documents" className="text-white/80 text-xs mt-4 flex items-center gap-1 hover:text-white font-bold uppercase tracking-tighter">
                 Ver Repositorio <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-gob group hover:border-economia-guinda/30 transition-all">
+            <div className="bg-card border border-border rounded-2xl p-6  group hover:border-[#00D47A]/30 transition-all">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-muted-foreground text-sm font-bold uppercase tracking-widest">Analizados</span>
                 <div className="h-8 w-8 rounded-lg bg-economia-success/10 flex items-center justify-center">
-                  <CheckCircle className="h-5 w-5 text-economia-success" />
+                  <CheckCircle className="h-5 w-5 text-[#00D47A]" />
                 </div>
               </div>
-              <div className="text-4xl font-heading font-bold text-foreground">{stats.analyzed}</div>
+              <div className="text-4xl font-sans font-bold text-foreground">{stats.analyzed}</div>
               <span className="text-muted-foreground/60 text-xs mt-4 block font-medium">Listos para dictamen</span>
             </div>
-            <div className={cn("rounded-2xl p-8 shadow-gob group transition-all border", certApproved ? "bg-economia-success/10 border-economia-success/30" : "bg-card border-border")}>
+            <div className={cn("rounded-2xl p-8  group transition-all border", certApproved ? "bg-economia-success/10 border-economia-success/30" : "bg-card border-border")}>
               <div className="flex items-center justify-between mb-4">
-                <span className={cn("text-xs font-black uppercase tracking-widest", certApproved ? "text-economia-success" : "text-muted-foreground")}>Sellos ESG</span>
+                <span className={cn("text-xs font-black uppercase tracking-widest", certApproved ? "text-[#00D47A]" : "text-muted-foreground")}>Sellos ESG</span>
                 <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", certApproved ? "bg-economia-success/20" : "bg-muted")}>
-                  <Award className={cn("h-5 w-5", certApproved ? "text-economia-success" : "text-muted-foreground/60")} />
+                  <Award className={cn("h-5 w-5", certApproved ? "text-[#00D47A]" : "text-muted-foreground/60")} />
                 </div>
               </div>
-              <div className="text-4xl font-heading font-bold text-foreground">{certStats?.approved ?? 0}</div>
-              <span className={cn("text-xs mt-4 block font-medium", certApproved ? "text-economia-success/70" : "text-muted-foreground/60")}>
+              <div className="text-4xl font-sans font-bold text-foreground">{certStats?.approved ?? 0}</div>
+              <span className={cn("text-xs mt-4 block font-medium", certApproved ? "text-[#00D47A]/70" : "text-muted-foreground/60")}>
                 {certApproved ? 'Felicidades: Aprobado' : 'Pendiente de emisión'}
               </span>
             </div>
           </div>
 
-          <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-gob">
+          <div className="bg-card border border-border/60 rounded-2xl p-6 ">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="pleca-dorada w-1 h-6" />
-                <h2 className="font-heading font-semibold text-foreground text-base uppercase tracking-wider">Cargas Recientes</h2>
+                <h2 className="font-sans font-semibold text-foreground text-base uppercase tracking-wider">Cargas Recientes</h2>
               </div>
               <Link href="/dashboard/documents" className="text-secondary text-xs font-black hover:underline uppercase tracking-widest">Ver repositorio completo →</Link>
             </div>
@@ -377,7 +377,7 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
               <div className="text-center py-12">
                 <Upload className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
                 <p className="text-muted-foreground text-sm font-medium mb-6">Aún no has subido documentos.</p>
-                <Link href="/dashboard/upload" className="btn-gob-primary !px-8">
+                <Link href="/dashboard/upload" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg font-black text-black text-sm uppercase tracking-widest transition-all !px-8">
                   Subir mi primer documento
                 </Link>
               </div>
@@ -385,8 +385,8 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
               <div className="space-y-1">
                 {recentDocs.map((doc, i) => (
                   <Link key={doc.id} href={`/dashboard/documents/${doc.id}`}
-                    className={cn("flex items-center gap-4 p-4 rounded-xl transition-all border border-transparent hover:border-primary/20 hover:bg-white hover:shadow-sm group", i % 2 === 0 ? "bg-muted/60" : "")}>
-                    <div className="h-10 w-10 bg-white rounded-lg flex items-center justify-center shrink-0 border border-border shadow-sm group-hover:bg-economia-guinda group-hover:border-economia-guinda transition-colors">
+                    className={cn("flex items-center gap-4 p-4 rounded-xl transition-all border border-transparent hover:border-primary/20 hover:bg-[#111111] hover:shadow-sm group", i % 2 === 0 ? "bg-muted/60" : "")}>
+                    <div className="h-10 w-10 bg-[#111111] rounded-lg flex items-center justify-center shrink-0 border border-border shadow-sm group-hover:bg-[#00D47A] group-hover:border-[#00D47A] transition-colors">
                       <FileText className="h-5 w-5 text-muted-foreground group-hover:text-white transition-colors" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -395,7 +395,7 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       {doc.certStatus && <CertBadge status={doc.certStatus} />}
-                      <ArrowRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-economia-guinda transition-all group-hover:translate-x-1" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-[#00D47A] transition-all group-hover:translate-x-1" />
                     </div>
                   </Link>
                 ))}
@@ -405,13 +405,13 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
         </div>
 
         <div className="space-y-6">
-          <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-gob">
-            <h2 className="font-heading font-semibold text-foreground text-sm mb-1 uppercase tracking-widest">Integridad IA</h2>
+          <div className="bg-card border border-border/60 rounded-2xl p-5 ">
+            <h2 className="font-sans font-semibold text-foreground text-sm mb-1 uppercase tracking-widest">Integridad IA</h2>
             <p className="text-muted-foreground text-[10px] font-bold uppercase mb-4 tracking-tighter">Estado de procesamiento NVIDIA</p>
             <div className="flex justify-center relative mb-8">
               <DonutChart {...stats} />
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-heading font-bold text-4xl text-foreground">{stats.total}</span>
+                <span className="font-sans font-bold text-4xl text-foreground">{stats.total}</span>
                 <span className="text-muted-foreground text-[9px] font-black uppercase tracking-[0.2em]">Total</span>
               </div>
             </div>
@@ -432,9 +432,9 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
           </div>
 
           <div className="space-y-4">
-            <div className="alert-gob-info shadow-sm !px-6 !py-5">
+            <div className="p-4 rounded-xl text-sm shadow-sm !px-6 !py-5">
               <div className="flex gap-4">
-                <ShieldAlert className="h-6 w-6 text-economia-info shrink-0" />
+                <ShieldAlert className="h-6 w-6 text-[#00C8E0] shrink-0" />
                 <div>
                   <p className="font-black text-xs uppercase tracking-widest mb-1">PROTOCOLO V.L.A.P.</p>
                   <p className="text-[11px] font-medium leading-relaxed opacity-80">Documentación protegida por Verificación, Validación y Auditoría.</p>
@@ -443,9 +443,9 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
             </div>
 
             {recentDocs.some(d => d.certStatus === 'APPROVED') && (
-              <div className="alert-gob-success shadow-sm !px-6 !py-5">
+              <div className="p-4 rounded-xl text-sm shadow-sm !px-6 !py-5">
                 <div className="flex gap-4">
-                  <Award className="h-6 w-6 text-economia-success shrink-0" />
+                  <Award className="h-6 w-6 text-[#00D47A] shrink-0" />
                   <div>
                     <p className="font-black text-xs uppercase tracking-widest mb-1">DICTAMEN POSITIVO</p>
                     <p className="text-[11px] font-medium leading-relaxed opacity-80">Tienes certificados institucionales aprobados para descarga.</p>
@@ -456,23 +456,23 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
           </div>
 
           {certApproved ? (
-            <Link href="/dashboard/documents" className="block bg-white border border-economia-success/30 rounded-2xl p-6 shadow-gob hover:scale-[1.02] transition-all group">
+            <Link href="/dashboard/documents" className="block bg-[#111111] border border-economia-success/30 rounded-2xl p-6  hover:scale-[1.02] transition-all group">
               <div className="h-12 w-12 rounded-xl bg-economia-success/10 flex items-center justify-center mb-4 group-hover:bg-economia-success/20 transition-colors">
-                <Award className="h-6 w-6 text-economia-success" />
+                <Award className="h-6 w-6 text-[#00D47A]" />
               </div>
-              <h3 className="font-heading font-black text-[#1B1B1B] text-xs uppercase tracking-widest mb-2">Certificado ESG Activo</h3>
+              <h3 className="font-sans font-black text-white/90 text-xs uppercase tracking-widest mb-2">Certificado ESG Activo</h3>
               <p className="text-muted-foreground text-[11px] font-medium mb-4 leading-relaxed">Tu cumplimiento ha sido validado satisfactoriamente por el comité evaluador.</p>
-              <span className="text-economia-success text-xs font-black flex items-center gap-1 uppercase tracking-widest group-hover:gap-2 transition-all">
+              <span className="text-[#00D47A] text-xs font-black flex items-center gap-1 uppercase tracking-widest group-hover:gap-2 transition-all">
                 DESCARGAR SELLOS <ChevronRight className="h-3.5 w-3.5" />
               </span>
             </Link>
           ) : (
-            <div className="bg-gradient-to-br from-economia-guinda to-[#4a0e26] rounded-2xl p-6 shadow-gob relative overflow-hidden group">
+            <div className="bg-[#00D47A]/10 rounded-2xl p-6  relative overflow-hidden group">
               <div className="relative z-10">
                 <Award className="h-10 w-10 text-white/40 mb-4" />
-                <h3 className="font-heading font-black text-white text-xs uppercase tracking-widest mb-2">Obtén tu Certificación</h3>
+                <h3 className="font-sans font-black text-white text-xs uppercase tracking-widest mb-2">Obtén tu Certificación</h3>
                 <p className="text-white/70 text-[11px] font-medium mb-6 leading-relaxed">Sube tu evidencia para iniciar el proceso de dictamen institucional.</p>
-                <Link href="/dashboard/upload" className="block text-center bg-white text-economia-guinda hover:bg-white/90 text-[11px] font-black py-3 rounded-xl transition-all uppercase tracking-[0.2em]">
+                <Link href="/dashboard/upload" className="block text-center bg-[#111111] text-[#00D47A] hover:bg-[#111111]/90 text-[11px] font-black py-3 rounded-xl transition-all uppercase tracking-[0.2em]">
                   SUBIR EVIDENCIA
                 </Link>
               </div>
@@ -492,17 +492,17 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
   const queue = allDocsGlobal.filter(d => d.status === 'ANALYZED' || d.status === 'INDEXED')
 
   const quickActions = [
-    { href: '/dashboard/queue', label: 'Cola de Revisión', icon: ClipboardList, color: 'text-economia-warning', bg: 'bg-economia-warning/10', border: 'border-economia-warning/20', count: queue.length },
-    { href: '/dashboard/companies', label: 'Empresas Asignadas', icon: Building2, color: 'text-economia-info', bg: 'bg-economia-info/10', border: 'border-economia-info/20', count: null },
+    { href: '/dashboard/queue', label: 'Cola de Revisión', icon: ClipboardList, color: 'text-[#FBBF24]', bg: 'bg-economia-warning/10', border: 'border-economia-warning/20', count: queue.length },
+    { href: '/dashboard/companies', label: 'Empresas Asignadas', icon: Building2, color: 'text-[#00C8E0]', bg: 'bg-economia-info/10', border: 'border-economia-info/20', count: null },
     { href: '/dashboard/capa', label: 'Tickets CAPA', icon: ShieldAlert, color: 'text-economia-error', bg: 'bg-economia-error/10', border: 'border-economia-error/20', count: globalStats.capaOpen },
-    { href: '/dashboard/graph', label: 'Grafo Global', icon: Network, color: 'text-economia-success', bg: 'bg-economia-success/10', border: 'border-economia-success/20', count: null },
+    { href: '/dashboard/graph', label: 'Grafo Global', icon: Network, color: 'text-[#00D47A]', bg: 'bg-economia-success/10', border: 'border-economia-success/20', count: null },
   ]
 
   return (
     <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#F5F5F5]/30">
-      {/* Breadcrumbs — gob.mx v3 spec: ol.breadcrumb-gob con icon-home */}
+      {/* Breadcrumbs — ol.breadcrumb con icon-home */}
       <nav aria-label="Ubicación" className="mb-2">
-        <ol className="breadcrumb-gob">
+        <ol className="breadcrumb">
           <li>
             <Link href="/" aria-label="Inicio">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
@@ -514,12 +514,12 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
 
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-[#1B1B1B] leading-tight mb-2">Consola del Assessor</h1>
+          <h1 className="text-3xl font-sans font-bold text-white/90 leading-tight mb-2">Consola del Assessor</h1>
           <div className="pleca-dorada" />
           <p className="text-muted-foreground text-sm font-medium">Validación de expedientes y emisión de dictámenes institucionales.</p>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/dashboard/queue" className="btn-gob-primary !px-10 !py-3">
+          <Link href="/dashboard/queue" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg font-black text-black text-sm uppercase tracking-widest transition-all !px-10 !py-3">
             IR A COLA DE REVISIÓN
           </Link>
         </div>
@@ -530,54 +530,54 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
 
           {/* KPIs */}
           <div className="grid grid-cols-4 gap-6">
-            <div className="bg-economia-warning/10 border border-economia-warning/30 rounded-2xl p-6 shadow-gob">
+            <div className="bg-economia-warning/10 border border-economia-warning/30 rounded-2xl p-6 ">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-economia-warning text-xs font-bold uppercase">Por Revisar</span>
-                <ClipboardList className="h-5 w-5 text-economia-warning" aria-hidden="true" />
+                <span className="text-[#FBBF24] text-xs font-bold uppercase">Por Revisar</span>
+                <ClipboardList className="h-5 w-5 text-[#FBBF24]" aria-hidden="true" />
               </div>
-              <div className="text-4xl font-heading font-black text-foreground">{queue.length}</div>
-              <span className="text-economia-warning/60 text-xs mt-1 block">En cola de dictamen</span>
+              <div className="text-4xl font-sans font-black text-foreground">{queue.length}</div>
+              <span className="text-[#FBBF24]/60 text-xs mt-1 block">En cola de dictamen</span>
             </div>
-            <div className="bg-economia-success/10 border border-economia-success/30 rounded-2xl p-6 shadow-gob">
+            <div className="bg-economia-success/10 border border-economia-success/30 rounded-2xl p-6 ">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-economia-success text-xs font-bold uppercase">Aprobados</span>
-                <CheckCircle className="h-5 w-5 text-economia-success" aria-hidden="true" />
+                <span className="text-[#00D47A] text-xs font-bold uppercase">Aprobados</span>
+                <CheckCircle className="h-5 w-5 text-[#00D47A]" aria-hidden="true" />
               </div>
-              <div className="text-4xl font-heading font-black text-foreground">{globalStats.approved}</div>
-              <span className="text-economia-success/60 text-xs mt-1 block">Sellos emitidos</span>
+              <div className="text-4xl font-sans font-black text-foreground">{globalStats.approved}</div>
+              <span className="text-[#00D47A]/60 text-xs mt-1 block">Sellos emitidos</span>
             </div>
-            <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-gob">
+            <div className="bg-card border border-border/60 rounded-2xl p-6 ">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-muted-foreground text-xs font-bold uppercase">Empresas</span>
-                <Building2 className="h-5 w-5 text-economia-info" aria-hidden="true" />
+                <Building2 className="h-5 w-5 text-[#00C8E0]" aria-hidden="true" />
               </div>
-              <div className="text-4xl font-heading font-black text-foreground">{globalStats.users}</div>
+              <div className="text-4xl font-sans font-black text-foreground">{globalStats.users}</div>
               <span className="text-muted-foreground text-xs mt-1 block">Participantes</span>
             </div>
-            <div className={cn("rounded-2xl p-6 border shadow-gob", globalStats.capaOpen > 0 ? "bg-economia-error/10 border-economia-error/30" : "bg-card border-border/60")}>
+            <div className={cn("rounded-2xl p-6 border ", globalStats.capaOpen > 0 ? "bg-economia-error/10 border-economia-error/30" : "bg-card border-border/60")}>
               <div className="flex items-center justify-between mb-3">
                 <span className={cn("text-xs font-bold uppercase", globalStats.capaOpen > 0 ? "text-economia-error" : "text-muted-foreground")}>CAPA Abiertos</span>
                 <ShieldAlert className={cn("h-5 w-5", globalStats.capaOpen > 0 ? "text-economia-error" : "text-muted-foreground/60")} aria-hidden="true" />
               </div>
-              <div className="text-4xl font-heading font-black text-foreground">{globalStats.capaOpen}</div>
+              <div className="text-4xl font-sans font-black text-foreground">{globalStats.capaOpen}</div>
               <span className="text-muted-foreground text-xs mt-1 block">Feedback pendiente</span>
             </div>
           </div>
 
           {/* Cola de revisión */}
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-gob">
+          <div className="bg-card border border-border rounded-2xl p-6 ">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="font-heading font-semibold text-foreground text-sm">Cola de Revisión</h2>
+                <h2 className="font-sans font-semibold text-foreground text-sm">Cola de Revisión</h2>
                 <p className="text-muted-foreground/60 text-xs">Documentos analizados por IA listos para dictamen</p>
               </div>
-              <Link href="/dashboard/queue" className="text-economia-guinda text-xs hover:underline flex items-center gap-1">
+              <Link href="/dashboard/queue" className="text-[#00D47A] text-xs hover:underline flex items-center gap-1">
                 Ver cola completa <ChevronRight className="h-3 w-3" />
               </Link>
             </div>
             {queue.length === 0 ? (
               <div className="text-center py-8">
-                <CheckCircle className="h-10 w-10 text-economia-success/30 mx-auto mb-3" />
+                <CheckCircle className="h-10 w-10 text-[#00D47A]/30 mx-auto mb-3" />
                 <p className="text-muted-foreground text-sm">Cola vacía — sin documentos pendientes.</p>
               </div>
             ) : (
@@ -585,7 +585,7 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
                 {queue.slice(0, 5).map(doc => (
                   <div key={doc.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted border border-border">
                     <div className="h-8 w-8 bg-economia-warning/10 rounded-lg flex items-center justify-center shrink-0">
-                      <FileText className="h-4 w-4 text-economia-warning" />
+                      <FileText className="h-4 w-4 text-[#FBBF24]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-foreground text-sm font-medium truncate">{doc.name}</p>
@@ -610,14 +610,14 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
         {/* Columna derecha */}
         <div className="space-y-4">
           {/* Acciones rápidas */}
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-gob">
-            <h2 className="font-heading font-semibold text-foreground text-sm mb-3">Acciones Rápidas</h2>
+          <div className="bg-card border border-border rounded-2xl p-6 ">
+            <h2 className="font-sans font-semibold text-foreground text-sm mb-3">Acciones Rápidas</h2>
             <div className="space-y-2">
               {quickActions.map(action => {
                 const Icon = action.icon
                 return (
                   <Link key={action.href} href={action.href}
-                    className={cn("flex items-center gap-3 p-3 rounded-xl border transition-colors hover:bg-muted font-heading font-black text-xs uppercase tracking-widest", action.border, "border-opacity-30")}
+                    className={cn("flex items-center gap-3 p-3 rounded-xl border transition-colors hover:bg-muted font-sans font-black text-xs uppercase tracking-widest", action.border, "border-opacity-30")}
                   >
                     <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", action.bg)}>
                       <Icon className={cn("h-4 w-4", action.color)} />
@@ -636,8 +636,8 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
           </div>
 
           {/* Actividad reciente */}
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-gob">
-            <h2 className="font-heading font-semibold text-foreground text-sm mb-4">Actividad Reciente</h2>
+          <div className="bg-card border border-border rounded-2xl p-6 ">
+            <h2 className="font-sans font-semibold text-foreground text-sm mb-4">Actividad Reciente</h2>
             <div className="space-y-3">
               {allDocsGlobal.slice(0, 6).map(doc => {
                 const certStatus = doc.certifications[0]?.status
@@ -671,27 +671,27 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
 // ─── ADMIN VIEW ─────────────────────────────────────────────────────────────
 function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlobal }: Pick<Props, 'userName' | 'globalStats' | 'allUsers' | 'allDocsGlobal'>) {
   const kpis = [
-    { label: 'Empresas', value: globalStats.users, color: 'text-economia-success', icon: Building2, bg: 'bg-economia-success/10', href: '/dashboard/companies' },
-    { label: 'Documentos', value: globalStats.total, color: 'text-economia-info', icon: FileText, bg: 'bg-economia-info/10', href: '/dashboard/documents' },
-    { label: 'Certificados ESG', value: globalStats.approved, color: 'text-economia-guinda', icon: Award, bg: 'bg-economia-guinda/10', href: '/dashboard/documents' },
-    { label: 'CAPA Abiertos', value: globalStats.capaOpen, color: 'text-economia-warning', icon: ShieldAlert, bg: 'bg-economia-warning/10', href: '/dashboard/capa' },
+    { label: 'Empresas', value: globalStats.users, color: 'text-[#00D47A]', icon: Building2, bg: 'bg-economia-success/10', href: '/dashboard/companies' },
+    { label: 'Documentos', value: globalStats.total, color: 'text-[#00C8E0]', icon: FileText, bg: 'bg-economia-info/10', href: '/dashboard/documents' },
+    { label: 'Certificados ESG', value: globalStats.approved, color: 'text-[#00D47A]', icon: Award, bg: 'bg-[#00D47A]/10', href: '/dashboard/documents' },
+    { label: 'CAPA Abiertos', value: globalStats.capaOpen, color: 'text-[#FBBF24]', icon: ShieldAlert, bg: 'bg-economia-warning/10', href: '/dashboard/capa' },
     { label: 'IA Analizados', value: globalStats.analyzed, color: 'text-foreground', icon: CheckCircle, bg: 'bg-muted', href: '/dashboard/documents' },
   ]
 
   const adminActions = [
-    { href: '/dashboard/companies', label: 'Gestionar Empresas', icon: Building2, color: 'text-economia-info' },
-    { href: '/dashboard/assessors', label: 'Ver Assessors', icon: Users, color: 'text-economia-success' },
-    { href: '/dashboard/capa', label: 'Tickets CAPA', icon: ShieldAlert, color: 'text-economia-warning' },
+    { href: '/dashboard/companies', label: 'Gestionar Empresas', icon: Building2, color: 'text-[#00C8E0]' },
+    { href: '/dashboard/assessors', label: 'Ver Assessors', icon: Users, color: 'text-[#00D47A]' },
+    { href: '/dashboard/capa', label: 'Tickets CAPA', icon: ShieldAlert, color: 'text-[#FBBF24]' },
     { href: '/dashboard/logs', label: 'Logs de Auditoría', icon: ScrollText, color: 'text-muted-foreground' },
-    { href: '/api/export/documents', label: 'Exportar CSV', icon: Download, color: 'text-economia-guinda', external: true },
-    { href: '/dashboard/graph', label: 'Grafo Global', icon: Network, color: 'text-economia-success' },
+    { href: '/api/export/documents', label: 'Exportar CSV', icon: Download, color: 'text-[#00D47A]', external: true },
+    { href: '/dashboard/graph', label: 'Grafo Global', icon: Network, color: 'text-[#00D47A]' },
   ]
 
   return (
     <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#F5F5F5]/30">
-      {/* Breadcrumbs — gob.mx v3 spec: ol.breadcrumb-gob con icon-home */}
+      {/* Breadcrumbs — ol.breadcrumb con icon-home */}
       <nav aria-label="Ubicación" className="mb-2">
-        <ol className="breadcrumb-gob">
+        <ol className="breadcrumb">
           <li>
             <Link href="/" aria-label="Inicio">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
@@ -703,15 +703,15 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
 
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-[#1B1B1B] leading-tight mb-2">Expediente Empresarial</h1>
+          <h1 className="text-3xl font-sans font-bold text-white/90 leading-tight mb-2">Expediente Empresarial</h1>
           <div className="pleca-dorada" />
           <p className="text-muted-foreground text-sm font-medium">Gestión integral de cumplimiento normativo y activos digitales.</p>
         </div>
         <div className="flex items-center gap-4">
-          <button className="flex items-center gap-2 bg-white border border-border/60 shadow-sm px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all">
+          <button className="flex items-center gap-2 bg-[#111111] border border-border/60 shadow-sm px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-white/4 transition-all">
             <Download className="h-4 w-4" aria-hidden="true" /> Exportar Reporte
           </button>
-          <Link href="/dashboard/upload" className="btn-gob-primary !px-8 !py-3 flex items-center gap-2">
+          <Link href="/dashboard/upload" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg font-black text-black text-sm uppercase tracking-widest transition-all !px-8 !py-3 flex items-center gap-2">
             <Plus className="h-4 w-4" aria-hidden="true" /> Cargar Documento
           </Link>
         </div>
@@ -721,17 +721,17 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <div className="pleca-dorada w-1 h-6" />
-          <h2 className="text-lg font-heading font-bold text-[#1B1B1B] uppercase tracking-wider">Estado de Cumplimiento</h2>
+          <h2 className="text-lg font-sans font-bold text-white/90 uppercase tracking-wider">Estado de Cumplimiento</h2>
         </div>
         <div className="grid grid-cols-5 gap-6">
           {kpis.map(kpi => {
             const Icon = kpi.icon
             return (
-              <Link key={kpi.label} href={kpi.href} className="bg-card border border-border/60 rounded-2xl p-6 shadow-gob hover:border-economia-guinda/30 transition-all">
+              <Link key={kpi.label} href={kpi.href} className="bg-card border border-border/60 rounded-2xl p-6  hover:border-[#00D47A]/30 transition-all">
                 <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center mb-4", kpi.bg)}>
                   <Icon className={cn("h-5 w-5", kpi.color)} />
                 </div>
-                <div className={cn("text-3xl font-heading font-black", kpi.color)}>{kpi.value}</div>
+                <div className={cn("text-3xl font-sans font-black", kpi.color)}>{kpi.value}</div>
                 <p className="text-muted-foreground text-xs font-bold mt-1 uppercase tracking-wider">{kpi.label}</p>
               </Link>
             )
@@ -740,13 +740,13 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
       </div>
 
       {/* Stack NVIDIA — visible solo para Admin */}
-      <div className="bg-gradient-to-r from-[#1a1a2e] to-[#0d1b2a] border border-[#76b900]/20 rounded-2xl p-5 shadow-gob">
+      <div className="bg-gradient-to-r from-[#1a1a2e] to-[#0d1b2a] border border-[#76b900]/20 rounded-2xl p-5 ">
         <div className="flex items-center gap-2 mb-4">
           <div className="h-7 w-7 rounded-lg bg-[#76b900]/20 flex items-center justify-center shrink-0">
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="#76b900"><path d="M9 3L3 9v12h6V9h6V3H9zm6 6v12h6V9h-6z" /></svg>
           </div>
           <div>
-            <h2 className="font-heading font-semibold text-white text-sm">Stack Tecnológico NVIDIA</h2>
+            <h2 className="font-sans font-semibold text-white text-sm">Stack Tecnológico NVIDIA</h2>
             <p className="text-white/60 text-[10px]">Modelos y APIs activos en la plataforma</p>
           </div>
         </div>
@@ -758,7 +758,7 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
           ].map(item => (
             <div key={item.name} className={`rounded-xl border p-4 ${item.color}`}>
               <div className="flex items-start justify-between gap-2 mb-2">
-                <span className="font-heading font-bold text-white text-sm">{item.name}</span>
+                <span className="font-sans font-bold text-white text-sm">{item.name}</span>
                 <span className="text-[9px] font-semibold text-[#76b900] bg-[#76b900]/10 px-1.5 py-0.5 rounded-full shrink-0">{item.badge}</span>
               </div>
               <p className="text-white/70 text-[10px] font-medium mb-1">{item.role}</p>
@@ -769,16 +769,16 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
       </div>
 
       {/* Acciones administrativas */}
-      <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-gob">
+      <div className="bg-card border border-border/60 rounded-2xl p-5 ">
         <div className="flex items-center gap-3 mb-6">
           <div className="pleca-dorada w-1 h-6" />
-          <h2 className="font-heading font-semibold text-foreground text-base uppercase tracking-wider">Acciones Administrativas</h2>
+          <h2 className="font-sans font-semibold text-foreground text-base uppercase tracking-wider">Acciones Administrativas</h2>
         </div>
         <div className="grid grid-cols-6 gap-4">
           {adminActions.map(action => {
             const Icon = action.icon
             const content = (
-              <div className="flex flex-col items-center gap-3 p-4 rounded-xl border border-border/60 hover:border-economia-guinda/30 hover:bg-muted/40 transition-all text-center group">
+              <div className="flex flex-col items-center gap-3 p-4 rounded-xl border border-border/60 hover:border-[#00D47A]/30 hover:bg-muted/40 transition-all text-center group">
                 <Icon className={cn("h-6 w-6 group-hover:scale-110 transition-transform", action.color)} />
                 <span className="text-muted-foreground text-xs font-medium leading-tight">{action.label}</span>
               </div>
@@ -792,11 +792,11 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
 
       <div className="grid grid-cols-2 gap-10">
         {/* Empresas Registradas */}
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-gob">
+        <div className="bg-card border border-border rounded-2xl p-6 ">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="pleca-dorada w-1 h-6" />
-              <h2 className="font-heading font-semibold text-foreground text-base uppercase tracking-wider">Empresas Registradas</h2>
+              <h2 className="font-sans font-semibold text-foreground text-base uppercase tracking-wider">Empresas Registradas</h2>
             </div>
             <Link href="/dashboard/companies" className="text-secondary text-xs font-black hover:underline uppercase tracking-widest">Gestionar →</Link>
           </div>
@@ -812,7 +812,7 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
                   <p className="text-foreground text-sm font-bold truncate">{user.companyName || user.name || user.email}</p>
                   <p className="text-muted-foreground/70 text-[10px] uppercase font-bold tracking-tighter truncate">{user.email}</p>
                 </div>
-                <span className="text-economia-info text-[10px] font-black bg-economia-info/10 px-3 py-1 rounded-full shrink-0 border border-economia-info/20">
+                <span className="text-[#00C8E0] text-[10px] font-black bg-economia-info/10 px-3 py-1 rounded-full shrink-0 border border-economia-info/20">
                   {user._count.documents} DOCS
                 </span>
               </div>
@@ -821,11 +821,11 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
         </div>
 
         {/* Actividad Global */}
-        <div className="bg-card border border-border rounded-2xl p-6 shadow-gob">
+        <div className="bg-card border border-border rounded-2xl p-6 ">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="pleca-dorada w-1 h-6" />
-              <h2 className="font-heading font-semibold text-foreground text-base uppercase tracking-wider">Actividad Global</h2>
+              <h2 className="font-sans font-semibold text-foreground text-base uppercase tracking-wider">Actividad Global</h2>
             </div>
             <Link href="/dashboard/documents" className="text-secondary text-xs font-black hover:underline uppercase tracking-widest">Ver todo →</Link>
           </div>
@@ -833,7 +833,7 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
             {allDocsGlobal.slice(0, 10).map((doc, i) => {
               const certStatus = doc.certifications[0]?.status
               return (
-                <Link key={doc.id} href={`/dashboard/documents/${doc.id}`} className={cn("flex items-center gap-4 p-3 rounded-lg transition-all border border-transparent hover:border-primary/20 hover:bg-white hover:shadow-sm", i % 2 === 0 ? "bg-muted/60" : "")}>
+                <Link key={doc.id} href={`/dashboard/documents/${doc.id}`} className={cn("flex items-center gap-4 p-3 rounded-lg transition-all border border-transparent hover:border-primary/20 hover:bg-[#111111] hover:shadow-sm", i % 2 === 0 ? "bg-muted/60" : "")}>
                   <div className={cn("h-2 w-2 rounded-full shrink-0",
                     certStatus === 'APPROVED' ? 'bg-economia-success' :
                       certStatus === 'REJECTED' ? 'bg-economia-error' :

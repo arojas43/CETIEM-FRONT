@@ -82,7 +82,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-8 py-5 border-b border-border">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-foreground">Cola de Revisión</h1>
+          <h1 className="font-sans font-bold text-2xl text-foreground">Cola de Revisión</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Empresas con documentos analizados por IA — listos para dictamen.</p>
         </div>
         <span className={cn("inline-flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-full border",

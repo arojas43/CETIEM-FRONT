@@ -100,9 +100,9 @@ export function ProcessingProgress({ documentId, status: initialStatus, classNam
     return (
       <div className={cn("space-y-1.5", className)}>
         <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-          <div className="h-full bg-economia-guinda transition-all duration-500" style={{ width: "100%" }} />
+          <div className="h-full bg-[#00D47A] transition-all duration-500" style={{ width: "100%" }} />
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-economia-guinda">
+        <div className="flex items-center gap-1.5 text-xs text-[#00D47A]">
           <CheckCircle className="h-3.5 w-3.5" />
           <span className="font-medium">
             {status === "ANALYZED" ? "Análisis completado" : "Indexación completada"}
@@ -120,12 +120,12 @@ export function ProcessingProgress({ documentId, status: initialStatus, classNam
     if (details?.stage?.includes("error")) return "bg-economia-error";
     if (details?.stage?.includes("cognee") || details?.stage?.includes("analysis")) return "bg-economia-success";
     if (details?.stage?.includes("index") || details?.stage?.includes("pageindex")) return "bg-economia-info";
-    return "bg-economia-guinda";
+    return "bg-[#00D47A]";
   };
 
   const statusIcon = () => {
     if (status === "FAILED") return <AlertCircle className="h-3.5 w-3.5 text-economia-error" />;
-    if (status === "ANALYZED") return <CheckCircle className="h-3.5 w-3.5 text-economia-guinda" />;
+    if (status === "ANALYZED") return <CheckCircle className="h-3.5 w-3.5 text-[#00D47A]" />;
     return <Clock className="h-3.5 w-3.5 text-economia-info" />;
   };
 

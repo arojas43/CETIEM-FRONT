@@ -259,7 +259,7 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
   if (loading && documents.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin h-8 w-8 border-2 border-economia-guinda rounded-full border-t-transparent mx-auto mb-4" />
+        <div className="animate-spin h-8 w-8 border-2 border-[#00D47A] rounded-full border-t-transparent mx-auto mb-4" />
         <p className="text-muted-foreground text-sm">Cargando documentos...</p>
       </div>
     );
@@ -269,10 +269,10 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
     return (
       <div className="text-center py-12">
         <FileText className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
-        <h3 className="font-heading font-semibold text-foreground mb-1">Error al cargar</h3>
+        <h3 className="font-sans font-semibold text-foreground mb-1">Error al cargar</h3>
         <p className="text-muted-foreground text-sm mb-4">{error}</p>
         <button onClick={() => loadDocuments()}
-          className="text-sm border border-border hover:border-economia-guinda/40 text-muted-foreground hover:text-foreground px-4 py-2 rounded-lg transition-colors">
+          className="text-sm border border-border hover:border-[#00D47A]/40 text-muted-foreground hover:text-foreground px-4 py-2 rounded-lg transition-colors">
           Reintentar
         </button>
       </div>
@@ -304,7 +304,7 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
             placeholder="Buscar documentos..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 pl-10 pr-3 border border-border rounded-xl text-sm bg-muted text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-economia-guinda/40"
+            className="w-full h-10 pl-10 pr-3 border border-border rounded-xl text-sm bg-muted text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-[#00D47A]/40"
           />
         </div>
         <div className="relative">
@@ -312,7 +312,7 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-10 pl-10 pr-8 border border-border rounded-xl bg-muted text-foreground text-sm focus:outline-none focus:border-economia-guinda/40 appearance-none"
+            className="h-10 pl-10 pr-8 border border-border rounded-xl bg-muted text-foreground text-sm focus:outline-none focus:border-[#00D47A]/40 appearance-none"
           >
             <option value="all" className="bg-economia-verdeDark">Todos</option>
             <option value="PENDING" className="bg-economia-verdeDark">Pendiente</option>
@@ -328,7 +328,7 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
       {documents.length === 0 ? (
         <div className="text-center py-12">
           <FileText className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
-          <h3 className="font-heading font-semibold text-foreground mb-1">
+          <h3 className="font-sans font-semibold text-foreground mb-1">
             {search || statusFilter !== "all" ? "Sin resultados" : "No hay documentos"}
           </h3>
           <p className="text-muted-foreground text-sm mb-4">
@@ -339,7 +339,7 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
           {(search || statusFilter !== "all") && (
             <button
               onClick={() => { setSearch(""); setStatusFilter("all"); }}
-              className="text-sm border border-border hover:border-economia-guinda/40 text-muted-foreground hover:text-foreground px-4 py-2 rounded-lg transition-colors"
+              className="text-sm border border-border hover:border-[#00D47A]/40 text-muted-foreground hover:text-foreground px-4 py-2 rounded-lg transition-colors"
             >
               Limpiar filtros
             </button>
@@ -360,8 +360,8 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
               >
               <div className="flex items-center gap-4 p-4">
                 {/* Icon */}
-                <div className="h-9 w-9 bg-economia-guinda/10 rounded-lg flex items-center justify-center shrink-0">
-                  <FileText className="h-4 w-4 text-economia-guinda" />
+                <div className="h-9 w-9 bg-[#00D47A]/10 rounded-lg flex items-center justify-center shrink-0">
+                  <FileText className="h-4 w-4 text-[#00D47A]" />
                 </div>
 
                 {/* Name + meta */}
@@ -374,7 +374,7 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
                         className="flex-1 h-8 px-2 border border-economia-info/40 rounded-lg text-sm bg-muted text-foreground focus:outline-none"
                         autoFocus
                       />
-                      <button onClick={() => handleSaveEdit(doc.id)} className="text-economia-guinda hover:text-foreground transition-colors">
+                      <button onClick={() => handleSaveEdit(doc.id)} className="text-[#00D47A] hover:text-foreground transition-colors">
                         <Save className="h-4 w-4" />
                       </button>
                       <button onClick={handleCancelEdit} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -427,7 +427,7 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
                       value={doc.domain || "INDUSTRIA"}
                       onChange={(e) => handleDomainChange(doc.id, e.target.value)}
                       disabled={processingId === doc.id}
-                      className="h-8 px-2 border border-border rounded-lg text-xs bg-muted text-foreground focus:outline-none focus:border-economia-guinda/40 disabled:opacity-50"
+                      className="h-8 px-2 border border-border rounded-lg text-xs bg-muted text-foreground focus:outline-none focus:border-[#00D47A]/40 disabled:opacity-50"
                     >
                       <option value="INDUSTRIA" className="bg-economia-verdeDark">🏭 Industria</option>
                       <option value="CONSTRUCCION" className="bg-economia-verdeDark">🏗️ Construcción</option>
@@ -444,7 +444,7 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
                       "h-8 w-8 flex items-center justify-center rounded-lg border transition-colors disabled:opacity-40",
                       doc.status === "FAILED" || doc.status === "PENDING"
                         ? "border-economia-warning/30 text-economia-warning hover:bg-economia-warning/10"
-                        : "border-border text-muted-foreground hover:border-economia-guinda/40 hover:text-foreground"
+                        : "border-border text-muted-foreground hover:border-[#00D47A]/40 hover:text-foreground"
                     )}
                   >
                     <RefreshCw className={cn("h-3.5 w-3.5", processingId === doc.id && "animate-spin")} />
@@ -456,7 +456,7 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Ver PDF"
-                    className="h-8 w-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:border-economia-guinda/40 hover:text-economia-guinda transition-colors"
+                    className="h-8 w-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:border-[#00D47A]/40 hover:text-[#00D47A] transition-colors"
                   >
                     <Eye className="h-3.5 w-3.5" />
                   </a>
@@ -559,7 +559,7 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
               <button
                 onClick={goToPrevPage}
                 disabled={!pagination.hasPrev}
-                className="flex items-center gap-1 text-xs border border-border hover:border-economia-guinda/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30"
+                className="flex items-center gap-1 text-xs border border-border hover:border-[#00D47A]/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30"
               >
                 <ChevronLeft className="h-3.5 w-3.5" /> Anterior
               </button>
@@ -569,7 +569,7 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
               <button
                 onClick={goToNextPage}
                 disabled={!pagination.hasMore}
-                className="flex items-center gap-1 text-xs border border-border hover:border-economia-guinda/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30"
+                className="flex items-center gap-1 text-xs border border-border hover:border-[#00D47A]/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30"
               >
                 Siguiente <ChevronRight className="h-3.5 w-3.5" />
               </button>

@@ -70,16 +70,16 @@ export default async function MiCertificadoPage() {
           <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="font-heading font-bold text-2xl text-foreground">Mi Certificado ESG</h1>
+          <h1 className="font-sans font-bold text-2xl text-foreground">Mi Certificado ESG</h1>
         </div>
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-md">
             <Award className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
-            <h2 className="font-heading font-semibold text-foreground text-lg mb-2">Sin dictamen emitido aún</h2>
+            <h2 className="font-sans font-semibold text-foreground text-lg mb-2">Sin dictamen emitido aún</h2>
             <p className="text-muted-foreground text-sm mb-6">
               Un Assessor ESG revisará tu expediente cuando hayas subido todos los documentos requeridos y el análisis IA esté completo.
             </p>
-            <Link href="/dashboard/documents" className="inline-flex items-center gap-2 bg-economia-guinda hover:bg-economia-guinda/90 text-primary-foreground text-sm font-medium px-4 py-2 rounded-xl transition-colors">
+            <Link href="/dashboard/documents" className="inline-flex items-center gap-2 bg-[#00D47A] hover:bg-[#00D47A]/90 text-primary-foreground text-sm font-medium px-4 py-2 rounded-xl transition-colors">
               Ver mis documentos
             </Link>
           </div>
@@ -113,7 +113,7 @@ export default async function MiCertificadoPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="flex-1">
-          <h1 className="font-heading font-bold text-2xl text-foreground">Mi Certificado ESG</h1>
+          <h1 className="font-sans font-bold text-2xl text-foreground">Mi Certificado ESG</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
             {isApproved ? "Certificación vigente" : CERT_STATUS_LABEL[cert.status] ?? cert.status}
           </p>
@@ -149,7 +149,7 @@ export default async function MiCertificadoPage() {
                 <AlertCircle className="h-12 w-12 text-economia-warning shrink-0" />
               )}
               <div className="flex-1">
-                <h2 className={cn("font-heading font-bold text-xl mb-1",
+                <h2 className={cn("font-sans font-bold text-xl mb-1",
                   isApproved ? "text-economia-success" :
                   cert.status === "REJECTED" ? "text-economia-error" : "text-economia-warning"
                 )}>
@@ -172,7 +172,7 @@ export default async function MiCertificadoPage() {
           {/* Detalles */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-card border border-border rounded-2xl p-5">
-              <h3 className="font-heading font-semibold text-foreground text-sm mb-3 flex items-center gap-2">
+              <h3 className="font-sans font-semibold text-foreground text-sm mb-3 flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-economia-info" /> Empresa
               </h3>
               <div className="space-y-2 text-sm">
@@ -196,8 +196,8 @@ export default async function MiCertificadoPage() {
             </div>
 
             <div className="bg-card border border-border rounded-2xl p-5">
-              <h3 className="font-heading font-semibold text-foreground text-sm mb-3 flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-economia-guinda" /> Dictamen
+              <h3 className="font-sans font-semibold text-foreground text-sm mb-3 flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-[#00D47A]" /> Dictamen
               </h3>
               <div className="space-y-2 text-sm">
                 <div>
@@ -223,7 +223,7 @@ export default async function MiCertificadoPage() {
           {/* V.L.A.P. */}
           {vlap && (
             <div className="bg-card border border-border rounded-2xl p-5">
-              <h3 className="font-heading font-semibold text-foreground text-sm mb-3 flex items-center gap-2">
+              <h3 className="font-sans font-semibold text-foreground text-sm mb-3 flex items-center gap-2">
                 <Shield className="h-4 w-4 text-economia-info" /> Evaluación V.L.A.P.
               </h3>
               <div className="grid grid-cols-2 gap-3">
@@ -257,7 +257,7 @@ export default async function MiCertificadoPage() {
           {/* Findings */}
           {findings.length > 0 && (
             <div className="bg-card border border-border rounded-2xl p-5">
-              <h3 className="font-heading font-semibold text-foreground text-sm mb-3">
+              <h3 className="font-sans font-semibold text-foreground text-sm mb-3">
                 Hallazgos del Assessor ({findings.length})
               </h3>
               <div className="space-y-2">
@@ -290,7 +290,7 @@ export default async function MiCertificadoPage() {
           {capaTickets.length > 0 && (
             <div className="bg-economia-warning/5 border border-economia-warning/20 rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-heading font-semibold text-foreground text-sm flex items-center gap-2">
+                <h3 className="font-sans font-semibold text-foreground text-sm flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-economia-warning" />
                   Acciones correctivas pendientes ({capaTickets.length})
                 </h3>
@@ -318,10 +318,10 @@ export default async function MiCertificadoPage() {
 
           {/* Verification token (if approved) */}
           {isApproved && cert.publicToken && (
-            <div className="bg-economia-guinda/5 border border-economia-guinda/15 rounded-2xl p-5">
+            <div className="bg-[#00D47A]/5 border border-[#00D47A]/15 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-2">
-                <Hash className="h-4 w-4 text-economia-guinda" />
-                <h3 className="font-heading font-semibold text-foreground text-sm">Verificación pública</h3>
+                <Hash className="h-4 w-4 text-[#00D47A]" />
+                <h3 className="font-sans font-semibold text-foreground text-sm">Verificación pública</h3>
               </div>
               <p className="text-muted-foreground text-xs mb-2">
                 Este certificado puede ser verificado de forma independiente con el siguiente token único:

@@ -41,13 +41,13 @@ async function DocumentProgress({ userId }: { userId: string }) {
     return { cat, subidos, analizadosCat, total, completa: subidos === total };
   });
 
-  const colorBarraSubidos = pctSubidos === 100 ? "bg-economia-success" : pctSubidos >= 60 ? "bg-economia-guinda" : pctSubidos >= 30 ? "bg-economia-warning" : "bg-economia-error";
+  const colorBarraSubidos = pctSubidos === 100 ? "bg-economia-success" : pctSubidos >= 60 ? "bg-[#00D47A]" : pctSubidos >= 30 ? "bg-economia-warning" : "bg-economia-error";
 
   return (
     <div className="mb-6 bg-card border border-border rounded-2xl p-5">
       {/* Título */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-heading font-semibold text-foreground text-sm">Expediente ESG</h2>
+        <h2 className="font-sans font-semibold text-foreground text-sm">Expediente ESG</h2>
         <span className="text-[10px] text-muted-foreground/60 font-medium tracking-wide">Impulsado por NVIDIA</span>
       </div>
 
@@ -57,7 +57,7 @@ async function DocumentProgress({ userId }: { userId: string }) {
         <div>
           <div className="flex items-center justify-between text-xs mb-1.5">
             <span className="text-muted-foreground">Documentos subidos</span>
-            <span className={cn("font-bold", pctSubidos === 100 ? "text-economia-success" : pctSubidos >= 60 ? "text-economia-guinda" : "text-economia-warning")}>
+            <span className={cn("font-bold", pctSubidos === 100 ? "text-economia-success" : pctSubidos >= 60 ? "text-[#00D47A]" : "text-economia-warning")}>
               {totalSubidos}/{TOTAL_REQUERIDOS}
             </span>
           </div>
@@ -154,7 +154,7 @@ export default async function DocumentsPage() {
       {/* Page header */}
       <div className="flex items-center justify-between px-8 py-5 border-b border-border">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-foreground">
+          <h1 className="font-sans font-bold text-2xl text-foreground">
             {isCompany ? "Mis Documentos" : "Fondo Documental"}
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
@@ -166,7 +166,7 @@ export default async function DocumentsPage() {
         {isCompany && (
           <Link
             href="/dashboard/upload"
-            className="flex items-center gap-2 bg-economia-guinda hover:bg-economia-guinda/90 text-primary-foreground text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+            className="flex items-center gap-2 bg-[#00D47A] hover:bg-[#00D47A]/90 text-primary-foreground text-sm font-medium px-4 py-2 rounded-xl transition-colors"
           >
             <Upload className="h-4 w-4" />
             Subir Documento

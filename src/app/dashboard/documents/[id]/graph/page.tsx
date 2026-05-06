@@ -70,7 +70,7 @@ export default function DocumentGraphPage() {
       {/* Page header */}
       <div className="flex items-center justify-between px-8 py-5 border-b border-border">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-foreground">Grafo de Conocimiento</h1>
+          <h1 className="font-sans font-bold text-2xl text-foreground">Grafo de Conocimiento</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Entidades y relaciones extraídas por IA</p>
         </div>
         <div className="flex items-center gap-2">
@@ -79,7 +79,7 @@ export default function DocumentGraphPage() {
             <Bug className="h-3.5 w-3.5" /> Debug
           </button>
           <button onClick={loadGraphData} disabled={loading}
-            className="flex items-center gap-2 text-xs border border-border hover:border-economia-guinda/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+            className="flex items-center gap-2 text-xs border border-border hover:border-[#00D47A]/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Recargar
           </button>
         </div>
@@ -90,7 +90,7 @@ export default function DocumentGraphPage() {
         <div className="grid md:grid-cols-4 gap-4 mb-6">
           {[
             { label: "Entidades", value: stats.entityCount, sub: "Nodos en este documento", icon: Database, color: "economia-info" },
-            { label: "Relaciones", value: stats.relationCount, sub: "Conexiones entre entidades", icon: Link, color: "economia-guinda" },
+            { label: "Relaciones", value: stats.relationCount, sub: "Conexiones entre entidades", icon: Link, color: "[#00D47A]" },
             { label: "Tipos", value: Object.keys(entityGroups).length, sub: "Tipos de entidades", icon: Database, color: "economia-success" },
             { label: "Estado", value: stats.documentInGraph ? '✓' : stats.entityCount > 0 ? '⚠' : '⏳', sub: stats.documentInGraph ? 'Grafo disponible' : stats.entityCount > 0 ? 'Datos sin ID' : 'Procesando...', icon: Database, color: "economia-gris" },
           ].map(s => {
@@ -101,7 +101,7 @@ export default function DocumentGraphPage() {
                   <span className="text-xs text-muted-foreground">{s.label}</span>
                   <Icon className={`h-4 w-4 text-${s.color}`} />
                 </div>
-                <div className="text-2xl font-heading font-bold text-foreground">{s.value}</div>
+                <div className="text-2xl font-sans font-bold text-foreground">{s.value}</div>
                 <p className="text-xs text-muted-foreground mt-1">{s.sub}</p>
               </div>
             );
@@ -111,14 +111,14 @@ export default function DocumentGraphPage() {
         {/* Debug */}
         {showDebug && debugInfo && (
           <div className="bg-economia-warning/5 border border-economia-warning/20 rounded-2xl p-5 mb-6">
-            <h3 className="font-heading font-semibold text-economia-warning mb-4 flex items-center gap-2">
+            <h3 className="font-sans font-semibold text-economia-warning mb-4 flex items-center gap-2">
               <Bug className="h-4 w-4" /> Debug Information
             </h3>
             <div className="grid md:grid-cols-5 gap-3 mb-4">
               {[
                 { v: debugInfo.stats.totalEntities, l: "Total Entidades", c: "economia-info" },
                 { v: debugInfo.stats.docEntities, l: "De este Documento", c: "economia-success" },
-                { v: debugInfo.stats.totalRelations, l: "Total Relaciones", c: "economia-guinda" },
+                { v: debugInfo.stats.totalRelations, l: "Total Relaciones", c: "[#00D47A]" },
                 { v: debugInfo.stats.documentsWithEntities, l: "Docs con Grafo", c: "economia-info" },
                 { v: debugInfo.stats.entitiesWithoutDocId, l: "Sin documentId", c: "economia-error" },
               ].map(item => (
@@ -145,7 +145,7 @@ export default function DocumentGraphPage() {
 
         {/* Entities */}
         <div className="bg-card border border-border rounded-2xl p-5 mb-4">
-          <h2 className="font-heading font-semibold text-foreground mb-1">Entidades Extraídas</h2>
+          <h2 className="font-sans font-semibold text-foreground mb-1">Entidades Extraídas</h2>
           <p className="text-muted-foreground text-xs mb-4">Entidades identificadas por IA en el documento</p>
 
           {loading ? (
@@ -191,13 +191,13 @@ export default function DocumentGraphPage() {
         {/* Relations */}
         {relations.length > 0 && (
           <div className="bg-card border border-border rounded-2xl p-5 mb-4">
-            <h2 className="font-heading font-semibold text-foreground mb-1">Relaciones</h2>
+            <h2 className="font-sans font-semibold text-foreground mb-1">Relaciones</h2>
             <p className="text-muted-foreground text-xs mb-4">Conexiones entre entidades extraídas</p>
             <div className="space-y-2">
               {relations.map((rel, i) => (
                 <div key={i} className="flex items-center gap-2 p-3 bg-muted rounded-xl text-sm">
                   <span className="font-medium text-foreground">{rel.source}</span>
-                  <span className="text-xs bg-economia-guinda/10 text-economia-guinda px-2 py-0.5 rounded">{rel.type}</span>
+                  <span className="text-xs bg-[#00D47A]/10 text-[#00D47A] px-2 py-0.5 rounded">{rel.type}</span>
                   <span className="font-medium text-foreground">{rel.target}</span>
                 </div>
               ))}
@@ -207,7 +207,7 @@ export default function DocumentGraphPage() {
 
         {/* Info */}
         <div className="bg-economia-info/5 border border-economia-info/10 rounded-2xl p-5">
-          <h3 className="font-heading font-semibold text-economia-info text-sm mb-3">¿Qué es el Grafo de Conocimiento?</h3>
+          <h3 className="font-sans font-semibold text-economia-info text-sm mb-3">¿Qué es el Grafo de Conocimiento?</h3>
           <p className="text-muted-foreground text-sm mb-2">
             El motor de IA transforma cada documento en un grafo de conocimiento estructurado y persistente.
           </p>

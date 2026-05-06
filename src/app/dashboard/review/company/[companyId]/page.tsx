@@ -378,7 +378,7 @@ export default function CompanyReviewPage() {
         ) : (
           <div className="flex items-center gap-3">
             <Building2 className="h-4 w-4 text-economia-info" />
-            <span className="font-heading font-semibold text-foreground text-sm">
+            <span className="font-sans font-semibold text-foreground text-sm">
               {company?.companyName || company?.name || company?.email}
             </span>
             {company?.track && (
@@ -428,7 +428,7 @@ export default function CompanyReviewPage() {
                 className={cn(
                   "flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
                   canSave
-                    ? "bg-economia-guinda hover:bg-economia-guinda/90 text-primary-foreground"
+                    ? "bg-[#00D47A] hover:bg-[#00D47A]/90 text-primary-foreground"
                     : blocked
                       ? "bg-economia-error/20 text-economia-error/60 cursor-not-allowed border border-economia-error/20"
                       : "bg-muted text-muted-foreground/40 cursor-not-allowed"
@@ -738,7 +738,7 @@ export default function CompanyReviewPage() {
                   )}
                 </span>
                 <button onClick={() => setShowNewFinding(!showNewFinding)}
-                  className="flex items-center gap-1 text-[10px] text-economia-guinda hover:text-economia-success">
+                  className="flex items-center gap-1 text-[10px] text-[#00D47A] hover:text-economia-success">
                   <Plus className="h-3 w-3" /> Añadir
                 </button>
               </div>

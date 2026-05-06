@@ -89,7 +89,7 @@ export default function ProcessDocumentButton({
       )}>
         <Brain className={cn("h-5 w-5", isPendingOrFailed ? "text-economia-warning" : "text-muted-foreground")} />
       </div>
-      <h3 className="font-heading font-semibold text-foreground mb-1">Procesar Documento</h3>
+      <h3 className="font-sans font-semibold text-foreground mb-1">Procesar Documento</h3>
       <p className="text-muted-foreground text-xs mb-4 flex-1">Ejecuta el análisis de IA manualmente</p>
 
       <div className="space-y-3">
@@ -100,7 +100,7 @@ export default function ProcessDocumentButton({
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
             disabled={processing}
-            className="w-full h-8 px-2 border border-border rounded-lg text-sm bg-muted text-foreground focus:outline-none focus:border-economia-guinda disabled:opacity-50"
+            className="w-full h-8 px-2 border border-border rounded-lg text-sm bg-muted text-foreground focus:outline-none focus:border-[#00D47A] disabled:opacity-50"
           >
             <option value="INDUSTRIA">🏭 Industria</option>
             <option value="CONSTRUCCION">🏗️ Construcción</option>
@@ -121,7 +121,7 @@ export default function ProcessDocumentButton({
                 className={cn(
                   "py-1.5 px-1 rounded-lg text-xs font-medium transition-colors border",
                   mode === m
-                    ? "bg-economia-guinda/20 border-economia-guinda/50 text-economia-guinda"
+                    ? "bg-[#00D47A]/20 border-[#00D47A]/50 text-[#00D47A]"
                     : "bg-muted border-border text-muted-foreground hover:border-border"
                 )}
               >
@@ -156,7 +156,7 @@ export default function ProcessDocumentButton({
                     onChange={(e) => setFocusTopics(e.target.value)}
                     disabled={processing}
                     placeholder="ej: diagnóstico de piel, rituales de pureza"
-                    className="w-full h-7 px-2 text-xs border border-border rounded-lg bg-muted text-foreground placeholder-white/20 focus:outline-none focus:border-economia-guinda disabled:opacity-50"
+                    className="w-full h-7 px-2 text-xs border border-border rounded-lg bg-muted text-foreground placeholder-white/20 focus:outline-none focus:border-[#00D47A] disabled:opacity-50"
                   />
                 </div>
 
@@ -171,7 +171,7 @@ export default function ProcessDocumentButton({
                     disabled={processing}
                     placeholder={"RITUAL: Ritual o ceremonia religiosa\nPRIEST: Sacerdote o líder religioso"}
                     rows={3}
-                    className="w-full px-2 py-1.5 text-xs border border-border rounded-lg bg-muted text-foreground placeholder-white/20 focus:outline-none focus:border-economia-guinda disabled:opacity-50 resize-none font-mono"
+                    className="w-full px-2 py-1.5 text-xs border border-border rounded-lg bg-muted text-foreground placeholder-white/20 focus:outline-none focus:border-[#00D47A] disabled:opacity-50 resize-none font-mono"
                   />
                 </div>
 
@@ -186,7 +186,7 @@ export default function ProcessDocumentButton({
                     disabled={processing}
                     placeholder={"PURIFIES: Purifica a persona\nDIAGNOSES: Diagnóstica condición"}
                     rows={2}
-                    className="w-full px-2 py-1.5 text-xs border border-border rounded-lg bg-muted text-foreground placeholder-white/20 focus:outline-none focus:border-economia-guinda disabled:opacity-50 resize-none font-mono"
+                    className="w-full px-2 py-1.5 text-xs border border-border rounded-lg bg-muted text-foreground placeholder-white/20 focus:outline-none focus:border-[#00D47A] disabled:opacity-50 resize-none font-mono"
                   />
                 </div>
 
@@ -201,7 +201,7 @@ export default function ProcessDocumentButton({
                     disabled={processing}
                     placeholder="ej: presta especial atención a los procedimientos descritos en cada versículo"
                     rows={2}
-                    className="w-full px-2 py-1.5 text-xs border border-border rounded-lg bg-muted text-foreground placeholder-white/20 focus:outline-none focus:border-economia-guinda disabled:opacity-50 resize-none"
+                    className="w-full px-2 py-1.5 text-xs border border-border rounded-lg bg-muted text-foreground placeholder-white/20 focus:outline-none focus:border-[#00D47A] disabled:opacity-50 resize-none"
                   />
                 </div>
               </div>
@@ -216,7 +216,7 @@ export default function ProcessDocumentButton({
             "w-full flex items-center justify-center gap-2 font-medium text-sm py-2 rounded-xl transition-colors disabled:opacity-50",
             isPendingOrFailed
               ? "bg-economia-warning hover:bg-economia-warning/90 text-primary-foreground"
-              : "border border-border hover:border-economia-guinda/40 text-foreground",
+              : "border border-border hover:border-[#00D47A]/40 text-foreground",
             processing && "animate-pulse"
           )}
         >

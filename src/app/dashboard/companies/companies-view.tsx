@@ -151,7 +151,7 @@ export function CompaniesView({ assessors }: { assessors: Assessor[] }) {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-8 py-5 border-b border-border">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-foreground">
+          <h1 className="font-sans font-bold text-2xl text-foreground">
             {role === "admin" ? "Gestión de Empresas" : "Empresas Asignadas"}
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
@@ -189,7 +189,7 @@ export function CompaniesView({ assessors }: { assessors: Assessor[] }) {
             <AlertCircle className="h-10 w-10 text-economia-error/30" />
             <p className="text-muted-foreground text-sm">Error al cargar las empresas.</p>
             <button onClick={() => fetchCompanies()}
-              className="text-sm border border-border hover:border-economia-guinda/30 text-muted-foreground hover:text-foreground px-4 py-2 rounded-xl transition-colors flex items-center gap-2">
+              className="text-sm border border-border hover:border-[#00D47A]/30 text-muted-foreground hover:text-foreground px-4 py-2 rounded-xl transition-colors flex items-center gap-2">
               <RefreshCw className="h-4 w-4" /> Reintentar
             </button>
           </div>
@@ -220,8 +220,8 @@ export function CompaniesView({ assessors }: { assessors: Assessor[] }) {
                       onClick={() => setExpanded(isOpen ? null : user.id)}
                       className="w-full flex items-center gap-4 p-4 hover:bg-muted/40 transition-colors text-left"
                     >
-                      <div className="h-10 w-10 rounded-full bg-economia-guinda/20 flex items-center justify-center shrink-0">
-                        <span className="text-sm font-bold text-economia-guinda">
+                      <div className="h-10 w-10 rounded-full bg-[#00D47A]/20 flex items-center justify-center shrink-0">
+                        <span className="text-sm font-bold text-[#00D47A]">
                           {(user.companyName || user.name || user.email)[0].toUpperCase()}
                         </span>
                       </div>
@@ -351,7 +351,7 @@ export function CompaniesView({ assessors }: { assessors: Assessor[] }) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPage(p => p - 1)} disabled={!pagination.hasPrev}
-                    className="flex items-center gap-1 text-xs border border-border hover:border-economia-guinda/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30"
+                    className="flex items-center gap-1 text-xs border border-border hover:border-[#00D47A]/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30"
                   >
                     <ChevronLeft className="h-3.5 w-3.5" /> Anterior
                   </button>
@@ -362,7 +362,7 @@ export function CompaniesView({ assessors }: { assessors: Assessor[] }) {
                         className={cn(
                           "text-xs w-8 h-8 rounded-lg border transition-colors",
                           p === pagination.page
-                            ? "bg-economia-guinda/20 border-economia-guinda/40 text-economia-guinda font-bold"
+                            ? "bg-[#00D47A]/20 border-[#00D47A]/40 text-[#00D47A] font-bold"
                             : "border-border text-muted-foreground hover:text-foreground hover:border-border"
                         )}
                       >{p}</button>
@@ -370,7 +370,7 @@ export function CompaniesView({ assessors }: { assessors: Assessor[] }) {
                   })}
                   <button
                     onClick={() => setPage(p => p + 1)} disabled={!pagination.hasMore}
-                    className="flex items-center gap-1 text-xs border border-border hover:border-economia-guinda/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30"
+                    className="flex items-center gap-1 text-xs border border-border hover:border-[#00D47A]/40 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30"
                   >
                     Siguiente <ChevronRight className="h-3.5 w-3.5" />
                   </button>

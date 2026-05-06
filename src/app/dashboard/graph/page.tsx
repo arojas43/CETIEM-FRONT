@@ -85,7 +85,7 @@ export default function GraphQueryPage() {
       {/* Page header */}
       <div className="flex items-center justify-between px-8 py-5 border-b border-border">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-foreground">Consultar Grafo</h1>
+          <h1 className="font-sans font-bold text-2xl text-foreground">Consultar Grafo</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Grafo de conocimiento global · Consulta Cypher</p>
         </div>
         <button
@@ -112,7 +112,7 @@ export default function GraphQueryPage() {
                 <span className="text-xs text-muted-foreground">Total Entidades</span>
                 <Database className="h-4 w-4 text-economia-info" />
               </div>
-              <div className="text-2xl font-heading font-bold text-foreground">{stats.totalEntities}</div>
+              <div className="text-2xl font-sans font-bold text-foreground">{stats.totalEntities}</div>
               <p className="text-xs text-muted-foreground mt-1 truncate">
                 {stats.entityTypes.map(t => `${t.type}: ${t.count}`).join(" · ")}
               </p>
@@ -122,7 +122,7 @@ export default function GraphQueryPage() {
                 <span className="text-xs text-muted-foreground">Total Relaciones</span>
                 <LinkIcon className="h-4 w-4 text-economia-success" />
               </div>
-              <div className="text-2xl font-heading font-bold text-foreground">{stats.totalRelations}</div>
+              <div className="text-2xl font-sans font-bold text-foreground">{stats.totalRelations}</div>
               <p className="text-xs text-muted-foreground mt-1 truncate">
                 {stats.relationTypes.map(t => `${t.type}: ${t.count}`).join(" · ")}
               </p>
@@ -132,7 +132,7 @@ export default function GraphQueryPage() {
 
         {/* Query Editor */}
         <div className="bg-card border border-border rounded-2xl p-5 mb-6">
-          <h2 className="font-heading font-semibold text-foreground mb-1 flex items-center gap-2">
+          <h2 className="font-sans font-semibold text-foreground mb-1 flex items-center gap-2">
             <Search className="h-4 w-4 text-economia-info" />
             Consulta Cypher
           </h2>
@@ -181,7 +181,7 @@ export default function GraphQueryPage() {
         {/* Results */}
         {results.length > 0 && (
           <div className="bg-card border border-border rounded-2xl p-5 mb-6">
-            <h2 className="font-heading font-semibold text-foreground mb-4">Resultados ({results.length})</h2>
+            <h2 className="font-sans font-semibold text-foreground mb-4">Resultados ({results.length})</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -211,7 +211,7 @@ export default function GraphQueryPage() {
 
         {/* Help */}
         <div className="bg-economia-info/5 border border-economia-info/10 rounded-2xl p-5">
-          <h3 className="font-heading font-semibold text-economia-info text-sm mb-3">¿Cómo usar Cypher?</h3>
+          <h3 className="font-sans font-semibold text-economia-info text-sm mb-3">¿Cómo usar Cypher?</h3>
           <div className="space-y-1.5 text-sm text-muted-foreground">
             {[
               ["MATCH (n)", "Seleccionar todos los nodos"],

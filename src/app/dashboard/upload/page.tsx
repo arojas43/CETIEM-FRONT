@@ -165,14 +165,14 @@ function CoberturaPanel({ cola }: { cola: ItemCola[] }) {
                     ? "bg-economia-success/8 border-economia-success/30"
                     : "bg-economia-warning/8 border-economia-warning/30"
                   : pending > 0
-                    ? "bg-economia-guinda/8 border-economia-guinda/30"
+                    ? "bg-[#00D47A]/8 border-[#00D47A]/30"
                     : "bg-muted border-border"
               )}
             >
               <Icon className={cn(
                 "h-3.5 w-3.5 mt-0.5 shrink-0",
                 ok > 0 ? (allObligCovered ? "text-economia-success" : "text-economia-warning") :
-                pending > 0 ? "text-economia-guinda" : "text-muted-foreground/60"
+                pending > 0 ? "text-[#00D47A]" : "text-muted-foreground/60"
               )} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
@@ -191,7 +191,7 @@ function CoberturaPanel({ cola }: { cola: ItemCola[] }) {
               {total > 0 && (
                 <span className={cn(
                   "text-[10px] font-bold shrink-0",
-                  ok > 0 ? "text-economia-success" : "text-economia-guinda"
+                  ok > 0 ? "text-economia-success" : "text-[#00D47A]"
                 )}>
                   {total}
                 </span>
@@ -253,7 +253,7 @@ function TipoSelector({
           "w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm transition-all text-left",
           value
             ? "border-border bg-muted"
-            : "border-dashed border-border bg-muted/50 hover:border-economia-guinda/40 hover:bg-economia-guinda/3"
+            : "border-dashed border-border bg-muted/50 hover:border-[#00D47A]/40 hover:bg-[#00D47A]/3"
         )}
       >
         {value ? (
@@ -280,7 +280,7 @@ function TipoSelector({
   }
 
   return (
-    <div className="border border-economia-guinda/30 rounded-xl bg-card shadow-xl">
+    <div className="border border-[#00D47A]/30 rounded-xl bg-card shadow-xl">
       {/* Buscador */}
       <div className="relative p-2 border-b border-border">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40" />
@@ -502,7 +502,7 @@ function ItemFila({
                 </div>
               ) : (
                 <button onClick={() => fileInputRef.current?.click()}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 border border-dashed border-border rounded-xl hover:border-economia-guinda/60 hover:bg-economia-guinda/5 transition-all text-sm text-muted-foreground hover:text-foreground">
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 border border-dashed border-border rounded-xl hover:border-[#00D47A]/60 hover:bg-[#00D47A]/5 transition-all text-sm text-muted-foreground hover:text-foreground">
                   <FolderOpen className="h-4 w-4 shrink-0" />
                   <span>Seleccionar PDF...</span>
                   <span className="ml-auto text-[10px] text-muted-foreground/60">Solo .pdf</span>
@@ -515,7 +515,7 @@ function ItemFila({
           {isBusy && (
             <div className="space-y-1">
               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-economia-guinda rounded-full transition-all"
+                <div className="h-full bg-[#00D47A] rounded-full transition-all"
                   style={{ width: `${item.progreso}%` }} />
               </div>
               <p className="text-[10px] text-muted-foreground/50">Subiendo… {item.progreso}%</p>
@@ -579,8 +579,8 @@ function GlobalDropZone({ onFiles }: { onFiles: (files: File[]) => void }) {
       className={cn(
         "relative border-2 border-dashed rounded-2xl py-10 text-center transition-all cursor-pointer select-none",
         active
-          ? "border-economia-guinda bg-economia-guinda/8 scale-[1.01]"
-          : "border-border bg-muted/40 hover:border-economia-guinda/50 hover:bg-economia-guinda/3"
+          ? "border-[#00D47A] bg-[#00D47A]/8 scale-[1.01]"
+          : "border-border bg-muted/40 hover:border-[#00D47A]/50 hover:bg-[#00D47A]/3"
       )}
     >
       <input ref={inputRef} type="file" accept="application/pdf" multiple className="hidden" onChange={onPick} />
@@ -606,11 +606,11 @@ function GlobalDropZone({ onFiles }: { onFiles: (files: File[]) => void }) {
 
       <div className={cn(
         "h-12 w-12 rounded-2xl mx-auto mb-3 flex items-center justify-center transition-colors",
-        active ? "bg-economia-guinda/20" : "bg-muted"
+        active ? "bg-[#00D47A]/20" : "bg-muted"
       )}>
-        <Upload className={cn("h-6 w-6 transition-colors", active ? "text-economia-guinda" : "text-muted-foreground")} />
+        <Upload className={cn("h-6 w-6 transition-colors", active ? "text-[#00D47A]" : "text-muted-foreground")} />
       </div>
-      <p className={cn("text-sm font-semibold transition-colors", active ? "text-economia-guinda" : "text-foreground")}>
+      <p className={cn("text-sm font-semibold transition-colors", active ? "text-[#00D47A]" : "text-foreground")}>
         {active ? "Suelta los PDFs aquí" : "Arrastra varios PDFs aquí o haz clic para seleccionar"}
       </p>
       <p className="text-xs text-muted-foreground mt-1">Solo archivos PDF · Se crean entradas en la cola automáticamente</p>
@@ -719,7 +719,7 @@ export default function UploadPage() {
           <CheckCircle className="h-10 w-10 text-economia-success" />
         </div>
         <div className="text-center">
-          <h2 className="font-heading font-bold text-2xl text-foreground">
+          <h2 className="font-sans font-bold text-2xl text-foreground">
             {colaOk} documento{colaOk !== 1 ? "s" : ""} subido{colaOk !== 1 ? "s" : ""}
           </h2>
           <p className="text-muted-foreground text-sm mt-1">
@@ -746,7 +746,7 @@ export default function UploadPage() {
       <div className="flex items-center justify-between px-8 py-5 border-b border-border">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-heading font-bold text-2xl text-foreground">Subir Documentos</h1>
+            <h1 className="font-sans font-bold text-2xl text-foreground">Subir Documentos</h1>
             <HelpTip
               wide
               align="left"
@@ -807,7 +807,7 @@ export default function UploadPage() {
           {!uploading && (
             <button
               onClick={addItem}
-              className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-border rounded-xl text-muted-foreground hover:text-foreground hover:border-economia-guinda/50 hover:bg-economia-guinda/5 text-sm font-medium transition-all"
+              className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-border rounded-xl text-muted-foreground hover:text-foreground hover:border-[#00D47A]/50 hover:bg-[#00D47A]/5 text-sm font-medium transition-all"
             >
               <Plus className="h-4 w-4" /> Añadir otro documento
             </button>
@@ -823,7 +823,7 @@ export default function UploadPage() {
                   {colaTotal} en cola
                 </div>
                 {colaValida.length > 0 && (
-                  <span className="text-economia-guinda font-medium">
+                  <span className="text-[#00D47A] font-medium">
                     {colaValida.length} listo{colaValida.length !== 1 ? "s" : ""}
                   </span>
                 )}
@@ -887,7 +887,7 @@ export default function UploadPage() {
                 className={cn(
                   "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all shrink-0",
                   colaValida.length > 0 && !uploading
-                    ? "bg-economia-guinda hover:bg-economia-guinda/90 text-primary-foreground shadow-sm"
+                    ? "bg-[#00D47A] hover:bg-[#00D47A]/90 text-primary-foreground shadow-sm"
                     : "bg-muted text-muted-foreground/40 cursor-not-allowed"
                 )}
               >
@@ -911,18 +911,18 @@ export default function UploadPage() {
 // ─── Mini helper: paso del flujo ──────────────────────────────────────────────
 function Step({ n, label, done, active }: { n: string; label: string; done?: boolean; active?: boolean }) {
   return (
-    <div className={cn("flex items-center gap-1.5", done ? "text-economia-success" : active ? "text-economia-guinda" : "")}>
+    <div className={cn("flex items-center gap-1.5", done ? "text-economia-success" : active ? "text-[#00D47A]" : "")}>
       <span className={cn(
         "h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold border",
         done   ? "bg-economia-success/15 border-economia-success/30 text-economia-success" :
-        active ? "bg-economia-guinda/15  border-economia-guinda/30  text-economia-guinda" :
+        active ? "bg-[#00D47A]/15  border-[#00D47A]/30  text-[#00D47A]" :
                  "bg-muted border-border text-muted-foreground/40"
       )}>
         {done ? "✓" : n}
       </span>
       <span className={cn(
         "text-xs",
-        done ? "text-economia-success" : active ? "text-economia-guinda" : "text-muted-foreground/40"
+        done ? "text-economia-success" : active ? "text-[#00D47A]" : "text-muted-foreground/40"
       )}>{label}</span>
     </div>
   );

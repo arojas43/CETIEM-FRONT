@@ -1,9 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],
-  // important:true hace que todas las utilidades Tailwind usen !important
-  // → necesario para ganar sobre Bootstrap 5 que carga el CDN de GobMX
-  important: true,
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -13,9 +10,7 @@ export default {
     container: {
       center: true,
       padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
+      screens: { "2xl": "1400px" },
     },
     extend: {
       colors: {
@@ -52,26 +47,22 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Paleta oficial Identidad Gobierno de México 2024-2030 (v3)
-        // Referencia: https://www.gob.mx/guias/grafica/v3/
+        // CETIEM brand palette
+        cetiem: {
+          green:   "#00D47A",
+          greenDim: "rgba(0,212,122,0.12)",
+          lime:    "#ADFF4F",
+          cyan:    "#00C8E0",
+          dark:    "#0A0A0A",
+          surface: "#111111",
+          surface2: "#161616",
+        },
+        // Keep backward-compat alias for shared components
         economia: {
-          guinda: "#9D2449",  // Color primario institucional
-          guindaDark: "#6F102D",  // Variante oscura para hover
-          dorado: "#BC955C",  // Color secundario institucional
-          doradoLight: "#DDC9A3",  // Variante clara
-          verde: "#12322B",  // Verde institucional oscuro
-          verdeLight: "#1E5B4F",  // Verde institucional medio
-          gris: "#98989A",  // Gris institucional
-          texto: "#545454",  // Gris para cuerpo de texto (v3)
-          blanco: "#FFFFFF",  // Blanco puro
-
-          // Semántica para el proyecto
-          success: "#1E5B4F",  // Verde medio
-          info: "#12322B",  // Verde oscuro
-          warning: "#BC955C",  // Dorado
-          danger: "#9D2449",  // Guinda
-          error: "#9D2449",   // Alias de danger (errores, rechazos, fallidos)
-          verdeDark: "#0B1A18", // Verde muy oscuro — paneles/sidebars oscuros
+          success: "#00D47A",
+          danger:  "#EF4444",
+          warning: "#FBBF24",
+          info:    "#00C8E0",
         },
       },
       borderRadius: {
@@ -80,15 +71,30 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-noto)", "'Noto Sans'", "system-ui", "sans-serif"],
-        heading: ["'Patria'", "var(--font-playfair)", "'Playfair Display'", "serif"],
+        sans: ["var(--font-inter)", "'Inter'", "system-ui", "sans-serif"],
+        heading: ["var(--font-inter)", "'Inter'", "system-ui", "sans-serif"],
+        mono: ["'JetBrains Mono'", "'Fira Code'", "monospace"],
       },
-      lineHeight: {
-        'gob': '1.428', // Estandarizado gob.mx v3
+      boxShadow: {
+        'glow-green': '0 0 20px rgba(0,212,122,0.25), 0 0 60px rgba(0,212,122,0.08)',
+        'glow-green-sm': '0 0 10px rgba(0,212,122,0.20)',
+        'glow-cyan': '0 0 20px rgba(0,200,224,0.25)',
+        'glass': '0 8px 32px rgba(0,0,0,0.4)',
+        'gob': '0 4px 24px rgba(0,0,0,0.4)',
       },
-      fontSize: {
-        'gob-body': '18px', // Estandarizado gob.mx v3
-      }
+      backgroundImage: {
+        'cetiem-gradient': 'linear-gradient(135deg, rgba(0,212,122,0.15) 0%, rgba(0,200,224,0.08) 50%, rgba(173,255,79,0.05) 100%)',
+        'cetiem-glow': 'radial-gradient(ellipse at 50% 0%, rgba(0,212,122,0.15) 0%, transparent 60%)',
+      },
+      animation: {
+        'pulse-green': 'pulse-green 2s cubic-bezier(0.4,0,0.6,1) infinite',
+      },
+      keyframes: {
+        'pulse-green': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.4' },
+        },
+      },
     },
   },
   plugins: [],

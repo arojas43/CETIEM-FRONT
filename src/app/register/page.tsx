@@ -90,103 +90,199 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#F8F8F8]">
-      {/* ── Panel Institucional Izquierdo (38%) ───────────────────────── */}
-      <div style={{ width: '38%', background: '#611232' }} className="hidden lg:flex flex-col justify-between p-12 relative overflow-hidden border-right border-white/10">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl" />
+    <div className="min-h-screen flex" style={{ background: "#0A0A0A" }}>
+      {/* ── Left panel (38%) ───────────────────────────── */}
+      <div
+        className="hidden lg:flex flex-col justify-between p-12 relative overflow-hidden"
+        style={{
+          width: "38%",
+          background: "#0D0D0D",
+          borderRight: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
+        {/* Green radial glow */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse 65% 55% at 25% 15%, rgba(0,212,122,0.11) 0%, transparent 70%)",
+          }}
+        />
+        {/* Cyan bottom-right glow */}
+        <div
+          className="absolute bottom-0 right-0 w-96 h-96 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse 60% 60% at 80% 90%, rgba(0,200,224,0.07) 0%, transparent 70%)",
+          }}
+        />
 
         <div className="relative z-10">
-          <div className="mb-16">
-            <InstitutionalLogo variant="white" size="md" />
+          <div className="mb-14">
+            <InstitutionalLogo size="md" />
           </div>
 
-          <div style={{ backgroundColor: '#BC955C', height: '6px', width: '80px', marginBottom: '48px' }} />
+          {/* Accent bar */}
+          <div
+            style={{
+              background: "#00D47A",
+              height: "3px",
+              width: "56px",
+              marginBottom: "40px",
+              borderRadius: "2px",
+            }}
+          />
 
-          <h2 className="font-heading font-black text-5xl xl:text-6xl text-white leading-[1.1] mb-10">
-            Únete al Ecosistema<br />de Confianza
+          <h2 className="font-sans font-black text-4xl xl:text-5xl text-white leading-[1.1] mb-6">
+            Únete al Ecosistema
+            <br />
+            <span style={{ color: "#00D47A" }}>de Confianza</span>
           </h2>
-          <p className="text-white/80 text-xl leading-relaxed mb-16 font-light">
-            Certificamos el compromiso de su empresa con los estándares ESG globales mediante modelos de IA auditables.
+          <p className="text-white/55 text-lg leading-relaxed mb-12 font-light">
+            Certificamos el compromiso de su empresa con los estándares ESG globales
+            mediante modelos de IA auditables.
           </p>
 
-          <div className="grid grid-cols-2 gap-6 mt-16">
-            {['ISO 9001', 'ISO 14001', 'NOM-035', 'V.L.A.P.'].map(std => (
-              <div key={std} className="bg-white/10 border border-white/10 px-8 py-12 backdrop-blur-md hover:bg-white/20 transition-all">
-                <div className="text-white font-black text-2xl tracking-tighter">{std}</div>
+          {/* CETIEM features */}
+          <div className="space-y-3">
+            {[
+              { label: "Filtro Cero IA", desc: "Auditoría documental con IA explicable" },
+              { label: "Protocolo VLAP", desc: "Validación de lineamientos y activos productivos" },
+              { label: "Agile Audit Hub", desc: "Dashboard de cumplimiento en tiempo real" },
+              { label: "Certificación ESG", desc: "Estándares internacionales ISO 9001 · 14001" },
+            ].map(f => (
+              <div
+                key={f.label}
+                className="flex items-start gap-4 p-4 rounded-xl"
+                style={{
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                }}
+              >
+                <div
+                  className="h-2 w-2 rounded-full mt-2 shrink-0"
+                  style={{ background: "#00D47A", boxShadow: "0 0 8px rgba(0,212,122,0.7)" }}
+                />
+                <div>
+                  <p className="text-white font-bold text-sm">{f.label}</p>
+                  <p className="text-white/35 text-xs mt-0.5">{f.desc}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="relative z-10 p-6 bg-white/5 border border-white/10 rounded-xl">
-          <p className="text-white/40 text-xs font-black uppercase tracking-[0.3em] mb-2 text-center">
-            GOBIERNO DE MÉXICO · 2024-2030
+        <div className="relative z-10">
+          <p className="text-white/20 text-xs font-bold uppercase tracking-[0.3em] text-center">
+            CETIEM S.C. · CIPRE HOLDING
           </p>
         </div>
       </div>
 
-      {/* ── Panel Formulario Derecho ─────────────────────────────────── */}
-      <div className="flex-1 flex flex-col">
-        <div className="h-1 bg-[#9D2449] w-full shrink-0" />
+      {/* ── Right panel ─────────────────────────────────── */}
+      <div className="flex-1 flex flex-col" style={{ background: "#0A0A0A" }}>
+        {/* Top accent gradient line */}
+        <div
+          style={{
+            height: "2px",
+            background: "linear-gradient(90deg, #00D47A 0%, #00C8E0 50%, transparent 100%)",
+            flexShrink: 0,
+          }}
+        />
 
-        <div className="flex-1 flex items-center justify-center px-10 py-16 overflow-auto">
-          <div className="w-full max-w-3xl">
+        <div className="flex-1 flex items-center justify-center px-8 py-12 overflow-auto">
+          <div className="w-full max-w-2xl">
+
             {/* Step indicator */}
             {step < 3 && (
-              <div className="flex items-center gap-8 mb-16">
+              <div className="flex items-center gap-4 mb-10">
                 {[1, 2].map(s => (
-                  <div key={s} className="flex items-center gap-4 flex-1">
-                    <div className={cn(
-                      "h-14 w-14 rounded-full flex items-center justify-center text-xl font-black border-4 transition-all",
-                      step > s ? "bg-[#9D2449] border-[#9D2449] text-white" :
-                        step === s ? "bg-white border-[#9D2449] text-[#9D2449] shadow-2xl shadow-primary/10" :
-                          "bg-white border-gray-200 text-gray-300"
-                    )}>
-                      {step > s ? <CheckCircle className="h-8 w-8" /> : s}
+                  <div key={s} className="flex items-center gap-3 flex-1">
+                    <div
+                      className={cn(
+                        "h-10 w-10 rounded-full flex items-center justify-center text-sm font-black border-2 transition-all shrink-0",
+                        step > s
+                          ? "border-[#00D47A] bg-[#00D47A] text-black"
+                          : step === s
+                          ? "border-[#00D47A] bg-transparent text-[#00D47A]"
+                          : "border-white/10 bg-transparent text-white/20"
+                      )}
+                      style={
+                        step === s
+                          ? { boxShadow: "0 0 14px rgba(0,212,122,0.40)" }
+                          : undefined
+                      }
+                    >
+                      {step > s ? <CheckCircle className="h-5 w-5" /> : s}
                     </div>
-                    {s === 1 && (
-                      <div className={cn(
-                        "flex-1 h-1 mx-4 transition-colors",
-                        step > 1 ? "bg-[#9D2449]" : "bg-gray-200"
-                      )} />
-                    )}
                     <div className="flex flex-col">
-                      <span className={cn(
-                        "text-[10px] font-black uppercase tracking-[0.2em]",
-                        step === s ? "text-[#9D2449]" : "text-gray-400"
-                      )}>
+                      <span
+                        className={cn(
+                          "text-[9px] font-black uppercase tracking-[0.2em]",
+                          step === s ? "text-[#00D47A]" : "text-white/20"
+                        )}
+                      >
                         PASO 0{s}
                       </span>
-                      <span className={cn(
-                        "text-base font-bold",
-                        step === s ? "text-[#1B1B1B]" : "text-gray-300"
-                      )}>
+                      <span
+                        className={cn(
+                          "text-sm font-bold",
+                          step === s ? "text-white" : "text-white/20"
+                        )}
+                      >
                         {s === 1 ? "Registro" : "Certificación"}
                       </span>
                     </div>
-                    {s === 1 && <div className="flex-1 h-[2px] bg-gray-100 mx-4" />}
+                    {s === 1 && (
+                      <div
+                        className="flex-1 h-px mx-2 transition-colors"
+                        style={{
+                          background:
+                            step > 1 ? "#00D47A" : "rgba(255,255,255,0.08)",
+                        }}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Tarjeta de Formulario */}
-            <div className="bg-white border-t-[8px] border-[#9D2449] shadow-gob-heavy p-12 md:p-16">
+            {/* Glassmorphism card */}
+            <div
+              className="rounded-2xl p-8 md:p-10"
+              style={{
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              {/* ── Step 1: Account & Company info ── */}
               {step === 1 && (
-                <form onSubmit={handleStep1} className="space-y-10">
-                  <div className="mb-12">
-                    <h1 className="text-4xl font-heading font-black text-[#1B1B1B] uppercase tracking-tight mb-2">
+                <form onSubmit={handleStep1} className="space-y-7">
+                  <div>
+                    <h1 className="font-sans font-black text-2xl text-white uppercase tracking-tight mb-1">
                       Registro Empresarial
                     </h1>
-                    <hr style={{ backgroundColor: '#9D2449', border: 'none', height: '6px', width: '100px', marginBottom: '24px' }} />
-                    <p className="text-xl text-[#545454] font-light">Proporcione los datos oficiales de su unidad económica.</p>
+                    <div
+                      style={{
+                        background: "#00D47A",
+                        height: "2px",
+                        width: "48px",
+                        borderRadius: "2px",
+                        margin: "10px 0 14px",
+                      }}
+                    />
+                    <p className="text-white/40 text-sm font-light">
+                      Proporcione los datos oficiales de su unidad económica.
+                    </p>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-10">
-                    <div className="form-group md:col-span-2">
-                      <label className="control-label">Nombre de la empresa *</label>
+                  <div className="grid md:grid-cols-2 gap-5">
+                    <div className="md:col-span-2 space-y-1.5">
+                      <label className="text-xs font-bold text-white/50 uppercase tracking-widest block">
+                        Nombre de la empresa *
+                      </label>
                       <input
-                        className="form-control-gob w-full"
+                        className="form-control w-full"
                         value={form.companyName}
                         onChange={set("companyName")}
                         required
@@ -194,20 +290,24 @@ export default function RegisterPage() {
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="control-label">RFC</label>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-white/50 uppercase tracking-widest block">
+                        RFC
+                      </label>
                       <input
-                        className="form-control-gob w-full uppercase"
+                        className="form-control w-full uppercase"
                         value={form.rfc}
                         onChange={set("rfc")}
                         placeholder="XAXX010101000"
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="control-label">Industria</label>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-white/50 uppercase tracking-widest block">
+                        Industria
+                      </label>
                       <select
-                        className="form-control-gob w-full text-lg cursor-pointer"
+                        className="form-control w-full cursor-pointer"
                         value={form.industry}
                         onChange={set("industry")}
                       >
@@ -220,10 +320,25 @@ export default function RegisterPage() {
                       </select>
                     </div>
 
-                    <div className="form-group">
-                      <label className="control-label">Correo electrónico *</label>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-white/50 uppercase tracking-widest block">
+                        Nombre de contacto *
+                      </label>
                       <input
-                        className="form-control-gob w-full"
+                        className="form-control w-full"
+                        value={form.contactName}
+                        onChange={set("contactName")}
+                        required
+                        placeholder="Nombre completo"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-white/50 uppercase tracking-widest block">
+                        Correo electrónico *
+                      </label>
+                      <input
+                        className="form-control w-full"
                         type="email"
                         value={form.email}
                         onChange={set("email")}
@@ -232,10 +347,12 @@ export default function RegisterPage() {
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="control-label">Contraseña *</label>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-white/50 uppercase tracking-widest block">
+                        Contraseña *
+                      </label>
                       <input
-                        className="form-control-gob w-full"
+                        className="form-control w-full"
                         type="password"
                         value={form.password}
                         onChange={set("password")}
@@ -244,10 +361,12 @@ export default function RegisterPage() {
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label className="control-label">Confirmar contraseña *</label>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-white/50 uppercase tracking-widest block">
+                        Confirmar contraseña *
+                      </label>
                       <input
-                        className="form-control-gob w-full"
+                        className="form-control w-full"
                         type="password"
                         value={form.confirmPassword}
                         onChange={set("confirmPassword")}
@@ -257,52 +376,118 @@ export default function RegisterPage() {
                     </div>
                   </div>
 
-                  {error && <p className="text-red-600 font-bold bg-red-50 p-4 border-l-4 border-red-600">{error}</p>}
+                  {error && (
+                    <div
+                      className="rounded-lg px-4 py-3"
+                      style={{
+                        background: "rgba(239,68,68,0.10)",
+                        border: "1px solid rgba(239,68,68,0.20)",
+                      }}
+                    >
+                      <p className="text-red-400 text-sm font-medium">{error}</p>
+                    </div>
+                  )}
 
                   <button
                     type="submit"
-                    className="btn-gob-primary w-full !py-6 !text-2xl !font-black flex items-center justify-center gap-4 shadow-xl hover:-translate-y-1 transition-all"
+                    className="w-full flex items-center justify-center gap-3 py-3 rounded-lg font-black text-sm uppercase tracking-wide transition-all hover:-translate-y-0.5"
+                    style={{
+                      background: "#00D47A",
+                      color: "#000",
+                      boxShadow: "0 0 24px rgba(0,212,122,0.35)",
+                    }}
                   >
-                    CONTINUAR <ArrowRight className="h-7 w-7" />
+                    CONTINUAR <ArrowRight className="h-5 w-5" />
                   </button>
+
+                  <p className="text-center text-white/30 text-sm">
+                    ¿Ya tienes cuenta?{" "}
+                    <Link
+                      href="/auth/signin"
+                      className="font-bold"
+                      style={{ color: "#00D47A" }}
+                    >
+                      Iniciar sesión
+                    </Link>
+                  </p>
                 </form>
               )}
 
+              {/* ── Step 2: Track selection ── */}
               {step === 2 && (
-                <form onSubmit={handleSubmit} className="space-y-10">
+                <form onSubmit={handleSubmit} className="space-y-7">
                   <div>
-                    <h2 className="text-3xl font-heading font-black text-[#1B1B1B] uppercase tracking-tight mb-2">
+                    <h2 className="font-sans font-black text-2xl text-white uppercase tracking-tight mb-1">
                       Track Sectorial ESG
                     </h2>
-                    <hr style={{ backgroundColor: '#9D2449', border: 'none', height: '6px', width: '100px', marginBottom: '24px' }} />
-                    <p className="text-lg text-[#545454] font-light">Seleccione el track que corresponde al giro de su empresa.</p>
+                    <div
+                      style={{
+                        background: "#00D47A",
+                        height: "2px",
+                        width: "48px",
+                        borderRadius: "2px",
+                        margin: "10px 0 14px",
+                      }}
+                    />
+                    <p className="text-white/40 text-sm font-light">
+                      Seleccione el track que corresponde al giro de su empresa.
+                    </p>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-6">
+                  <div className="grid grid-cols-1 gap-3">
                     {TRACKS.map(track => (
                       <button
                         key={track.id}
                         type="button"
-                        onClick={() => setForm(p => ({ ...p, track: track.id as "A" | "B" | "C" }))}
-                        className={cn(
-                          "flex items-start gap-6 p-8 border-2 text-left transition-all relative overflow-hidden",
-                          form.track === track.id
-                            ? "bg-[#F8F8F8] border-[#9D2449]"
-                            : "bg-white border-gray-100 hover:border-gray-200"
-                        )}
+                        onClick={() =>
+                          setForm(p => ({ ...p, track: track.id as "A" | "B" | "C" }))
+                        }
+                        className="flex items-start gap-5 p-5 rounded-xl text-left transition-all"
+                        style={{
+                          background:
+                            form.track === track.id
+                              ? "rgba(0,212,122,0.05)"
+                              : "rgba(255,255,255,0.03)",
+                          border:
+                            form.track === track.id
+                              ? "1px solid #00D47A"
+                              : "1px solid rgba(255,255,255,0.08)",
+                        }}
                       >
-                        <div className={cn(
-                          "h-12 w-12 flex items-center justify-center font-black text-xl border-2 shrink-0 transition-all",
-                          form.track === track.id ? "bg-[#9D2449] border-[#9D2449] text-white" : "border-gray-200 text-gray-300"
-                        )}>
+                        <div
+                          className="h-10 w-10 flex items-center justify-center font-black text-sm rounded-lg shrink-0 transition-all"
+                          style={{
+                            background:
+                              form.track === track.id
+                                ? "#00D47A"
+                                : "rgba(255,255,255,0.05)",
+                            color:
+                              form.track === track.id
+                                ? "#000"
+                                : "rgba(255,255,255,0.30)",
+                            border:
+                              form.track === track.id
+                                ? "none"
+                                : "1px solid rgba(255,255,255,0.08)",
+                          }}
+                        >
                           {track.id}
                         </div>
                         <div className="flex-1">
-                          <p className="font-black text-xl text-[#1B1B1B] uppercase mb-1">{track.label}</p>
-                          <p className="text-base text-[#545454] mb-4">{track.desc}</p>
+                          <p className="font-black text-sm text-white uppercase tracking-wide mb-1">
+                            {track.label}
+                          </p>
+                          <p className="text-white/40 text-xs mb-3">{track.desc}</p>
                           <div className="flex flex-wrap gap-2">
                             {track.docs.map(d => (
-                              <span key={d} className="text-[11px] px-3 py-1 font-bold bg-gray-200 text-gray-600 rounded-sm">
+                              <span
+                                key={d}
+                                className="text-[10px] px-2 py-0.5 font-bold rounded"
+                                style={{
+                                  background: "rgba(255,255,255,0.06)",
+                                  color: "rgba(255,255,255,0.40)",
+                                }}
+                              >
                                 {d}
                               </span>
                             ))}
@@ -312,32 +497,67 @@ export default function RegisterPage() {
                     ))}
                   </div>
 
-                  <label className="flex items-start gap-4 p-4 bg-gray-50 cursor-pointer border-l-4 border-[#BC955C]">
+                  <label
+                    className="flex items-start gap-3 p-4 rounded-xl cursor-pointer"
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={form.acceptTerms}
-                      onChange={e => setForm(p => ({ ...p, acceptTerms: e.target.checked }))}
-                      className="mt-1 h-5 w-5 accent-[#9D2449]"
+                      onChange={e =>
+                        setForm(p => ({ ...p, acceptTerms: e.target.checked }))
+                      }
+                      className="mt-0.5 h-4 w-4 shrink-0"
+                      style={{ accentColor: "#00D47A" }}
                     />
-                    <span className="text-base text-[#545454]">
-                      Acepto los <span className="text-[#9D2449] font-bold underline">términos y condiciones</span> y la política de privacidad institucional.
+                    <span className="text-sm text-white/50">
+                      Acepto los{" "}
+                      <span
+                        className="font-bold underline"
+                        style={{ color: "#00D47A" }}
+                      >
+                        términos y condiciones
+                      </span>{" "}
+                      y la política de privacidad institucional.
                     </span>
                   </label>
 
-                  {error && <p className="text-red-600 font-bold bg-red-50 p-4 border-l-4 border-red-600">{error}</p>}
+                  {error && (
+                    <div
+                      className="rounded-lg px-4 py-3"
+                      style={{
+                        background: "rgba(239,68,68,0.10)",
+                        border: "1px solid rgba(239,68,68,0.20)",
+                      }}
+                    >
+                      <p className="text-red-400 text-sm font-medium">{error}</p>
+                    </div>
+                  )}
 
-                  <div className="flex gap-6">
+                  <div className="flex gap-4">
                     <button
                       type="button"
                       onClick={() => setStep(1)}
-                      className="flex-1 py-6 border-2 border-gray-200 hover:border-gray-400 font-bold text-xl uppercase transition-all"
+                      className="flex-1 py-3 rounded-lg font-bold text-sm uppercase tracking-wide transition-all text-white/50 hover:text-white"
+                      style={{
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        background: "transparent",
+                      }}
                     >
                       Atrás
                     </button>
                     <button
                       type="submit"
                       disabled={loading}
-                      className="flex-[2] btn-gob-primary !py-6 !text-2xl !font-black shadow-xl hover:-translate-y-1 transition-all disabled:opacity-50"
+                      className="flex-[2] py-3 rounded-lg font-black text-sm uppercase tracking-wide transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                      style={{
+                        background: "#00D47A",
+                        color: "#000",
+                        boxShadow: "0 0 24px rgba(0,212,122,0.35)",
+                      }}
                     >
                       {loading ? "REGISTRANDO..." : "COMPLETAR REGISTRO"}
                     </button>
@@ -345,45 +565,82 @@ export default function RegisterPage() {
                 </form>
               )}
 
+              {/* ── Step 3: Success ── */}
               {step === 3 && (
-                <div className="text-center space-y-10">
-                  <div className="h-24 w-24 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-                    <CheckCircle className="h-12 w-12 text-green-600" />
+                <div className="text-center space-y-8">
+                  <div
+                    className="h-20 w-20 rounded-full flex items-center justify-center mx-auto"
+                    style={{
+                      background: "rgba(0,212,122,0.10)",
+                      border: "2px solid rgba(0,212,122,0.30)",
+                      boxShadow: "0 0 32px rgba(0,212,122,0.20)",
+                    }}
+                  >
+                    <CheckCircle className="h-10 w-10" style={{ color: "#00D47A" }} />
                   </div>
+
                   <div>
-                    <h1 className="text-4xl font-heading font-black text-[#1B1B1B] uppercase tracking-tight mb-4">
+                    <h1
+                      className="font-sans font-black text-3xl uppercase tracking-tight mb-3"
+                      style={{ color: "#00D47A" }}
+                    >
                       ¡Registro Exitoso!
                     </h1>
-                    <p className="text-xl text-[#545454] leading-relaxed max-w-lg mx-auto">
-                      Su empresa <strong className="text-[#1B1B1B]">{form.companyName}</strong> ha sido registrada en el padrón institucional.
+                    <p className="text-white/50 text-base leading-relaxed max-w-md mx-auto">
+                      Su empresa{" "}
+                      <strong className="text-white">{form.companyName}</strong>{" "}
+                      ha sido registrada en el padrón institucional.
                     </p>
                   </div>
-                  <div className="bg-[#F8F8F8] p-8 text-left space-y-4">
-                    <p className="text-[#1B1B1B] font-black text-lg mb-4 uppercase tracking-widest">Próximos Pasos:</p>
+
+                  <div
+                    className="p-6 rounded-xl text-left space-y-3"
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <p className="text-white/30 font-black text-xs uppercase tracking-widest mb-4">
+                      Próximos Pasos
+                    </p>
                     {[
                       "Inicie sesión con sus credenciales",
                       "Siga el track sectorial seleccionado",
                       "Cargue la documentación técnica requerida",
                     ].map((s, i) => (
-                      <div key={i} className="flex items-center gap-4">
-                        <span className="h-8 w-8 bg-[#9D2449] text-white font-black flex items-center justify-center rounded-full shrink-0">
+                      <div key={i} className="flex items-center gap-3">
+                        <span
+                          className="h-6 w-6 font-black text-xs flex items-center justify-center rounded-full shrink-0"
+                          style={{ background: "#00D47A", color: "#000" }}
+                        >
                           {i + 1}
                         </span>
-                        <span className="text-lg text-[#545454]">{s}</span>
+                        <span className="text-sm text-white/60">{s}</span>
                       </div>
                     ))}
                   </div>
-                  <Link href="/auth/signin"
-                    className="flex items-center justify-center gap-4 w-full btn-gob-primary !py-6 !text-2xl !font-black shadow-2xl hover:-translate-y-1 transition-all">
-                    INICIAR SESIÓN <ArrowRight className="h-8 w-8" />
+
+                  <Link
+                    href="/auth/signin"
+                    className="flex items-center justify-center gap-3 w-full py-3 rounded-lg font-black text-sm uppercase tracking-wide transition-all hover:-translate-y-0.5"
+                    style={{
+                      background: "#00D47A",
+                      color: "#000",
+                      boxShadow: "0 0 24px rgba(0,212,122,0.35)",
+                    }}
+                  >
+                    INICIAR SESIÓN <ArrowRight className="h-5 w-5" />
                   </Link>
                 </div>
               )}
 
-              <div className="mt-12 text-center pt-8 border-t border-gray-100">
-                <p className="text-lg text-[#545454]">
-                  ¿Dificultades técnicas?{' '}
-                  <span className="text-[#9D2449] font-bold underline cursor-pointer">Soporte Institutional</span>
+              {/* Footer */}
+              <div
+                className="mt-8 pt-5"
+                style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+              >
+                <p className="text-center text-white/20 text-xs">
+                  CETIEM S.C. · CIPRE HOLDING
                 </p>
               </div>
             </div>
