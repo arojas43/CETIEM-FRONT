@@ -59,21 +59,22 @@ interface Props {
   certStats?: CertStats | null;
 }
 
+// Moodboard status colors: Approved=#9fc031, In-progress=#ffbf00, Review=#1e7d93, Hard-stop=#aa3939
 const DOC_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ComponentType<{ className?: string }> }> = {
-  PENDING: { label: 'Pendiente', color: 'text-muted-foreground', bg: 'bg-economia-gris/10', icon: Clock },
-  PROCESSING: { label: 'Procesando', color: 'text-[#FBBF24]', bg: 'bg-economia-warning/10', icon: RefreshCw },
-  INDEXED: { label: 'Indexado', color: 'text-[#00C8E0]', bg: 'bg-economia-info/10', icon: Search },
-  ANALYZED: { label: 'Analizado', color: 'text-[#00D47A]', bg: 'bg-economia-success/10', icon: CheckCircle },
-  FAILED: { label: 'Fallido', color: 'text-economia-error', bg: 'bg-economia-error/10', icon: AlertCircle },
+  PENDING:    { label: 'Pendiente',  color: 'text-white/40',      bg: 'bg-white/5',                    icon: Clock },
+  PROCESSING: { label: 'Procesando', color: 'text-[#ffbf00]',     bg: 'bg-[#ffbf00]/10',               icon: RefreshCw },
+  INDEXED:    { label: 'Indexado',   color: 'text-[#1e7d93]',     bg: 'bg-[#1e7d93]/10',               icon: Search },
+  ANALYZED:   { label: 'Analizado',  color: 'text-[#9fc031]',     bg: 'bg-[#9fc031]/10',               icon: CheckCircle },
+  FAILED:     { label: 'Fallido',    color: 'text-[#aa3939]',     bg: 'bg-[#aa3939]/10',               icon: AlertCircle },
 }
 
 const CERT_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  APPROVED: { label: 'Aprobado', color: 'text-[#00D47A]', bg: 'bg-economia-success/10' },
-  IN_REVIEW: { label: 'En revisión', color: 'text-[#FBBF24]', bg: 'bg-economia-warning/10' },
-  REJECTED: { label: 'Rechazado', color: 'text-economia-error', bg: 'bg-economia-error/10' },
-  REVOKED: { label: 'Revocado', color: 'text-economia-error', bg: 'bg-economia-error/10' },
-  CAPA_OPEN: { label: 'CAPA Abierta', color: 'text-[#FBBF24]', bg: 'bg-economia-warning/10' },
-  DRAFT: { label: 'Borrador', color: 'text-muted-foreground', bg: 'bg-muted' },
+  APPROVED:  { label: 'Aprobado',    color: 'text-[#9fc031]',  bg: 'bg-[#9fc031]/10' },
+  IN_REVIEW: { label: 'En revisión', color: 'text-[#1e7d93]',  bg: 'bg-[#1e7d93]/10' },
+  REJECTED:  { label: 'Rechazado',   color: 'text-[#aa3939]',  bg: 'bg-[#aa3939]/10' },
+  REVOKED:   { label: 'Revocado',    color: 'text-[#aa3939]',  bg: 'bg-[#aa3939]/10' },
+  CAPA_OPEN: { label: 'CAPA Abierta',color: 'text-[#ffbf00]',  bg: 'bg-[#ffbf00]/10' },
+  DRAFT:     { label: 'Borrador',    color: 'text-white/30',   bg: 'bg-white/5' },
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -102,10 +103,10 @@ function DonutChart({ analyzed, processing, indexed, failed, total }: DocStats) 
   const r = 44; const cx = 56; const cy = 56
   const circ = 2 * Math.PI * r
   const data = [
-    { pct: analyzed / safeTotal, color: '#00D47A' },
-    { pct: processing / safeTotal, color: '#ADFF4F' },
-    { pct: indexed / safeTotal, color: '#00C8E0' },
-    { pct: failed / safeTotal, color: '#EF4444' },
+    { pct: analyzed / safeTotal, color: '#9fc031' },
+    { pct: processing / safeTotal, color: '#ffbf00' },
+    { pct: indexed / safeTotal, color: '#1e7d93' },
+    { pct: failed / safeTotal, color: '#aa3939' },
   ]
   let offset = 0
   const segments = data.filter(d => d.pct > 0).map(d => {
@@ -162,7 +163,7 @@ function DictamenBanner({ certStats, companyId: _companyId }: { certStats: CertS
           </div>
           <Link
             href="/dashboard/mi-certificado"
-            className="shrink-0 flex items-center gap-2 bg-economia-success hover:bg-economia-success/90 text-black font-semibold text-sm px-4 py-2 rounded-xl transition-colors"
+            className="shrink-0 flex items-center gap-2 bg-[#00D47A] hover:bg-[#00D47A]/90 text-black font-semibold text-sm px-4 py-2 rounded-xl transition-colors"
           >
             <Download className="h-4 w-4" aria-hidden="true" /> Ver Certificado
           </Link>
@@ -230,7 +231,7 @@ function DictamenBanner({ certStats, companyId: _companyId }: { certStats: CertS
             )}
           </div>
           {certStatus === 'CAPA_OPEN' && capaOpen > 0 && (
-            <Link href="/dashboard/capa" className="mt-3 inline-flex items-center gap-2 text-xs bg-economia-warning text-black font-medium px-3 py-1.5 rounded-lg hover:bg-economia-warning/90 transition-colors">
+            <Link href="/dashboard/capa" className="mt-3 inline-flex items-center gap-2 text-xs bg-[#FBBF24] text-black font-medium px-3 py-1.5 rounded-lg hover:bg-[#FBBF24]/90 transition-colors">
               Gestionar acciones correctivas <ChevronRight className="h-3 w-3" />
             </Link>
           )}
@@ -256,7 +257,7 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
   ]
 
   return (
-    <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#F5F5F5]/30">
+    <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#0A0A0A]">
       {/* Breadcrumbs — ol.breadcrumb con icon-home */}
       <nav aria-label="Ubicación" className="mb-2">
         <ol className="breadcrumb">
@@ -276,7 +277,7 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
           <p className="text-muted-foreground text-sm font-medium">Gestión de cumplimiento ambiental, social y de gobernanza.</p>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/dashboard/upload" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg font-black text-black text-sm uppercase tracking-widest transition-all !px-10 !py-3 flex items-center gap-2">
+          <Link href="/dashboard/upload" className="btn-cetiem-primary !px-10 !py-3">
             <Upload className="h-4 w-4" /> SUBIR DOCUMENTACIÓN
           </Link>
         </div>
@@ -377,7 +378,7 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
               <div className="text-center py-12">
                 <Upload className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
                 <p className="text-muted-foreground text-sm font-medium mb-6">Aún no has subido documentos.</p>
-                <Link href="/dashboard/upload" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg font-black text-black text-sm uppercase tracking-widest transition-all !px-8">
+                <Link href="/dashboard/upload" className="btn-cetiem-primary !px-8">
                   Subir mi primer documento
                 </Link>
               </div>
@@ -417,10 +418,10 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
             </div>
             <div className="space-y-3">
               {[
-                { label: 'Analizados', color: 'bg-economia-success', count: stats.analyzed },
-                { label: 'Procesando', color: 'bg-economia-warning', count: stats.processing },
-                { label: 'Indexados', color: 'bg-economia-info', count: stats.indexed },
-                { label: 'Fallidos', color: 'bg-economia-error', count: stats.failed },
+                { label: 'Analizados', color: 'bg-[#9fc031]', count: stats.analyzed },
+                { label: 'Procesando', color: 'bg-[#ffbf00]', count: stats.processing },
+                { label: 'Indexados',  color: 'bg-[#1e7d93]', count: stats.indexed },
+                { label: 'Fallidos',   color: 'bg-[#aa3939]', count: stats.failed },
               ].map(item => (
                 <div key={item.label} className="flex items-center gap-3">
                   <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', item.color)} />
@@ -499,7 +500,7 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
   ]
 
   return (
-    <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#F5F5F5]/30">
+    <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#0A0A0A]">
       {/* Breadcrumbs — ol.breadcrumb con icon-home */}
       <nav aria-label="Ubicación" className="mb-2">
         <ol className="breadcrumb">
@@ -519,7 +520,7 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
           <p className="text-muted-foreground text-sm font-medium">Validación de expedientes y emisión de dictámenes institucionales.</p>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/dashboard/queue" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg font-black text-black text-sm uppercase tracking-widest transition-all !px-10 !py-3">
+          <Link href="/dashboard/queue" className="btn-cetiem-primary !px-10 !py-3">
             IR A COLA DE REVISIÓN
           </Link>
         </div>
@@ -596,7 +597,7 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
                     <StatusBadge status={doc.status} />
                     <Link
                       href={`/dashboard/review/company/${doc.userId}`}
-                      className="flex items-center gap-1 text-xs bg-economia-warning hover:bg-economia-warning/90 text-black font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0"
+                      className="flex items-center gap-1 text-xs bg-[#FBBF24] hover:bg-[#FBBF24]/90 text-black font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0"
                     >
                       <Eye className="h-3 w-3" /> Revisar
                     </Link>
@@ -644,10 +645,10 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
                 return (
                   <Link key={doc.id} href={`/dashboard/documents/${doc.id}`} className="flex items-start gap-2 hover:opacity-80 transition-opacity">
                     <div className={cn("h-1.5 w-1.5 rounded-full mt-1.5 shrink-0",
-                      certStatus === 'APPROVED' ? 'bg-economia-success' :
-                        certStatus === 'REJECTED' ? 'bg-economia-error' :
-                          doc.status === 'ANALYZED' ? 'bg-economia-info' :
-                            doc.status === 'PROCESSING' ? 'bg-economia-warning' : 'bg-economia-gris'
+                      certStatus === 'APPROVED' ? 'bg-[#9fc031]' :
+                        certStatus === 'REJECTED' ? 'bg-[#aa3939]' :
+                          doc.status === 'ANALYZED' ? 'bg-[#1e7d93]' :
+                            doc.status === 'PROCESSING' ? 'bg-[#ffbf00]' : 'bg-white/20'
                     )} />
                     <div className="flex-1 min-w-0">
                       <p className="text-foreground text-xs font-medium truncate">{doc.name}</p>
@@ -688,7 +689,7 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
   ]
 
   return (
-    <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#F5F5F5]/30">
+    <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#0A0A0A]">
       {/* Breadcrumbs — ol.breadcrumb con icon-home */}
       <nav aria-label="Ubicación" className="mb-2">
         <ol className="breadcrumb">
@@ -711,7 +712,7 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
           <button className="flex items-center gap-2 bg-[#111111] border border-border/60 shadow-sm px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-white/4 transition-all">
             <Download className="h-4 w-4" aria-hidden="true" /> Exportar Reporte
           </button>
-          <Link href="/dashboard/upload" className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg font-black text-black text-sm uppercase tracking-widest transition-all !px-8 !py-3 flex items-center gap-2">
+          <Link href="/dashboard/upload" className="btn-cetiem-primary !px-8 !py-3">
             <Plus className="h-4 w-4" aria-hidden="true" /> Cargar Documento
           </Link>
         </div>
@@ -835,10 +836,10 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
               return (
                 <Link key={doc.id} href={`/dashboard/documents/${doc.id}`} className={cn("flex items-center gap-4 p-3 rounded-lg transition-all border border-transparent hover:border-primary/20 hover:bg-[#111111] hover:shadow-sm", i % 2 === 0 ? "bg-muted/60" : "")}>
                   <div className={cn("h-2 w-2 rounded-full shrink-0",
-                    certStatus === 'APPROVED' ? 'bg-economia-success' :
-                      certStatus === 'REJECTED' ? 'bg-economia-error' :
-                        doc.status === 'ANALYZED' ? 'bg-economia-info' :
-                          doc.status === 'PROCESSING' ? 'bg-economia-warning' : 'bg-economia-gris'
+                    certStatus === 'APPROVED' ? 'bg-[#9fc031]' :
+                      certStatus === 'REJECTED' ? 'bg-[#aa3939]' :
+                        doc.status === 'ANALYZED' ? 'bg-[#1e7d93]' :
+                          doc.status === 'PROCESSING' ? 'bg-[#ffbf00]' : 'bg-white/20'
                   )} />
                   <div className="flex-1 min-w-0">
                     <p className="text-foreground text-sm font-medium truncate">{doc.name}</p>

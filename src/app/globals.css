@@ -214,6 +214,77 @@
   .form-control::placeholder {
     color: rgba(255, 255, 255, 0.3);
   }
+
+  /* ── CETIEM accent bar (replaces pleca-dorada) ──── */
+  .pleca-dorada {
+    height: 3px;
+    width: 48px;
+    border-radius: 2px;
+    background: #00D47A;
+    margin-bottom: 16px;
+  }
+
+  /* ── Breadcrumb ─────────────────────────────────── */
+  .breadcrumb {
+    @apply flex items-center gap-2 text-xs text-white/30 font-bold uppercase tracking-widest;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 8px 0;
+  }
+  .breadcrumb li + li::before {
+    content: '/';
+    margin-right: 8px;
+    opacity: 0.3;
+  }
+  .breadcrumb li a,
+  .breadcrumb li a:hover {
+    color: rgba(255,255,255,0.4);
+    transition: color 0.15s;
+  }
+  .breadcrumb li a:hover { color: #00D47A; }
+  .breadcrumb li:last-child { color: rgba(255,255,255,0.60); }
+
+  /* ── Moodboard status badges ────────────────────── */
+  .status-approved {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded;
+    background: rgba(159,192,49,0.12);
+    color: #9fc031;
+    border: 1px solid rgba(159,192,49,0.30);
+  }
+  .status-progress {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded;
+    background: rgba(255,191,0,0.10);
+    color: #ffbf00;
+    border: 1px solid rgba(255,191,0,0.25);
+  }
+  .status-review {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded;
+    background: rgba(30,125,147,0.12);
+    color: #1e7d93;
+    border: 1px solid rgba(30,125,147,0.30);
+  }
+  .status-hardstop {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded;
+    background: rgba(170,57,57,0.12);
+    color: #aa3939;
+    border: 1px solid rgba(170,57,57,0.30);
+  }
+
+  /* ── Primary action button ──────────────────────── */
+  .btn-cetiem-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-black text-sm text-black uppercase tracking-widest transition-all;
+    background: #00D47A;
+    box-shadow: 0 0 20px rgba(0,212,122,0.30);
+  }
+  .btn-cetiem-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 28px rgba(0,212,122,0.45);
+  }
+  .btn-cetiem-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
 }
 
 @layer utilities {

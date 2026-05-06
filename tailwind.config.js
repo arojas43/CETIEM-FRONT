@@ -61,8 +61,17 @@ export default {
         economia: {
           success: "#00D47A",
           danger:  "#EF4444",
+          error:   "#EF4444",   // alias so both work
           warning: "#FBBF24",
           info:    "#00C8E0",
+          gris:    "#6B7280",
+        },
+        // Moodboard status colors (doc 8 — visual states)
+        status: {
+          approved:   "#9fc031",
+          progress:   "#ffbf00",
+          review:     "#1e7d93",
+          hardstop:   "#aa3939",
         },
       },
       borderRadius: {
@@ -72,7 +81,7 @@ export default {
       },
       fontFamily: {
         sans: ["var(--font-inter)", "'Inter'", "system-ui", "sans-serif"],
-        heading: ["var(--font-inter)", "'Inter'", "system-ui", "sans-serif"],
+        heading: ["var(--font-bricolage)", "'Bricolage Grotesque'", "var(--font-inter)", "'Inter'", "system-ui", "sans-serif"],
         mono: ["'JetBrains Mono'", "'Fira Code'", "monospace"],
       },
       boxShadow: {
