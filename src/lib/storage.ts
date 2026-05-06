@@ -1,4 +1,5 @@
 import { Storage, Bucket } from "@google-cloud/storage";
+import { join } from "path";
 import { localStorageService } from "./local-storage";
 
 /**
@@ -168,6 +169,92 @@ export class StorageService {
       size: file.metadata.size ? parseInt(file.metadata.size as string) : 0,
       updatedAt: file.metadata.updated ? new Date(file.metadata.updated as string) : new Date(),
     }));
+  }
+
+  /**
+   * Guarda un archivo usando un ID de documento ya asignado (el ID de la BD).
+   * Equivalente a localStorageService.saveFileWithId para que el caller no importe local-storage.
+   */
+  async saveFileWithId(
+    file: Buffer,
+    filename: string,
+    mimeType: string,
+    documentId: string
+  ): Promise<{ url: string; path?: string }> {
+    if (this.useLocal) {
+      const result = await localStorageService.saveFileWithId(file, filename, mimeType, documentId);
+      return { url: result.url, path: result.path };
+    }
+
+    const ext = filename.substring(filename.lastIndexOf('.'));
+    const destination = `documents/${documentId}/${documentId}${ext}`;
+    const bucket = await this.getBucket();
+    await bucket.file(destination).save(file, {
+      contentType: mimeType,
+      metadata: {
+        metadata: { documentId, originalFilename: filename, uploadedAt: new Date().toISOString() },
+      },
+    });
+    return { url: `gs://${this.bucketName}/${destination}` };
+  }
+
+  /**
+   * Obtiene metadatos de un documento guardado.
+   */
+  async getMetadata(documentId: string): Promise<{
+    originalFilename: string;
+    mimeType: string;
+    size: number;
+    uploadedAt: string;
+  } | null> {
+    if (this.useLocal) {
+      return localStorageService.getMetadata(documentId);
+    }
+    // GCS: metadata is stored in object custom metadata; fetch first file in prefix
+    try {
+      const bucket = await this.getBucket();
+      const [files] = await bucket.getFiles({ prefix: `documents/${documentId}/` });
+      if (!files.length) return null;
+      const meta = files[0].metadata.metadata as Record<string, string> | undefined;
+      if (!meta?.originalFilename) return null;
+      return {
+        originalFilename: meta.originalFilename,
+        mimeType: files[0].metadata.contentType as string,
+        size: parseInt(files[0].metadata.size as string || '0'),
+        uploadedAt: meta.uploadedAt || new Date().toISOString(),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Devuelve la ruta local del PDF de un documento para herramientas que necesitan
+   * acceso al sistema de archivos (e.g. pdftotext).
+   * En modo local devuelve la ruta directamente.
+   * En modo GCS descarga a /tmp (deuda conocida: no implementado aún).
+   */
+  async getLocalPath(documentId: string): Promise<string> {
+    const localPath = join(
+      process.env.LOCAL_STORAGE_PATH || './uploads',
+      documentId,
+      `${documentId}.pdf`
+    );
+
+    if (this.useLocal) {
+      return localPath;
+    }
+
+    // GCS mode: download to /tmp so pdftotext can access it
+    const { existsSync, writeFileSync } = await import('fs');
+    const { join: pathJoin } = await import('path');
+    const tmpPath = pathJoin('/tmp', `${documentId}.pdf`);
+    if (!existsSync(tmpPath)) {
+      const gcsPath = `documents/${documentId}/${documentId}.pdf`;
+      const [contents] = await this.storage!.bucket(this.bucketName!).file(gcsPath).download();
+      writeFileSync(tmpPath, contents);
+    }
+    return tmpPath;
   }
 
   /**

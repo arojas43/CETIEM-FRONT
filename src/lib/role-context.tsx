@@ -6,13 +6,9 @@ export type UserRole = "company" | "assessor" | "admin";
 
 interface RoleContextType {
   role: UserRole;
-  setRole: (role: UserRole) => void;
 }
 
-const RoleContext = createContext<RoleContextType>({
-  role: "company",
-  setRole: () => {},
-});
+const RoleContext = createContext<RoleContextType>({ role: "company" });
 
 export function RoleProvider({
   children,
@@ -21,28 +17,16 @@ export function RoleProvider({
   children: ReactNode;
   defaultRole?: UserRole;
 }) {
+  // Role is derived exclusively from the server session — never from localStorage.
+  // This prevents stale/spoofed roles when switching accounts or after logout.
   const [role, setRoleState] = useState<UserRole>(defaultRole ?? "company");
 
   useEffect(() => {
-    if (defaultRole) {
-      // Session role takes precedence — always sync
-      setRoleState(defaultRole);
-      localStorage.setItem("cetiem_role", defaultRole);
-      return;
-    }
-    const saved = localStorage.getItem("cetiem_role") as UserRole | null;
-    if (saved && ["company", "assessor", "admin"].includes(saved)) {
-      setRoleState(saved);
-    }
+    if (defaultRole) setRoleState(defaultRole);
   }, [defaultRole]);
 
-  const setRole = (r: UserRole) => {
-    setRoleState(r);
-    localStorage.setItem("cetiem_role", r);
-  };
-
   return (
-    <RoleContext.Provider value={{ role, setRole }}>
+    <RoleContext.Provider value={{ role }}>
       {children}
     </RoleContext.Provider>
   );

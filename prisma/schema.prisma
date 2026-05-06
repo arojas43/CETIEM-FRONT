@@ -53,8 +53,12 @@ model User {
   capaTickets            CapaTicket[]
   companyCertifications  CompanyCertification[]
   notifications          Notification[]
+  aiDictamenes           AiDictamen[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  @@index([assessorId])
+  @@index([role])
 }
 
 model Account {
@@ -114,6 +118,9 @@ model Document {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }
 
 enum DocumentStatus {
@@ -153,6 +160,9 @@ model PageIndex {
   children   PageIndex[] @relation("PageIndexHierarchy")
   parentId   String?
   createdAt  DateTime @default(now())
+
+  @@index([documentId])
+  @@index([parentId])
 }
 
 model Certification {
@@ -162,7 +172,7 @@ model Certification {
   status         CertificationStatus @default(DRAFT)
   requirements   Json     // { verdict, notes, assessorId, assessorEmail, assessedAt, vlap, confidenceScore, aiRecommendation }
   documentId     String
-  document       Document @relation(fields: [documentId], references: [id])
+  document       Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   findings       Finding[]
   // ESG Certificate fields
   esgScore       Float?
@@ -173,6 +183,8 @@ model Certification {
   revokeReason   String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  @@index([documentId])
 }
 
 enum CertificationType {
@@ -234,7 +246,7 @@ enum FindingStatus {
 model CapaTicket {
   id                     String                @id @default(cuid())
   documentId             String
-  document               Document              @relation(fields: [documentId], references: [id])
+  document               Document              @relation(fields: [documentId], references: [id], onDelete: Cascade)
   findingId              String?               @unique
   finding                Finding?              @relation(fields: [findingId], references: [id])
   userId                 String
@@ -250,6 +262,10 @@ model CapaTicket {
   closedAt               DateTime?
   createdAt              DateTime              @default(now())
   updatedAt              DateTime              @updatedAt
+
+  @@index([userId])
+  @@index([documentId])
+  @@index([companyCertificationId])
 }
 
 enum CapaStatus {
@@ -306,4 +322,31 @@ model Notification {
   read      Boolean  @default(false)
   link      String?
   createdAt DateTime @default(now())
+}
+
+/// Dictamen preliminar generado automáticamente por IA tras analizar los docs de una empresa.
+/// El assessor lo usa como punto de partida — puede aceptar, editar o descartar cada hallazgo.
+model AiDictamen {
+  id          String           @id @default(cuid())
+  companyId   String
+  company     User             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  status      AiDictamenStatus @default(GENERATING)
+  /// { vigencia, legibilidad, autoria, pertinencia } — cada uno: { suggestion, confidence, rationale }
+  vlap        Json?
+  /// Array de AiDictamenFinding: { type, severity, title, description, recommendation, documentId?, page? }
+  findings    Json             @default("[]")
+  summary     String?          @db.Text
+  modelUsed   String?
+  docIds      String[]         // IDs de documentos que se analizaron
+  errorMsg    String?
+  generatedAt DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([companyId])
+}
+
+enum AiDictamenStatus {
+  GENERATING
+  READY
+  FAILED
 }

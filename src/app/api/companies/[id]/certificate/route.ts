@@ -47,7 +47,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const trackMap: Record<string, string> = { A: "Industria", B: "Construcción", C: "Tecnología/Servicios" };
   const track = company?.track ? trackMap[company.track] ?? company.track : "—";
 
-  const ncCount  = findings.filter(f => f.type === "NON_COMPLIANCE").length;
   const obsCount = findings.filter(f => f.type === "OBSERVATION").length;
   const compCount = findings.filter(f => f.type === "COMPLIANCE").length;
 
@@ -58,28 +57,28 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Certificado ESG — ${companyName}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Noto+Sans:wght@400;500;600;700&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', sans-serif; background: #f5f5f0; color: #1a1a1a; }
-    .page { max-width: 820px; margin: 40px auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 40px rgba(0,0,0,0.12); }
-    .header { background: linear-gradient(135deg, #0f1a0f 0%, #1a2e1a 100%); padding: 40px 48px; position: relative; }
+    body { font-family: 'Noto Sans', sans-serif; background: #f5f5f0; color: #161a1d; }
+    .page { max-width: 820px; margin: 40px auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 40px rgba(0,0,0,0.12); }
+    .header { background: linear-gradient(135deg, #161a1d 0%, #1a1d21 100%); padding: 40px 48px; position: relative; border-top: 4px solid #9b2247; }
     .header-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
-    .logo-circle { width: 44px; height: 44px; border-radius: 50%; background: #9fc031; display: flex; align-items: center; justify-content: center; }
-    .logo-circle svg { width: 22px; height: 22px; fill: black; }
-    .logo-text { color: #9fc031; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .logo-circle { width: 44px; height: 44px; border-radius: 4px; background: #9b2247; display: flex; align-items: center; justify-content: center; }
+    .logo-circle svg { width: 22px; height: 22px; fill: white; }
+    .logo-text { font-family: 'Playfair Display', Georgia, serif; color: #e6d194; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
     .logo-sub { color: rgba(255,255,255,0.4); font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin-top: 1px; }
     .seal { position: absolute; right: 48px; top: 40px; text-align: right; }
-    .seal-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(159,192,49,0.15); border: 1px solid rgba(159,192,49,0.4); border-radius: 100px; padding: 6px 16px; }
-    .seal-dot { width: 8px; height: 8px; border-radius: 50%; background: #9fc031; }
-    .seal-text { color: #9fc031; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; }
-    .header-title { color: white; font-size: 32px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+    .seal-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(155,34,71,0.15); border: 1px solid rgba(155,34,71,0.4); border-radius: 4px; padding: 6px 16px; }
+    .seal-dot { width: 8px; height: 8px; border-radius: 50%; background: #9b2247; }
+    .seal-text { color: #e6d194; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; }
+    .header-title { font-family: 'Playfair Display', Georgia, serif; color: white; font-size: 32px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
     .header-sub { color: rgba(255,255,255,0.45); font-size: 13px; }
     .body { padding: 40px 48px; }
     .company-name { font-size: 26px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
     .company-meta { font-size: 13px; color: #666; margin-bottom: 32px; }
     .score-row { display: flex; gap: 16px; margin-bottom: 32px; }
-    .score-card { flex: 1; background: #f9fdf0; border: 1px solid #d4e89a; border-radius: 12px; padding: 20px; text-align: center; }
-    .score-value { font-size: 36px; font-weight: 700; color: #5a8a00; }
+    .score-card { flex: 1; background: #f9faf9; border: 1px solid #c5d9d7; border-radius: 8px; padding: 20px; text-align: center; }
+    .score-value { font-size: 36px; font-weight: 700; color: #1e5b4f; }
     .score-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
     .info-card { background: #f8f8f8; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
     .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -90,10 +89,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .finding-pill { background: #f5f5f5; border-radius: 8px; padding: 12px; text-align: center; }
     .finding-count { font-size: 24px; font-weight: 700; margin-bottom: 2px; }
     .finding-label { font-size: 11px; color: #888; }
-    .finding-nc  { color: #c94040; }
-    .finding-obs { color: #cc8800; }
-    .finding-comp{ color: #5a8a00; }
-    .notes-box { background: #fffff8; border-left: 3px solid #cc8800; border-radius: 0 8px 8px 0; padding: 16px 20px; margin-bottom: 20px; font-style: italic; color: #555; font-size: 14px; line-height: 1.6; }
+    .finding-nc  { color: #9b2247; }
+    .finding-obs { color: #a57f2c; }
+    .finding-comp{ color: #1e5b4f; }
+    .notes-box { background: #fffff8; border-left: 3px solid #a57f2c; border-radius: 0 8px 8px 0; padding: 16px 20px; margin-bottom: 20px; font-style: italic; color: #555; font-size: 14px; line-height: 1.6; }
     .token-box { background: #f0f0f0; border-radius: 8px; padding: 14px 18px; font-family: monospace; font-size: 12px; color: #444; word-break: break-all; margin-bottom: 20px; }
     .footer { border-top: 1px solid #eee; padding: 24px 48px; display: flex; justify-content: space-between; align-items: center; }
     .footer-left { font-size: 11px; color: #999; line-height: 1.5; }
@@ -110,7 +109,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
           <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
         </div>
         <div>
-          <div class="logo-text">CETIEM</div>
+          <div class="logo-text">ECONOMIA</div>
           <div class="logo-sub">Centro Tecnológico ESG</div>
         </div>
       </div>
@@ -170,7 +169,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
     <div class="footer">
       <div class="footer-left">
-        CETIEM — Certificación ESG<br/>
+        SECRETARIA DE ECONOMIA — Certificación ESG<br/>
         Este documento tiene validez oficial y puede ser verificado.
       </div>
       <div class="footer-right">

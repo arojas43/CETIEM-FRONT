@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { RefreshCw, Brain, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ export default function ProcessDocumentButton({
   currentDomain,
   currentStatus,
 }: ProcessDocumentButtonProps) {
+  const router = useRouter();
   const [processing, setProcessing] = useState(false);
   const [domain, setDomain] = useState(currentDomain || "INDUSTRIA");
   const [mode, setMode] = useState<ExtractionMode>('auto');
@@ -62,7 +64,7 @@ export default function ProcessDocumentButton({
 
       if (response.ok && result.success) {
         alert(`✅ Documento procesado exitosamente!\n\nEntidades: ${result.document.entities}\nÍndices: ${result.document.indices}\nTiempo: ${result.document.duration}s`);
-        window.location.reload();
+        router.refresh();
       } else {
         alert(`❌ Error al procesar: ${result.error || result.message}`);
       }
@@ -78,27 +80,27 @@ export default function ProcessDocumentButton({
 
   return (
     <div className={cn(
-      "bg-cetiem-card rounded-2xl p-5 h-full flex flex-col",
-      isPendingOrFailed ? "border border-cetiem-amber/30" : "border border-white/5"
+      "bg-card rounded-2xl p-5 h-full flex flex-col",
+      isPendingOrFailed ? "border border-economia-warning/30" : "border border-border"
     )}>
       <div className={cn(
         "h-10 w-10 rounded-xl flex items-center justify-center mb-3",
-        isPendingOrFailed ? "bg-cetiem-amber/10" : "bg-cetiem-gray/10"
+        isPendingOrFailed ? "bg-economia-warning/10" : "bg-economia-gris/10"
       )}>
-        <Brain className={cn("h-5 w-5", isPendingOrFailed ? "text-cetiem-amber" : "text-cetiem-gray")} />
+        <Brain className={cn("h-5 w-5", isPendingOrFailed ? "text-economia-warning" : "text-muted-foreground")} />
       </div>
-      <h3 className="font-heading font-semibold text-white mb-1">Procesar Documento</h3>
-      <p className="text-cetiem-gray text-xs mb-4 flex-1">Ejecuta el análisis de IA manualmente</p>
+      <h3 className="font-heading font-semibold text-foreground mb-1">Procesar Documento</h3>
+      <p className="text-muted-foreground text-xs mb-4 flex-1">Ejecuta el análisis de IA manualmente</p>
 
       <div className="space-y-3">
         {/* Dominio */}
         <div>
-          <label className="text-xs text-cetiem-gray mb-1 block">Dominio de análisis:</label>
+          <label className="text-xs text-muted-foreground mb-1 block">Dominio de análisis:</label>
           <select
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
             disabled={processing}
-            className="w-full h-8 px-2 border border-white/10 rounded-lg text-sm bg-white/5 text-white focus:outline-none focus:border-cetiem-green disabled:opacity-50"
+            className="w-full h-8 px-2 border border-border rounded-lg text-sm bg-muted text-foreground focus:outline-none focus:border-economia-guinda disabled:opacity-50"
           >
             <option value="INDUSTRIA">🏭 Industria</option>
             <option value="CONSTRUCCION">🏗️ Construcción</option>
@@ -108,7 +110,7 @@ export default function ProcessDocumentButton({
 
         {/* Modo de extracción */}
         <div>
-          <label className="text-xs text-cetiem-gray mb-1 block">Modo de extracción del grafo:</label>
+          <label className="text-xs text-muted-foreground mb-1 block">Modo de extracción del grafo:</label>
           <div className="grid grid-cols-3 gap-1">
             {(Object.keys(MODE_LABELS) as ExtractionMode[]).map((m) => (
               <button
@@ -119,34 +121,34 @@ export default function ProcessDocumentButton({
                 className={cn(
                   "py-1.5 px-1 rounded-lg text-xs font-medium transition-colors border",
                   mode === m
-                    ? "bg-cetiem-green/20 border-cetiem-green/50 text-cetiem-green"
-                    : "bg-white/5 border-white/10 text-cetiem-gray hover:border-white/20"
+                    ? "bg-economia-guinda/20 border-economia-guinda/50 text-economia-guinda"
+                    : "bg-muted border-border text-muted-foreground hover:border-border"
                 )}
               >
                 {MODE_LABELS[m].icon} {MODE_LABELS[m].label}
               </button>
             ))}
           </div>
-          <p className="text-cetiem-gray/60 text-[10px] mt-1">{MODE_LABELS[mode].desc}</p>
+          <p className="text-muted-foreground/60 text-[10px] mt-1">{MODE_LABELS[mode].desc}</p>
         </div>
 
         {/* Config expandible para directed/mixed */}
         {needsConfig && (
-          <div className="border border-white/10 rounded-xl overflow-hidden">
+          <div className="border border-border rounded-xl overflow-hidden">
             <button
               onClick={() => setShowConfig(!showConfig)}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs text-cetiem-gray hover:text-white transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               <span>Configuración de extracción</span>
               {showConfig ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
 
             {showConfig && (
-              <div className="px-3 pb-3 space-y-2.5 border-t border-white/10 pt-2.5">
+              <div className="px-3 pb-3 space-y-2.5 border-t border-border pt-2.5">
                 {/* Temas de enfoque */}
                 <div>
-                  <label className="text-[10px] text-cetiem-gray mb-1 block">
-                    Temas a enfocar <span className="text-white/30">(separados por coma)</span>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    Temas a enfocar <span className="text-foreground/30">(separados por coma)</span>
                   </label>
                   <input
                     type="text"
@@ -154,14 +156,14 @@ export default function ProcessDocumentButton({
                     onChange={(e) => setFocusTopics(e.target.value)}
                     disabled={processing}
                     placeholder="ej: diagnóstico de piel, rituales de pureza"
-                    className="w-full h-7 px-2 text-xs border border-white/10 rounded-lg bg-white/5 text-white placeholder-white/20 focus:outline-none focus:border-cetiem-green disabled:opacity-50"
+                    className="w-full h-7 px-2 text-xs border border-border rounded-lg bg-muted text-foreground placeholder-white/20 focus:outline-none focus:border-economia-guinda disabled:opacity-50"
                   />
                 </div>
 
                 {/* Tipos de entidad personalizados */}
                 <div>
-                  <label className="text-[10px] text-cetiem-gray mb-1 block">
-                    Tipos de entidad extra <span className="text-white/30">(uno por línea: TIPO: descripción)</span>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    Tipos de entidad extra <span className="text-foreground/30">(uno por línea: TIPO: descripción)</span>
                   </label>
                   <textarea
                     value={customEntityTypes}
@@ -169,14 +171,14 @@ export default function ProcessDocumentButton({
                     disabled={processing}
                     placeholder={"RITUAL: Ritual o ceremonia religiosa\nPRIEST: Sacerdote o líder religioso"}
                     rows={3}
-                    className="w-full px-2 py-1.5 text-xs border border-white/10 rounded-lg bg-white/5 text-white placeholder-white/20 focus:outline-none focus:border-cetiem-green disabled:opacity-50 resize-none font-mono"
+                    className="w-full px-2 py-1.5 text-xs border border-border rounded-lg bg-muted text-foreground placeholder-white/20 focus:outline-none focus:border-economia-guinda disabled:opacity-50 resize-none font-mono"
                   />
                 </div>
 
                 {/* Tipos de relación personalizados */}
                 <div>
-                  <label className="text-[10px] text-cetiem-gray mb-1 block">
-                    Tipos de relación extra <span className="text-white/30">(uno por línea: TIPO: descripción)</span>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    Tipos de relación extra <span className="text-foreground/30">(uno por línea: TIPO: descripción)</span>
                   </label>
                   <textarea
                     value={customRelationTypes}
@@ -184,14 +186,14 @@ export default function ProcessDocumentButton({
                     disabled={processing}
                     placeholder={"PURIFIES: Purifica a persona\nDIAGNOSES: Diagnóstica condición"}
                     rows={2}
-                    className="w-full px-2 py-1.5 text-xs border border-white/10 rounded-lg bg-white/5 text-white placeholder-white/20 focus:outline-none focus:border-cetiem-green disabled:opacity-50 resize-none font-mono"
+                    className="w-full px-2 py-1.5 text-xs border border-border rounded-lg bg-muted text-foreground placeholder-white/20 focus:outline-none focus:border-economia-guinda disabled:opacity-50 resize-none font-mono"
                   />
                 </div>
 
                 {/* Instrucciones adicionales */}
                 <div>
-                  <label className="text-[10px] text-cetiem-gray mb-1 block">
-                    Instrucciones adicionales <span className="text-white/30">(texto libre)</span>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    Instrucciones adicionales <span className="text-foreground/30">(texto libre)</span>
                   </label>
                   <textarea
                     value={instructions}
@@ -199,7 +201,7 @@ export default function ProcessDocumentButton({
                     disabled={processing}
                     placeholder="ej: presta especial atención a los procedimientos descritos en cada versículo"
                     rows={2}
-                    className="w-full px-2 py-1.5 text-xs border border-white/10 rounded-lg bg-white/5 text-white placeholder-white/20 focus:outline-none focus:border-cetiem-green disabled:opacity-50 resize-none"
+                    className="w-full px-2 py-1.5 text-xs border border-border rounded-lg bg-muted text-foreground placeholder-white/20 focus:outline-none focus:border-economia-guinda disabled:opacity-50 resize-none"
                   />
                 </div>
               </div>
@@ -213,8 +215,8 @@ export default function ProcessDocumentButton({
           className={cn(
             "w-full flex items-center justify-center gap-2 font-medium text-sm py-2 rounded-xl transition-colors disabled:opacity-50",
             isPendingOrFailed
-              ? "bg-cetiem-amber hover:bg-cetiem-amber/90 text-white"
-              : "border border-white/10 hover:border-cetiem-green/40 text-white",
+              ? "bg-economia-warning hover:bg-economia-warning/90 text-primary-foreground"
+              : "border border-border hover:border-economia-guinda/40 text-foreground",
             processing && "animate-pulse"
           )}
         >

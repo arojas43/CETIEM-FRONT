@@ -82,11 +82,9 @@ export interface PageIndexDocument {
 }
 
 export class PageIndexService {
-  private useLocal: boolean;
   private pdfjsLib: any;
 
   constructor() {
-    this.useLocal = !process.env.PAGEINDEX_API_KEY || process.env.PAGEINDEX_LOCAL_MODE === "true";
     this.pdfjsLib = null;
   }
 
@@ -372,7 +370,7 @@ ${text.slice(0, 30000)}`;
       endPage?: number;
       summary?: string;
     },
-    fullText: string,
+    _fullText: string,
     pages: string[],
     parentId: string
   ): PageIndexNode {

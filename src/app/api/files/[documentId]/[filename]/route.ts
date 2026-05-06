@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  * Sirve archivos almacenados localmente — requiere sesión válida.
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ documentId: string; filename: string }> }
 ) {
   try {

@@ -1,0 +1,4 @@
+cognee==1.0.8
+cognee-community-hybrid-adapter-falkor==0.3.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9

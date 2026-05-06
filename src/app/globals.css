@@ -2,76 +2,463 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  ════════════════════════════════════════════════════════════════════
+  SECRETARIA DE ECONOMIA — Identidad Visual Gobierno de México 2024-2030 (gob.mx v3)
+  Ref: https://www.gob.mx/guias/grafica/v3/
+  ════════════════════════════════════════════════════════════════════
+  Tipografía:
+    • Patria (CDN gobmx) → títulos h1, h2, h3
+    • Noto Sans (Google Fonts) → cuerpo de texto
+  Paleta oficial:
+    • Guinda Institucional: #9D2449 (btn-primary)
+    • Dorado Oficial:       #BC955C (btn-secondary)
+    • Texto body:          #545454
+  Tamaño base: 16px raíz → body 1.125rem (18px) / line-height 1.428
+  ════════════════════════════════════════════════════════════════════
+*/
+
+/* ─── BASE ──────────────────────────────────────────────────────── */
 @layer base {
+
+  html {
+    font-size: 17px !important;
+    /* 17px root → todo rem escala: text-sm=14.9px text-base=17px text-lg=19px */
+    /* GobMX CDN a veces fuerza 62.5% (10px); lo anulamos para ECONOMIA */
+    scroll-behavior: smooth;
+  }
+
+  /* ─── CORRECCIÓN GAP CDN GOBMX ────────────────────────────────────
+     El CDN gob.mx inyecta una barra superior fija que añade padding-top
+     al body. Como ECONOMIA tiene su propio header institucional, anulamos
+     ese padding forzado en todas las páginas de la app.              */
+  body {
+    padding-top: 0 !important;
+    /* Anula el auto-padding del CDN gobmx */
+  }
+
+  /* Selector de la barra superior del CDN gob.mx v3 —
+     LA MANTENEMOS VISIBLE por peticion de cumplimiento normativo,
+     pero nos aseguramos de que no haya duplicidad manual. */
+  body>#global-header,
+  body>nav.navbar-inverse {
+    display: block !important;
+  }
+
+  /* Ocultamos el FOOTER del CDN porque usamos el de la plataforma */
+  footer.main-footer,
+  #footer-gob {
+    display: none !important;
+  }
+
+  /* En páginas de auth y landing la barra accesibilidad del CDN
+     se ubica como position:fixed top:0 — la movemos para que no tape
+     el contenido PERO la mantenemos visible para cumplir la guía:    */
+  body[data-page='auth'] {
+    padding-top: 0 !important;
+  }
+
+  /* Header Sticky con Sombra para evitar solapamiento visual brusco */
+  header.sticky {
+    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    transition: box-shadow 0.3s ease, background-color 0.3s ease;
+  }
+
+  header.sticky:hover {
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+  }
+
   :root {
+    /* Paleta oficial gob.mx v3 */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* #FFFFFF */
+    --foreground: 0 0% 33%;
+    /* #545454 — Texto oficial GobMX v3 */
+    --text-body: 0 0% 33%;
+
+    --card: 210 20% 98%;
+    /* Gris muy claro — distinguible del fondo */
+    --card-foreground: 0 0% 33%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --popover-foreground: 0 0% 33%;
+
+    /* Guinda Institucional #9D2449 */
+    --primary: 339 63% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Dorado Oficial #BC955C */
+    --secondary: 37 43% 55%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 20% 96%;
+    --muted-foreground: 240 1% 60%;
+    /* #98989A Gris neutro */
+
+    --accent: 339 63% 25%;
+    /* #6F102D — Guinda oscuro */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 339 63% 38%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 89%;
+    /* #E2E2E2 */
+    --input: 0 0% 89%;
+    --ring: 339 63% 38%;
+    /* Focus ring guinda — WCAG 2.1 */
+
     --radius: 0.5rem;
+    /* App dashboard usa bordes redondeados; 0rem solo en contextos editoriales */
   }
 
-  /* CETIEM dark theme */
+  /* ─── DARK MODE ───────────────────────────────────────────────── */
   .dark {
-    --background: 220 40% 3%;
-    --foreground: 0 0% 98%;
-    --card: 220 30% 6%;
-    --card-foreground: 0 0% 98%;
-    --popover: 220 30% 6%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 162 69% 37%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 220 20% 10%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 220 20% 10%;
-    --muted-foreground: 232 7% 57%;
-    --accent: 162 69% 37%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 48% 44%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 220 20% 12%;
-    --input: 220 20% 10%;
-    --ring: 162 69% 37%;
-  }
-}
+    --background: 162 47% 7%;
+    /* #0B1A18 Verde muy oscuro */
+    --foreground: 0 0% 95%;
+    --text-body: 0 0% 90%;
 
-@layer utilities {
-  @keyframes slide-in {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
+    --card: 162 47% 9%;
+    --card-foreground: 0 0% 95%;
+
+    --primary: 339 63% 38%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 37 43% 55%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 162 30% 15%;
+    --muted-foreground: 0 0% 60%;
+
+    --border: 162 30% 18%;
+    --input: 162 30% 18%;
   }
 
-  .animate-slide-in {
-    animation: slide-in 0.3s ease-out;
-  }
-}
-
-@layer base {
   * {
     border-color: hsl(var(--border));
   }
+
+  /* ─── BODY — 18px / 1.428 (spec oficial gob.mx v3) ──────────── */
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background;
+    color: #545454;
+    /* Texto body oficial */
+    font-size: 1.125rem;
+    /* 18px */
+    line-height: 1.428;
+    /* Interlineado oficial */
+    font-family: var(--font-noto), 'Noto Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ─── ENCABEZADOS — Patria (spec gob.mx v3) ────────────────────
+     font-family: Patria via CDN. Tamaños solo aplican a páginas
+     editoriales/landing; el dashboard usa clases Tailwind explícitas. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Patria', var(--font-playfair), 'Playfair Display', Georgia, serif;
+  }
+
+  /* ─── SEPARADORES INSTITUCIONALES ──────────────────────────────
+     hr          → separador neutro con margen 2rem arriba/abajo
+     hr.red      → pleca guinda rojiza (gob.mx v3 spec: "clase red para
+                   un pequeño rectángulo rojo")                      */
+  hr {
+    border: none;
+    border-top: 1px solid hsl(var(--border));
+    margin: 2rem 0;
+  }
+
+  hr.red {
+    border: none;
+    border-top: 4px solid #9D2449;
+    width: 40px;
+    margin: 0 0 1.5rem 0;
+  }
+
+  /* ─── PLECA DORADA (Identidad visual Secretaría de Economía) ──────────
+     Utilidad complementaria al hr.red para variante dorada         */
+  .pleca-dorada {
+    width: 40px;
+    line-height: 1.428;
+    color: #1B1B1B;
+    background-color: #F8F8F8;
+    overflow-x: hidden;
+  }
+
+  /* Ocultar ruidos específicos del CDN que rompen la estética premium */
+  header.header-gob,
+  .navbar-gob {
+    display: none !important;
+  }
+
+  /* ─── LINKS — Estilo gob.mx ─────────────────────────────────────
+     Solo aplica a links en contexto de contenido editorial (.prose-like,
+     .page-content). Los links de navegación/UI usan sus propias clases. */
+  .page-content a,
+  .prose-like a {
+    color: #9D2449;
+    text-decoration-color: rgba(157, 36, 73, 0.3);
+    font-weight: 600;
+    transition: text-decoration-color 0.15s;
+  }
+
+  .page-content a:hover,
+  .prose-like a:hover {
+    text-decoration: underline;
+    text-decoration-color: #9D2449;
+  }
+
+  /* ─── FOCUS VISIBLE — WCAG 2.1 (requerido gob.mx v3) ───────── */
+  :focus-visible {
+    outline: 3px solid #9D2449;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* ─── FORMULARIOS — .form-control / .form-group ──────────────── */
+  .form-control {
+    @apply w-full px-3 py-2 text-base border border-border rounded-none bg-background text-foreground;
+    font-size: 1.125rem;
+    /* 18px — spec gob.mx */
+    line-height: 1.428;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+
+  .form-control-gob {
+    height: 56px !important;
+    /* Más alto para mayor presencia */
+    padding: 12px 20px !important;
+    font-size: 18px !important;
+    border: 2px solid #D5D5D5 !important;
+    /* Borde más robusto */
+    border-radius: 0 !important;
+    transition: all 0.2s ease;
+  }
+
+  .form-control-gob:focus {
+    border-color: #9D2449 !important;
+    box-shadow: 0 0 0 3px rgba(157, 36, 73, 0.1) !important;
+    outline: none;
+  }
+
+  .form-control:focus {
+    outline: 3px solid #9D2449;
+    outline-offset: 0;
+    border-color: #9D2449;
+  }
+
+  .form-group {
+    @apply mb-4;
+  }
+
+  label,
+  .control-label {
+    @apply block text-sm font-bold mb-3 uppercase tracking-wider;
+    color: #1B1B1B;
+  }
+
+  /* ─── ACCESIBILIDAD — Skip link ──────────────────────────────── */
+  .skip-link {
+    @apply absolute -top-full left-2 z-[9999] px-4 py-2 text-sm font-bold text-white;
+    background: #9D2449;
+  }
+
+  .skip-link:focus {
+    top: 0.5rem;
+  }
+}
+
+/* ─── COMPONENTS ────────────────────────────────────────────────── */
+@layer components {
+
+  /* BOTONES — Oficiales gob.mx v3 (Bootstrap btn mapping) ──────── */
+  .btn-gob {
+    @apply inline-flex items-center justify-center px-6 py-2.5 text-base font-semibold transition-all focus-visible:outline-none disabled:opacity-50 disabled:pointer-events-none;
+    border-radius: 0;
+    /* v3: bordes rectos */
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* btn-primary → Guinda #9D2449 */
+  .btn-gob-primary {
+    @apply btn-gob bg-[#9D2449] text-white;
+  }
+
+  .btn-gob-primary:hover {
+    background-color: #7A1B37;
+  }
+
+  /* btn-secondary → Dorado #BC955C */
+  .btn-gob-secondary {
+    @apply btn-gob bg-[#BC955C] text-white;
+  }
+
+  .btn-gob-secondary:hover {
+    background-color: #9B7B4A;
+  }
+
+  /* btn-outline */
+  .btn-gob-outline {
+    @apply btn-gob border-2 border-[#9D2449] text-[#9D2449] bg-transparent;
+  }
+
+  .btn-gob-outline:hover {
+    @apply bg-[#9D2449] text-white;
+  }
+
+  /* btn-danger */
+  .btn-gob-danger {
+    @apply btn-gob bg-[#C1392B] text-white;
+  }
+
+  /* btn-link */
+  .btn-gob-link {
+    @apply btn-gob bg-transparent text-[#9D2449] underline;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  /* ─── ALERTAS — Bootstrap 5 spec gob.mx v3 ──────────────────────
+     Todas deben tener role="alert"
+     Variantes: success, info, warning, danger                       */
+  .alert-gob {
+    @apply relative w-full p-4 mb-4 border-l-[6px] shadow-sm;
+    font-size: 1rem;
+  }
+
+  .alert-gob-success {
+    @apply alert-gob bg-[#EBF5E9] border-[#1E5B4F] text-[#1E5B4F];
+  }
+
+  .alert-gob-info {
+    @apply alert-gob bg-[#E3F2FD] border-[#12322B] text-[#12322B];
+  }
+
+  .alert-gob-warning {
+    @apply alert-gob bg-[#FFF9C4] border-[#BC955C] text-[#7A5A1E];
+  }
+
+  .alert-gob-danger {
+    @apply alert-gob bg-[#FFEBEE] border-[#9D2449] text-[#9D2449];
+  }
+
+  /* ─── BREADCRUMBS — gob.mx v3 ol.breadcrumb ─────────────────── */
+  .breadcrumb-gob {
+    @apply flex items-center gap-1 text-xs font-semibold text-muted-foreground/70 mb-4;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .breadcrumb-gob li+li::before {
+    content: "›";
+    @apply mx-1 text-muted-foreground/40;
+  }
+
+  .breadcrumb-gob a {
+    @apply text-[#9D2449] no-underline hover:underline font-semibold;
+    text-decoration: none;
+  }
+
+  .breadcrumb-gob li.active {
+    @apply text-muted-foreground/50;
+  }
+
+  /* ─── TABLAS — Institucionales striped/responsive ─────────────── */
+  .table-gob {
+    @apply w-full text-sm text-left border-collapse;
+    font-size: 1rem;
+  }
+
+  .table-gob thead {
+    background-color: #611232;
+    color: white;
+  }
+
+  .table-gob thead th {
+    @apply px-4 py-3 font-bold text-xs uppercase tracking-wider text-white;
+  }
+
+  .table-gob tbody tr:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+
+  .table-gob tbody tr:hover {
+    background-color: rgba(157, 36, 73, 0.04);
+  }
+
+  .table-gob td {
+    @apply px-4 py-3 border-b border-border/50 text-foreground;
+  }
+
+  /* ─── SHADOW SISTÉMICO ────────────────────────────────────────── */
+  .shadow-gob {
+    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.1), 0 2px 10px -5px rgba(0, 0, 0, 0.05);
+  }
+
+  /* ─── PAGINACIÓN ─────────────────────────────────────────────── */
+  .pagination-gob {
+    @apply flex items-center gap-1 mt-4;
+  }
+
+  .pagination-gob a,
+  .pagination-gob span {
+    @apply inline-flex items-center justify-center w-8 h-8 text-sm font-medium border border-border text-foreground;
+    transition: all 0.15s;
+  }
+
+  .pagination-gob a:hover {
+    @apply bg-[#9D2449] text-white border-[#9D2449] no-underline;
+  }
+
+  .pagination-gob .active {
+    @apply bg-[#9D2449] text-white border-[#9D2449];
+  }
+}
+
+/* ─── UTILITIES ─────────────────────────────────────────────────── */
+@layer utilities {
+
+  /* Buffer classes — gob.mx v3 spec: 64px margin top/bottom        */
+  .top-buffer {
+    margin-top: 64px;
+  }
+
+  .bottom-buffer {
+    margin-bottom: 64px;
+  }
+
+  .vertical-buffer {
+    margin-top: 64px;
+    margin-bottom: 64px;
+  }
+
+  /* Contenedor responsivo institucional */
+  .container-gob {
+    @apply mx-auto px-4 max-w-7xl;
+  }
+
+  /* Pleca roja (alias para hr.red como clase Tailwind) */
+  .pleca-guinda {
+    @apply block w-10 h-1 bg-[#9D2449] mb-6;
+  }
+
+  /* Borde de anotación / sidebar izquierdo */
+  .border-gob {
+    @apply border border-border/60;
+  }
+
+  /* Etiqueta de institución en sidebar */
+  .badge-gob-role {
+    @apply inline-flex items-center px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-none;
   }
 }

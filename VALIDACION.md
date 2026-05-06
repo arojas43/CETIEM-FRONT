@@ -1,4 +1,4 @@
-# Validación de funcionalidades — CETIEM Platform
+# Validación de funcionalidades — SECRETARIA DE ECONOMIA Platform
 
 Registro de revisión técnica del sistema. Fecha: 2026-03-24.
 
@@ -6,14 +6,14 @@ Registro de revisión técnica del sistema. Fecha: 2026-03-24.
 
 ## Usuarios de prueba — verificados ✅
 
-Creados con `npx prisma db seed` (contraseña: `cetiem2024`):
+Creados con `npx prisma db seed` (contraseña: `secretaria-economia2024`):
 
 | Email | Rol | ID |
 |-------|-----|----|
-| admin@cetiem.mx | ADMIN | cuid generado |
-| assessor@cetiem.mx | ASSESSOR | cuid generado |
-| empresa1@cetiem.mx | COMPANY | cuid generado |
-| empresa2@cetiem.mx | COMPANY | cuid generado |
+| admin@secretaria-economia.mx | ADMIN | cuid generado |
+| assessor@secretaria-economia.mx | ASSESSOR | cuid generado |
+| empresa1@secretaria-economia.mx | COMPANY | cuid generado |
+| empresa2@secretaria-economia.mx | COMPANY | cuid generado |
 
 Verificación: la seed usa `upsert` — es idempotente, se puede correr múltiples veces sin duplicar.
 

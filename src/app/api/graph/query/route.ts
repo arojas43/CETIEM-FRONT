@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
  * GET /api/graph/stats
  * Obtiene estadísticas del grafo con verificación de salud (solo ASSESSOR y ADMIN).
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {

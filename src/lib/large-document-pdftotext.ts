@@ -4,8 +4,8 @@
  */
 
 import { exec } from 'child_process';
-import { createReadStream, createWriteStream, unlinkSync } from 'fs';
-import { readFile, writeFile, mkdir, access } from 'fs/promises';
+import { unlinkSync } from 'fs';
+import { readFile, mkdir, access } from 'fs/promises';
 import { join } from 'path';
 import type { ProcessingProgress, TextChunk, ExtractionResult } from './large-document-types';
 import { DOCUMENT_LIMITS } from './large-document-types';
@@ -113,7 +113,7 @@ async function runPdftotext(
     
     console.log(`[Pdftotext] Ejecutando: ${cmd}`);
     
-    const proc = exec(cmd, (error, stdout, stderr) => {
+    const proc = exec(cmd, (error, _stdout, _stderr) => {
       if (error) {
         console.error(`[Pdftotext] Error: ${error.message}`);
         reject(new Error(`pdftotext falló: ${error.message}`));
@@ -174,7 +174,7 @@ async function runPdftotext(
 export function createChunksFromText(
   text: string,
   chunkSize: number = DOCUMENT_LIMITS.CHUNK_SIZE,
-  overlap: number = DOCUMENT_LIMITS.CHUNK_OVERLAP
+  _overlap: number = DOCUMENT_LIMITS.CHUNK_OVERLAP
 ): TextChunk[] {
   if (!text || text.length === 0) {
     console.warn('[Pdftotext] Texto vacío, no se pueden crear chunks');
@@ -182,7 +182,6 @@ export function createChunksFromText(
   }
   
   const chunks: TextChunk[] = [];
-  let currentIndex = 0;
   let chunkIndex = 0;
 
   // Dividir por párrafos

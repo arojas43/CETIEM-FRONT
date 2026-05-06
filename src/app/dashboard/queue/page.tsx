@@ -2,16 +2,16 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
-import { Building2, FileText, Clock, CheckCircle, ChevronRight, Users, Eye } from "lucide-react";
+import { Building2, FileText, Clock, CheckCircle, ChevronRight, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MyDocumentIa } from "@/components/ui/icons";
 
 const CERT_COLOR: Record<string, string> = {
-  APPROVED:  "text-cetiem-lime   bg-cetiem-lime/10   border-cetiem-lime/20",
-  IN_REVIEW: "text-cetiem-amber  bg-cetiem-amber/10  border-cetiem-amber/20",
-  REJECTED:  "text-cetiem-red    bg-cetiem-red/10    border-cetiem-red/20",
-  CAPA_OPEN: "text-cetiem-amber  bg-cetiem-amber/10  border-cetiem-amber/20",
-  REVOKED:   "text-cetiem-red    bg-cetiem-red/10    border-cetiem-red/20",
+  APPROVED:  "text-economia-success   bg-economia-success/10   border-economia-success/20",
+  IN_REVIEW: "text-economia-warning  bg-economia-warning/10  border-economia-warning/20",
+  REJECTED:  "text-economia-error    bg-economia-error/10    border-economia-error/20",
+  CAPA_OPEN: "text-economia-warning  bg-economia-warning/10  border-economia-warning/20",
+  REVOKED:   "text-economia-error    bg-economia-error/10    border-economia-error/20",
 };
 const CERT_LABEL: Record<string, string> = {
   APPROVED:  "✓ Dictamen aprobado",
@@ -80,22 +80,22 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-8 py-5 border-b border-white/5">
+      <div className="flex items-center justify-between px-8 py-5 border-b border-border">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-white">Cola de Revisión</h1>
-          <p className="text-cetiem-gray text-sm mt-0.5">Empresas con documentos analizados por IA — listos para dictamen.</p>
+          <h1 className="font-heading font-bold text-2xl text-foreground">Cola de Revisión</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">Empresas con documentos analizados por IA — listos para dictamen.</p>
         </div>
         <span className={cn("inline-flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-full border",
           pending.length > 0
-            ? "text-cetiem-amber bg-cetiem-amber/10 border-cetiem-amber/30"
-            : "text-cetiem-lime  bg-cetiem-lime/10  border-cetiem-lime/30"
+            ? "text-economia-warning bg-economia-warning/10 border-economia-warning/30"
+            : "text-economia-success  bg-economia-success/10  border-economia-success/30"
         )}>
           <MyDocumentIa className="h-4 w-4" /> Iniciar Revisión
         </span>        
         <span className={cn("text-sm font-medium px-3 py-1.5 rounded-full border",
           pending.length > 0
-            ? "text-cetiem-amber bg-cetiem-amber/10 border-cetiem-amber/30"
-            : "text-cetiem-lime  bg-cetiem-lime/10  border-cetiem-lime/30"
+            ? "text-economia-warning bg-economia-warning/10 border-economia-warning/30"
+            : "text-economia-success  bg-economia-success/10  border-economia-success/30"
         )}>
           {pending.length > 0 ? `${pending.length} sin dictamen` : "Al día ✓"}
         </span>
@@ -103,21 +103,21 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
 
       <div className="flex-1 p-8 overflow-auto max-w-4xl space-y-8">
         {saved === "1" && (
-          <div className="bg-cetiem-lime/10 border border-cetiem-lime/30 rounded-2xl px-5 py-3 flex items-center gap-3">
-            <CheckCircle className="h-4 w-4 text-cetiem-lime shrink-0" />
-            <p className="text-cetiem-lime text-sm font-medium">Dictamen guardado correctamente.</p>
+          <div className="bg-economia-success/10 border border-economia-success/30 rounded-2xl px-5 py-3 flex items-center gap-3">
+            <CheckCircle className="h-4 w-4 text-economia-success shrink-0" />
+            <p className="text-economia-success text-sm font-medium">Dictamen guardado correctamente.</p>
           </div>
         )}
 
         {/* Sin dictamen */}
         <section>
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-cetiem-amber mb-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-economia-warning mb-3">
             Sin dictamen · {pending.length}
           </h2>
           {pending.length === 0 ? (
-            <div className="text-center py-12 bg-cetiem-card border border-white/5 rounded-2xl">
-              <CheckCircle className="h-12 w-12 text-cetiem-lime/30 mx-auto mb-3" />
-              <p className="text-cetiem-gray text-sm">No hay empresas pendientes de revisión.</p>
+            <div className="text-center py-12 bg-card border border-border rounded-2xl">
+              <CheckCircle className="h-12 w-12 text-economia-success/30 mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">No hay empresas pendientes de revisión.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -131,7 +131,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
         {/* Ya dictaminadas */}
         {reviewed.length > 0 && (
           <section>
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-cetiem-gray/50 mb-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/50 mb-3">
               Ya dictaminadas · {reviewed.length}
             </h2>
             <div className="space-y-3">
@@ -167,37 +167,37 @@ function CompanyRow({ company, index, cert }: {
 
   return (
     <div className={cn(
-      "bg-cetiem-card border rounded-2xl p-5 flex items-center gap-4",
-      cert ? "border-white/5 opacity-75" : "border-white/5"
+      "bg-card border rounded-2xl p-5 flex items-center gap-4",
+      cert ? "border-border opacity-75" : "border-border"
     )}>
-      <div className="text-cetiem-gray/30 font-mono text-xs w-6 shrink-0 text-right">{index + 1}</div>
+      <div className="text-muted-foreground/30 font-mono text-xs w-6 shrink-0 text-right">{index + 1}</div>
 
       {/* Icon */}
-      <div className="h-10 w-10 rounded-xl bg-cetiem-teal/10 flex items-center justify-center shrink-0">
-        <Building2 className="h-5 w-5 text-cetiem-teal" />
+      <div className="h-10 w-10 rounded-xl bg-economia-info/10 flex items-center justify-center shrink-0">
+        <Building2 className="h-5 w-5 text-economia-info" />
       </div>
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-white font-medium truncate">
+        <p className="text-foreground font-medium truncate">
           {company.companyName || company.name || company.email}
         </p>
         <div className="flex items-center gap-3 mt-0.5 flex-wrap">
           {company.track && (
-            <span className="text-cetiem-teal/70 text-xs">{TRACK_LABEL[company.track] ?? company.track}</span>
+            <span className="text-economia-info/70 text-xs">{TRACK_LABEL[company.track] ?? company.track}</span>
           )}
-          <span className="text-cetiem-gray/30 text-xs">·</span>
+          <span className="text-muted-foreground/30 text-xs">·</span>
           {/* Doc counts */}
           <span className="text-xs flex items-center gap-1">
-            <FileText className="h-3 w-3 text-cetiem-gray/50" />
-            <span className={cn(analyzed === total && total > 0 ? "text-cetiem-lime" : "text-cetiem-amber")}>
+            <FileText className="h-3 w-3 text-muted-foreground/50" />
+            <span className={cn(analyzed === total && total > 0 ? "text-economia-success" : "text-economia-warning")}>
               {analyzed}/{total} analizados
             </span>
           </span>
           {company.assessor && (
             <>
-              <span className="text-cetiem-gray/30 text-xs">·</span>
-              <span className="text-xs flex items-center gap-1 text-cetiem-gray/60">
+              <span className="text-muted-foreground/30 text-xs">·</span>
+              <span className="text-xs flex items-center gap-1 text-muted-foreground/60">
                 <Users className="h-3 w-3" />
                 {company.assessor.name || company.assessor.email}
               </span>
@@ -205,8 +205,8 @@ function CompanyRow({ company, index, cert }: {
           )}
           {lastDoc && (
             <>
-              <span className="text-cetiem-gray/30 text-xs">·</span>
-              <span className="text-cetiem-gray/50 text-xs flex items-center gap-1">
+              <span className="text-muted-foreground/30 text-xs">·</span>
+              <span className="text-muted-foreground/50 text-xs flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 {new Date(lastDoc.updatedAt).toLocaleDateString("es-MX")}
               </span>
@@ -230,8 +230,8 @@ function CompanyRow({ company, index, cert }: {
           className={cn(
             "flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-xl transition-colors",
             cert
-              ? "bg-white/5 hover:bg-white/10 text-cetiem-gray hover:text-white border border-white/10"
-              : "bg-cetiem-amber hover:bg-cetiem-amber/90 text-black"
+              ? "bg-muted hover:bg-muted text-muted-foreground hover:text-foreground border border-border"
+              : "bg-economia-warning hover:bg-economia-warning/90 text-black"
           )}
         >
           {cert ? "Revisar dictamen" : "Iniciar revisión"}

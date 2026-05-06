@@ -10,7 +10,6 @@ import {
   ORDEN_CATEGORIAS,
   TOTAL_REQUERIDOS,
   TOTAL_OBLIGATORIOS,
-  type CategoriaDocumento,
 } from "@/lib/document-catalogue";
 import { cn } from "@/lib/utils";
 
@@ -42,14 +41,14 @@ async function DocumentProgress({ userId }: { userId: string }) {
     return { cat, subidos, analizadosCat, total, completa: subidos === total };
   });
 
-  const colorBarraSubidos = pctSubidos === 100 ? "bg-cetiem-lime" : pctSubidos >= 60 ? "bg-cetiem-green" : pctSubidos >= 30 ? "bg-cetiem-amber" : "bg-cetiem-red";
+  const colorBarraSubidos = pctSubidos === 100 ? "bg-economia-success" : pctSubidos >= 60 ? "bg-economia-guinda" : pctSubidos >= 30 ? "bg-economia-warning" : "bg-economia-error";
 
   return (
-    <div className="mb-6 bg-cetiem-card border border-white/5 rounded-2xl p-5">
+    <div className="mb-6 bg-card border border-border rounded-2xl p-5">
       {/* Título */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-heading font-semibold text-white text-sm">Expediente ESG</h2>
-        <span className="text-[10px] text-cetiem-gray/40 font-medium tracking-wide">Impulsado por NVIDIA</span>
+        <h2 className="font-heading font-semibold text-foreground text-sm">Expediente ESG</h2>
+        <span className="text-[10px] text-muted-foreground/60 font-medium tracking-wide">Impulsado por NVIDIA</span>
       </div>
 
       {/* Dos etapas: subida + análisis IA */}
@@ -57,12 +56,12 @@ async function DocumentProgress({ userId }: { userId: string }) {
         {/* Subida */}
         <div>
           <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="text-cetiem-gray">Documentos subidos</span>
-            <span className={cn("font-bold", pctSubidos === 100 ? "text-cetiem-lime" : pctSubidos >= 60 ? "text-cetiem-green" : "text-cetiem-amber")}>
+            <span className="text-muted-foreground">Documentos subidos</span>
+            <span className={cn("font-bold", pctSubidos === 100 ? "text-economia-success" : pctSubidos >= 60 ? "text-economia-guinda" : "text-economia-warning")}>
               {totalSubidos}/{TOTAL_REQUERIDOS}
             </span>
           </div>
-          <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div className={cn("h-full rounded-full transition-all", colorBarraSubidos)} style={{ width: `${pctSubidos}%` }} />
           </div>
         </div>
@@ -70,14 +69,14 @@ async function DocumentProgress({ userId }: { userId: string }) {
         {/* Análisis IA */}
         <div>
           <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="text-cetiem-gray">Análisis IA completado</span>
-            <span className={cn("font-bold", pctAnalizados === 100 ? "text-cetiem-lime" : pctAnalizados > 0 ? "text-cetiem-teal" : "text-cetiem-gray/40")}>
+            <span className="text-muted-foreground">Análisis IA completado</span>
+            <span className={cn("font-bold", pctAnalizados === 100 ? "text-economia-success" : pctAnalizados > 0 ? "text-economia-info" : "text-muted-foreground")}>
               {totalAnalizados}/{totalSubidos || "—"}
             </span>
           </div>
-          <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
-              className={cn("h-full rounded-full transition-all", pctAnalizados === 100 ? "bg-cetiem-lime" : "bg-cetiem-teal")}
+              className={cn("h-full rounded-full transition-all", pctAnalizados === 100 ? "bg-economia-success" : "bg-economia-info")}
               style={{ width: `${pctAnalizados}%` }}
             />
           </div>
@@ -85,7 +84,7 @@ async function DocumentProgress({ userId }: { userId: string }) {
       </div>
 
       {enProceso > 0 && (
-        <div className="flex items-center gap-2 mb-4 text-xs text-cetiem-amber bg-cetiem-amber/5 border border-cetiem-amber/15 rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2 mb-4 text-xs text-economia-warning bg-economia-warning/5 border border-economia-warning/15 rounded-lg px-3 py-2">
           <Clock className="h-3.5 w-3.5 shrink-0" />
           {enProceso} documento{enProceso !== 1 ? 's' : ''} en procesamiento IA...
         </div>
@@ -99,34 +98,34 @@ async function DocumentProgress({ userId }: { userId: string }) {
             className={cn(
               "px-3 py-2 rounded-lg border text-xs",
               completa && analizadosCat === total
-                ? "bg-cetiem-lime/5 border-cetiem-lime/20"
+                ? "bg-economia-success/5 border-economia-success/20"
                 : completa
-                  ? "bg-cetiem-teal/5 border-cetiem-teal/10"
-                  : "bg-white/[0.02] border-white/5"
+                  ? "bg-economia-info/5 border-economia-info/10"
+                  : "bg-muted border-border"
             )}
           >
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5 min-w-0">
                 {completa && analizadosCat === total ? (
-                  <CheckCircle2 className="h-3 w-3 text-cetiem-lime shrink-0" />
+                  <CheckCircle2 className="h-3 w-3 text-economia-success shrink-0" />
                 ) : subidos === 0 ? (
-                  <FileWarning className="h-3 w-3 text-cetiem-gray/40 shrink-0" />
+                  <FileWarning className="h-3 w-3 text-muted-foreground/60 shrink-0" />
                 ) : (
-                  <Clock className="h-3 w-3 text-cetiem-amber shrink-0" />
+                  <Clock className="h-3 w-3 text-economia-warning shrink-0" />
                 )}
-                <span className={cn("truncate text-[11px]", completa ? CATEGORIAS[cat].color : "text-cetiem-gray")}>
+                <span className={cn("truncate text-[11px]", completa ? CATEGORIAS[cat].color : "text-muted-foreground")}>
                   {CATEGORIAS[cat].label}
                 </span>
               </div>
-              <span className={cn("font-medium shrink-0 ml-1 text-[11px]", completa ? "text-cetiem-lime" : subidos > 0 ? "text-white" : "text-cetiem-gray/30")}>
+              <span className={cn("font-medium shrink-0 ml-1 text-[11px]", completa ? "text-economia-success" : subidos > 0 ? "text-foreground" : "text-muted-foreground")}>
                 {subidos}/{total}
               </span>
             </div>
             {/* Mini barra de análisis */}
             {subidos > 0 && (
-              <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+              <div className="h-1 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-cetiem-teal rounded-full"
+                  className="h-full bg-economia-info rounded-full"
                   style={{ width: `${Math.round((analizadosCat / subidos) * 100)}%` }}
                 />
               </div>
@@ -136,7 +135,7 @@ async function DocumentProgress({ userId }: { userId: string }) {
       </div>
 
       {pctSubidos < 100 && (
-        <p className="text-[11px] text-cetiem-gray/40 mt-3 text-center">
+        <p className="text-[11px] text-muted-foreground mt-3 text-center">
           {TOTAL_OBLIGATORIOS} documentos obligatorios · {TOTAL_REQUERIDOS} en total
         </p>
       )}
@@ -153,22 +152,26 @@ export default async function DocumentsPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Page header */}
-      <div className="flex items-center justify-between px-8 py-5 border-b border-white/5">
+      <div className="flex items-center justify-between px-8 py-5 border-b border-border">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-white">Mis Documentos</h1>
-          <p className="text-cetiem-gray text-sm mt-0.5">
+          <h1 className="font-heading font-bold text-2xl text-foreground">
+            {isCompany ? "Mis Documentos" : "Fondo Documental"}
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
             {isCompany
               ? `Sube los ${TOTAL_REQUERIDOS} documentos requeridos para tu certificación ESG.`
               : "Biblioteca documental global — todos los documentos del sistema."}
           </p>
         </div>
-        <Link
-          href="/dashboard/upload"
-          className="flex items-center gap-2 bg-cetiem-green hover:bg-cetiem-green/90 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors"
-        >
-          <Upload className="h-4 w-4" />
-          Subir Documento
-        </Link>
+        {isCompany && (
+          <Link
+            href="/dashboard/upload"
+            className="flex items-center gap-2 bg-economia-guinda hover:bg-economia-guinda/90 text-primary-foreground text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+            Subir Documento
+          </Link>
+        )}
       </div>
 
       {/* Content */}
@@ -176,7 +179,7 @@ export default async function DocumentsPage() {
         {/* Progreso del expediente (solo empresa) */}
         {isCompany && <DocumentProgress userId={session.user.id!} />}
 
-        <div className="bg-cetiem-card border border-white/5 rounded-2xl p-6">
+        <div className="bg-card border border-border rounded-2xl p-6">
           <DocumentListPaginated />
         </div>
       </div>

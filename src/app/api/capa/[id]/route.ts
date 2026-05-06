@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
+import { notify } from "@/lib/notify";
 
 /** PATCH /api/capa/[id] — update CAPA ticket status/resolution */
 export async function PATCH(
@@ -18,10 +19,19 @@ export async function PATCH(
     const ticket = await prisma.capaTicket.findUnique({ where: { id } });
     if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
-    // Companies can only update their own tickets
+    // Access control
     const userRole = (session.user as any).role as string;
     if (userRole === "COMPANY" && ticket.userId !== session.user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (userRole === "ASSESSOR") {
+      const company = await prisma.user.findUnique({
+        where: { id: ticket.userId },
+        select: { assessorId: true },
+      });
+      if (company?.assessorId !== session.user.id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
     }
 
     // Validate state transitions
@@ -50,7 +60,7 @@ export async function PATCH(
     });
 
     // When a ticket is closed, check if ALL CAPAs for the certification are resolved.
-    // If so, move the cert back to IN_REVIEW so the assessor can re-evaluate.
+    // If so, move the cert back to IN_REVIEW and notify the assessor to re-evaluate.
     if (status === "CLOSED" && ticket.companyCertificationId) {
       const openCount = await prisma.capaTicket.count({
         where: {
@@ -60,10 +70,26 @@ export async function PATCH(
         },
       });
       if (openCount === 0) {
-        await prisma.companyCertification.update({
+        const cert = await prisma.companyCertification.update({
           where: { id: ticket.companyCertificationId },
           data: { status: "IN_REVIEW" },
+          select: { companyId: true },
         });
+
+        // Notificar al assessor asignado para que retome la revisión
+        const company = await prisma.user.findUnique({
+          where: { id: cert.companyId },
+          select: { assessorId: true, companyName: true, name: true },
+        });
+        if (company?.assessorId) {
+          await notify({
+            userId: company.assessorId,
+            type: "CAPA_RESOLVED",
+            title: "Tickets CAPA resueltos — re-evaluación pendiente",
+            body: `${company.companyName || company.name || "La empresa"} ha cerrado todos los tickets CAPA y está lista para ser re-evaluada.`,
+            link: "/dashboard/queue",
+          });
+        }
       }
     }
 

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
+import { calcEsgScore, hasVlapHardStop } from "@/lib/esg-score";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,14 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Veredicto inválido" }, { status: 400 });
   }
 
+  // Server-side V.L.A.P. hard stop — cannot be bypassed from the client
+  if (vlap && hasVlapHardStop(vlap)) {
+    return NextResponse.json(
+      { error: "Hard Stop V.L.A.P.: al menos una dimensión no alcanza el umbral de confianza (85%). Use el override si corresponde." },
+      { status: 422 }
+    );
+  }
+
   const company = await prisma.user.findUnique({
     where: { id: companyId, role: "COMPANY" },
     select: { id: true, companyName: true, email: true },
@@ -93,31 +102,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   // Calcular ESG score: combinación de V.L.A.P. (50%) + ratio de cumplimientos (50%)
-  let esgScore: number | null = null;
-  const vlapScore = (() => {
-    if (!vlap) return null;
-    const v = vlap as Record<string, { value: boolean | null; confidence: number; override: boolean }>;
-    const keys = ["vigencia", "legibilidad", "autoria", "pertinencia"];
-    const total = keys.length;
-    const passed = keys.filter(k => v[k]?.value === true).length;
-    const avgConf = keys.reduce((acc, k) => acc + (v[k]?.confidence ?? 0), 0) / total;
-    return (passed / total) * 0.7 * 100 + avgConf * 0.3;
-  })();
-  const findingsScore = (() => {
-    if (findings.length === 0) return null; // no findings → don't inflate score
-    const comp = findings.filter((f: any) => f.type === "COMPLIANCE").length;
-    const nc   = findings.filter((f: any) => f.type === "NON_COMPLIANCE").length;
-    const obs  = findings.filter((f: any) => f.type === "OBSERVATION").length;
-    // Cumplimientos suman, NC restan fuerte, observaciones restan poco
-    return Math.max(0, Math.min(100, ((comp * 1 - nc * 2 - obs * 0.5) / findings.length) * 100 + 50));
-  })();
-  if (vlapScore !== null && findingsScore !== null) {
-    esgScore = Math.round(vlapScore * 0.5 + findingsScore * 0.5);
-  } else if (vlapScore !== null) {
-    esgScore = Math.round(vlapScore);
-  } else if (findingsScore !== null) {
-    esgScore = Math.round(findingsScore);
-  }
+  const esgScore = calcEsgScore(vlap, findings);
 
   // Determinar status
   const hasNC = findings.some((f: any) => f.type === "NON_COMPLIANCE");
@@ -279,6 +264,16 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     entityType: "CompanyCertification",
     entityId: cert.id,
     payload: { companyId, reason },
+  });
+
+  await notify({
+    userId: companyId,
+    type: "CERT_REVOKED",
+    title: "Certificado ESG revocado",
+    body: reason
+      ? `Tu certificado ESG ha sido revocado. Razón: ${reason}`
+      : "Tu certificado ESG ha sido revocado por el administrador.",
+    link: "/dashboard/mi-certificado",
   });
 
   return NextResponse.json(revoked);

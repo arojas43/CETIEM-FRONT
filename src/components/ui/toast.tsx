@@ -102,18 +102,28 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
     }
   }, [toast.duration, onClose]);
 
+  // Colores oficiales Gobierno de México
+  // success: #13322e (verde oscuro), error: #9d2449 (guinda),
+  // warning: #BC955C (dorado), info: #611232 (guinda oscuro)
   const icons = {
-    success: <CheckCircle className="h-5 w-5 text-green-600" />,
-    error: <AlertCircle className="h-5 w-5 text-red-600" />,
-    warning: <AlertTriangle className="h-5 w-5 text-yellow-600" />,
-    info: <Info className="h-5 w-5 text-blue-600" />,
+    success: <CheckCircle className="h-5 w-5" style={{ color: "#13322e" }} />,
+    error: <AlertCircle className="h-5 w-5" style={{ color: "#9d2449" }} />,
+    warning: <AlertTriangle className="h-5 w-5" style={{ color: "#BC955C" }} />,
+    info: <Info className="h-5 w-5" style={{ color: "#611232" }} />,
   };
 
   const bgColors = {
-    success: "bg-green-50 border-green-200",
-    error: "bg-red-50 border-red-200",
-    warning: "bg-yellow-50 border-yellow-200",
-    info: "bg-blue-50 border-blue-200",
+    success: "bg-[#13322e]/5 border-[#13322e]/20",
+    error: "bg-[#9d2449]/5 border-[#9d2449]/20",
+    warning: "bg-[#BC955C]/5 border-[#BC955C]/20",
+    info: "bg-[#611232]/5 border-[#611232]/20",
+  };
+
+  const textColors = {
+    success: "text-[#13322e]",
+    error: "text-[#9d2449]",
+    warning: "text-[#BC955C]",
+    info: "text-[#611232]",
   };
 
   return (
@@ -125,9 +135,9 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
     >
       <div className="flex-shrink-0">{icons[toast.type]}</div>
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-gray-900 text-sm">{toast.title}</p>
+        <p className={cn("font-medium text-sm", textColors[toast.type])}>{toast.title}</p>
         {toast.message && (
-          <p className="text-gray-600 text-sm mt-1">{toast.message}</p>
+          <p className={cn("text-sm mt-1", textColors[toast.type] + "/80")}>{toast.message}</p>
         )}
       </div>
       <button

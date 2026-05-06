@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Building2, Mail, Lock, User, Phone, CheckCircle, ArrowRight, Shield } from "lucide-react";
+import { CheckCircle, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { InstitutionalLogo } from "@/components/institutional-logo";
 
 const TRACKS = [
   {
@@ -25,7 +25,6 @@ const TRACKS = [
 ];
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -46,7 +45,6 @@ export default function RegisterPage() {
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(p => ({ ...p, [k]: e.target.value }));
-
 
   const handleStep1 = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,268 +90,304 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="dark min-h-screen bg-cetiem-dark flex">
-      {/* Left panel */}
-      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-cetiem-card to-[#050a0f] flex-col justify-between p-12 border-r border-white/5">
-        <div>
-          <div className="flex items-baseline gap-1.5 mb-12">
-            <span className="font-heading font-bold text-lg text-white">SECRETARIA DE ECONOMIA</span>
+    <div className="min-h-screen flex bg-[#F8F8F8]">
+      {/* ── Panel Institucional Izquierdo (38%) ───────────────────────── */}
+      <div style={{ width: '38%', background: '#611232' }} className="hidden lg:flex flex-col justify-between p-12 relative overflow-hidden border-right border-white/10">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl" />
+
+        <div className="relative z-10">
+          <div className="mb-16">
+            <InstitutionalLogo variant="white" size="md" />
           </div>
-          <h2 className="font-heading font-bold text-3xl text-white leading-tight mb-4">
-            Comienza tu proceso<br />de certificación hoy
+
+          <div style={{ backgroundColor: '#BC955C', height: '6px', width: '80px', marginBottom: '48px' }} />
+
+          <h2 className="font-heading font-black text-5xl xl:text-6xl text-white leading-[1.1] mb-10">
+            Únete al Ecosistema<br />de Confianza
           </h2>
-          <p className="text-cetiem-gray text-base leading-relaxed mb-10">
-            Nuestra plataforma usa inteligencia artificial para analizar tus documentos y agilizar el proceso de auditoría.
+          <p className="text-white/80 text-xl leading-relaxed mb-16 font-light">
+            Certificamos el compromiso de su empresa con los estándares ESG globales mediante modelos de IA auditables.
           </p>
-          <div className="space-y-4">
-            {[
-              { title: "Análisis IA automático",    desc: "Extracción inteligente de entidades y cumplimiento" },
-              { title: "Auditor humano asignado",   desc: "Un Data Assessor CETIEM revisa tu expediente" },
-              { title: "Certificado digital + QR",  desc: "Descarga tu certificación verificable en minutos" },
-            ].map(item => (
-              <div key={item.title} className="flex items-start gap-3">
-                <div className="h-6 w-6 rounded-full bg-cetiem-green/20 flex items-center justify-center shrink-0 mt-0.5">
-                  <CheckCircle className="h-3.5 w-3.5 text-cetiem-green" />
-                </div>
-                <div>
-                  <p className="text-white text-sm font-medium">{item.title}</p>
-                  <p className="text-cetiem-gray/60 text-xs">{item.desc}</p>
-                </div>
+
+          <div className="grid grid-cols-2 gap-6 mt-16">
+            {['ISO 9001', 'ISO 14001', 'NOM-035', 'V.L.A.P.'].map(std => (
+              <div key={std} className="bg-white/10 border border-white/10 px-8 py-12 backdrop-blur-md hover:bg-white/20 transition-all">
+                <div className="text-white font-black text-2xl tracking-tighter">{std}</div>
               </div>
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-cetiem-gray/40" />
-          <span className="text-cetiem-gray/40 text-xs">Sistema seguro · Datos cifrados · Confidencialidad garantizada</span>
+
+        <div className="relative z-10 p-6 bg-white/5 border border-white/10 rounded-xl">
+          <p className="text-white/40 text-xs font-black uppercase tracking-[0.3em] mb-2 text-center">
+            GOBIERNO DE MÉXICO · 2024-2030
+          </p>
         </div>
       </div>
 
-      {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-lg">
-          {/* Step indicator */}
-          {step < 3 && (
-            <div className="flex items-center gap-2 mb-8">
-              {[1, 2].map(s => (
-                <div key={s} className="flex items-center gap-2 flex-1">
-                  <div className={cn(
-                    "h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all",
-                    step > s  ? "bg-cetiem-green border-cetiem-green text-white" :
-                    step === s ? "bg-transparent border-cetiem-green text-cetiem-green" :
-                                 "bg-transparent border-white/10 text-cetiem-gray/30"
-                  )}>
-                    {step > s ? <CheckCircle className="h-3.5 w-3.5" /> : s}
-                  </div>
-                  <span className={cn("text-xs",
-                    step >= s ? "text-white" : "text-cetiem-gray/30"
-                  )}>
-                    {s === 1 ? "Datos de la empresa" : "Tipo de certificación"}
-                  </span>
-                  {s < 2 && <div className={cn("flex-1 h-px mx-2", step > s ? "bg-cetiem-green" : "bg-white/10")} />}
-                </div>
-              ))}
-            </div>
-          )}
+      {/* ── Panel Formulario Derecho ─────────────────────────────────── */}
+      <div className="flex-1 flex flex-col">
+        <div className="h-1 bg-[#9D2449] w-full shrink-0" />
 
-          {/* Step 1 — Company data */}
-          {step === 1 && (
-            <form onSubmit={handleStep1} className="space-y-5">
-              <div>
-                <h1 className="font-heading font-bold text-2xl text-white mb-1">Registra tu empresa</h1>
-                <p className="text-cetiem-gray text-sm">Crea tu cuenta para iniciar el proceso de certificación.</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="text-xs text-cetiem-gray mb-1.5 block">Nombre de la empresa *</label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cetiem-gray/40" />
-                    <input type="text" value={form.companyName} onChange={set("companyName")} required
-                      placeholder="Empresa XYZ S.A. de C.V."
-                      className="w-full h-10 pl-9 pr-3 bg-cetiem-card border border-white/10 rounded-xl text-white text-sm placeholder-cetiem-gray/30 focus:outline-none focus:border-cetiem-green" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-cetiem-gray mb-1.5 block">RFC</label>
-                  <input type="text" value={form.rfc} onChange={set("rfc")}
-                    placeholder="EXY900101ABC"
-                    className="w-full h-10 px-3 bg-cetiem-card border border-white/10 rounded-xl text-white text-sm placeholder-cetiem-gray/30 focus:outline-none focus:border-cetiem-green" />
-                </div>
-                <div>
-                  <label className="text-xs text-cetiem-gray mb-1.5 block">Industria</label>
-                  <select value={form.industry} onChange={set("industry")}
-                    className="w-full h-10 px-3 bg-cetiem-card border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-cetiem-green">
-                    <option value="">Seleccionar...</option>
-                    <option>Manufactura</option>
-                    <option>Construcción</option>
-                    <option>Servicios</option>
-                    <option>Tecnología</option>
-                    <option>Salud</option>
-                    <option>Educación</option>
-                    <option>Otro</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-cetiem-gray mb-1.5 block">Nombre del contacto *</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cetiem-gray/40" />
-                    <input type="text" value={form.contactName} onChange={set("contactName")} required
-                      placeholder="Juan Pérez"
-                      className="w-full h-10 pl-9 pr-3 bg-cetiem-card border border-white/10 rounded-xl text-white text-sm placeholder-cetiem-gray/30 focus:outline-none focus:border-cetiem-green" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-cetiem-gray mb-1.5 block">Teléfono</label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cetiem-gray/40" />
-                    <input type="tel" value={form.phone} onChange={set("phone")}
-                      placeholder="+52 55 1234 5678"
-                      className="w-full h-10 pl-9 pr-3 bg-cetiem-card border border-white/10 rounded-xl text-white text-sm placeholder-cetiem-gray/30 focus:outline-none focus:border-cetiem-green" />
-                  </div>
-                </div>
-                <div className="col-span-2">
-                  <label className="text-xs text-cetiem-gray mb-1.5 block">Correo electrónico *</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cetiem-gray/40" />
-                    <input type="email" value={form.email} onChange={set("email")} required
-                      placeholder="contacto@empresa.com"
-                      className="w-full h-10 pl-9 pr-3 bg-cetiem-card border border-white/10 rounded-xl text-white text-sm placeholder-cetiem-gray/30 focus:outline-none focus:border-cetiem-green" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-cetiem-gray mb-1.5 block">Contraseña *</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cetiem-gray/40" />
-                    <input type="password" value={form.password} onChange={set("password")} required
-                      placeholder="Mínimo 8 caracteres"
-                      className="w-full h-10 pl-9 pr-3 bg-cetiem-card border border-white/10 rounded-xl text-white text-sm placeholder-cetiem-gray/30 focus:outline-none focus:border-cetiem-green" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-cetiem-gray mb-1.5 block">Confirmar contraseña *</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cetiem-gray/40" />
-                    <input type="password" value={form.confirmPassword} onChange={set("confirmPassword")} required
-                      placeholder="Repetir contraseña"
-                      className="w-full h-10 pl-9 pr-3 bg-cetiem-card border border-white/10 rounded-xl text-white text-sm placeholder-cetiem-gray/30 focus:outline-none focus:border-cetiem-green" />
-                  </div>
-                </div>
-              </div>
-
-              {error && <p className="text-cetiem-red text-xs bg-cetiem-red/10 border border-cetiem-red/20 px-3 py-2 rounded-lg">{error}</p>}
-
-              <button type="submit" className="w-full flex items-center justify-center gap-2 bg-cetiem-green hover:bg-cetiem-green/90 text-white font-medium py-2.5 rounded-xl transition-colors">
-                Continuar <ArrowRight className="h-4 w-4" />
-              </button>
-
-              <p className="text-center text-xs text-cetiem-gray">
-                ¿Ya tienes cuenta?{" "}
-                <Link href="/auth/signin" className="text-cetiem-green hover:underline">Inicia sesión</Link>
-              </p>
-            </form>
-          )}
-
-          {/* Step 2 — Track sectorial */}
-          {step === 2 && (
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <h1 className="font-heading font-bold text-2xl text-white mb-1">Track Sectorial ESG</h1>
-                <p className="text-cetiem-gray text-sm">Selecciona el track que corresponde al giro de tu empresa. Esto determina los documentos requeridos.</p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3">
-                {TRACKS.map(track => (
-                  <button
-                    key={track.id} type="button"
-                    onClick={() => setForm(p => ({ ...p, track: track.id as "A"|"B"|"C" }))}
-                    className={cn(
-                      "flex items-start gap-4 p-4 rounded-xl border text-left transition-all",
-                      form.track === track.id
-                        ? "bg-cetiem-green/10 border-cetiem-green/40 text-white"
-                        : "bg-white/3 border-white/10 text-cetiem-gray hover:border-white/20 hover:text-white"
-                    )}
-                  >
+        <div className="flex-1 flex items-center justify-center px-10 py-16 overflow-auto">
+          <div className="w-full max-w-3xl">
+            {/* Step indicator */}
+            {step < 3 && (
+              <div className="flex items-center gap-8 mb-16">
+                {[1, 2].map(s => (
+                  <div key={s} className="flex items-center gap-4 flex-1">
                     <div className={cn(
-                      "h-8 w-8 rounded-xl border-2 flex items-center justify-center shrink-0 font-bold text-sm transition-all",
-                      form.track === track.id ? "bg-cetiem-green border-cetiem-green text-white" : "border-white/20 text-cetiem-gray/40"
+                      "h-14 w-14 rounded-full flex items-center justify-center text-xl font-black border-4 transition-all",
+                      step > s ? "bg-[#9D2449] border-[#9D2449] text-white" :
+                        step === s ? "bg-white border-[#9D2449] text-[#9D2449] shadow-2xl shadow-primary/10" :
+                          "bg-white border-gray-200 text-gray-300"
                     )}>
-                      {track.id}
+                      {step > s ? <CheckCircle className="h-8 w-8" /> : s}
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{track.label}</p>
-                      <p className="text-xs opacity-60 mb-2">{track.desc}</p>
-                      <div className="flex flex-wrap gap-1">
-                        {track.docs.map(d => (
-                          <span key={d} className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-cetiem-gray/60">{d}</span>
-                        ))}
-                      </div>
+                    {s === 1 && (
+                      <div className={cn(
+                        "flex-1 h-1 mx-4 transition-colors",
+                        step > 1 ? "bg-[#9D2449]" : "bg-gray-200"
+                      )} />
+                    )}
+                    <div className="flex flex-col">
+                      <span className={cn(
+                        "text-[10px] font-black uppercase tracking-[0.2em]",
+                        step === s ? "text-[#9D2449]" : "text-gray-400"
+                      )}>
+                        PASO 0{s}
+                      </span>
+                      <span className={cn(
+                        "text-base font-bold",
+                        step === s ? "text-[#1B1B1B]" : "text-gray-300"
+                      )}>
+                        {s === 1 ? "Registro" : "Certificación"}
+                      </span>
                     </div>
-                  </button>
+                    {s === 1 && <div className="flex-1 h-[2px] bg-gray-100 mx-4" />}
+                  </div>
                 ))}
               </div>
+            )}
 
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" checked={form.acceptTerms}
-                  onChange={e => setForm(p => ({ ...p, acceptTerms: e.target.checked }))}
-                  className="mt-0.5 rounded border-white/20" />
-                <span className="text-xs text-cetiem-gray">
-                  Acepto los{" "}
-                  <span className="text-cetiem-green hover:underline cursor-pointer">términos y condiciones</span>
-                  {" "}y la{" "}
-                  <span className="text-cetiem-green hover:underline cursor-pointer">política de privacidad</span>
-                  {" "}de CETIEM S.C.
-                </span>
-              </label>
+            {/* Tarjeta de Formulario */}
+            <div className="bg-white border-t-[8px] border-[#9D2449] shadow-gob-heavy p-12 md:p-16">
+              {step === 1 && (
+                <form onSubmit={handleStep1} className="space-y-10">
+                  <div className="mb-12">
+                    <h1 className="text-4xl font-heading font-black text-[#1B1B1B] uppercase tracking-tight mb-2">
+                      Registro Empresarial
+                    </h1>
+                    <hr style={{ backgroundColor: '#9D2449', border: 'none', height: '6px', width: '100px', marginBottom: '24px' }} />
+                    <p className="text-xl text-[#545454] font-light">Proporcione los datos oficiales de su unidad económica.</p>
+                  </div>
 
-              {error && <p className="text-cetiem-red text-xs bg-cetiem-red/10 border border-cetiem-red/20 px-3 py-2 rounded-lg">{error}</p>}
+                  <div className="grid md:grid-cols-2 gap-10">
+                    <div className="form-group md:col-span-2">
+                      <label className="control-label">Nombre de la empresa *</label>
+                      <input
+                        className="form-control-gob w-full"
+                        value={form.companyName}
+                        onChange={set("companyName")}
+                        required
+                        placeholder="Nombre comercial o razón social"
+                      />
+                    </div>
 
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setStep(1)}
-                  className="flex-1 py-2.5 border border-white/10 hover:border-white/20 text-cetiem-gray hover:text-white rounded-xl text-sm transition-colors">
-                  Atrás
-                </button>
-                <button type="submit" disabled={loading}
-                  className="flex-1 flex items-center justify-center gap-2 bg-cetiem-green hover:bg-cetiem-green/90 text-white font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50">
-                  {loading ? "Registrando..." : "Completar Registro"}
-                </button>
-              </div>
-            </form>
-          )}
+                    <div className="form-group">
+                      <label className="control-label">RFC</label>
+                      <input
+                        className="form-control-gob w-full uppercase"
+                        value={form.rfc}
+                        onChange={set("rfc")}
+                        placeholder="XAXX010101000"
+                      />
+                    </div>
 
-          {/* Step 3 — Success */}
-          {step === 3 && (
-            <div className="text-center space-y-6">
-              <div className="h-20 w-20 rounded-full bg-cetiem-green/20 flex items-center justify-center mx-auto">
-                <CheckCircle className="h-10 w-10 text-cetiem-green" />
-              </div>
-              <div>
-                <h1 className="font-heading font-bold text-2xl text-white mb-2">¡Registro exitoso!</h1>
-                <p className="text-cetiem-gray text-sm leading-relaxed">
-                  Tu empresa <strong className="text-white">{form.companyName}</strong> ha sido registrada.
-                  Un Data Assessor de CETIEM se pondrá en contacto contigo pronto.
+                    <div className="form-group">
+                      <label className="control-label">Industria</label>
+                      <select
+                        className="form-control-gob w-full text-lg cursor-pointer"
+                        value={form.industry}
+                        onChange={set("industry")}
+                      >
+                        <option value="">Seleccionar...</option>
+                        <option>Manufactura</option>
+                        <option>Construcción</option>
+                        <option>Servicios</option>
+                        <option>Tecnología</option>
+                        <option>Energía</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="control-label">Correo electrónico *</label>
+                      <input
+                        className="form-control-gob w-full"
+                        type="email"
+                        value={form.email}
+                        onChange={set("email")}
+                        required
+                        placeholder="contacto@empresa.com"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="control-label">Contraseña *</label>
+                      <input
+                        className="form-control-gob w-full"
+                        type="password"
+                        value={form.password}
+                        onChange={set("password")}
+                        required
+                        placeholder="Mínimo 8 caracteres"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="control-label">Confirmar contraseña *</label>
+                      <input
+                        className="form-control-gob w-full"
+                        type="password"
+                        value={form.confirmPassword}
+                        onChange={set("confirmPassword")}
+                        required
+                        placeholder="Repetir contraseña"
+                      />
+                    </div>
+                  </div>
+
+                  {error && <p className="text-red-600 font-bold bg-red-50 p-4 border-l-4 border-red-600">{error}</p>}
+
+                  <button
+                    type="submit"
+                    className="btn-gob-primary w-full !py-6 !text-2xl !font-black flex items-center justify-center gap-4 shadow-xl hover:-translate-y-1 transition-all"
+                  >
+                    CONTINUAR <ArrowRight className="h-7 w-7" />
+                  </button>
+                </form>
+              )}
+
+              {step === 2 && (
+                <form onSubmit={handleSubmit} className="space-y-10">
+                  <div>
+                    <h2 className="text-3xl font-heading font-black text-[#1B1B1B] uppercase tracking-tight mb-2">
+                      Track Sectorial ESG
+                    </h2>
+                    <hr style={{ backgroundColor: '#9D2449', border: 'none', height: '6px', width: '100px', marginBottom: '24px' }} />
+                    <p className="text-lg text-[#545454] font-light">Seleccione el track que corresponde al giro de su empresa.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6">
+                    {TRACKS.map(track => (
+                      <button
+                        key={track.id}
+                        type="button"
+                        onClick={() => setForm(p => ({ ...p, track: track.id as "A" | "B" | "C" }))}
+                        className={cn(
+                          "flex items-start gap-6 p-8 border-2 text-left transition-all relative overflow-hidden",
+                          form.track === track.id
+                            ? "bg-[#F8F8F8] border-[#9D2449]"
+                            : "bg-white border-gray-100 hover:border-gray-200"
+                        )}
+                      >
+                        <div className={cn(
+                          "h-12 w-12 flex items-center justify-center font-black text-xl border-2 shrink-0 transition-all",
+                          form.track === track.id ? "bg-[#9D2449] border-[#9D2449] text-white" : "border-gray-200 text-gray-300"
+                        )}>
+                          {track.id}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-black text-xl text-[#1B1B1B] uppercase mb-1">{track.label}</p>
+                          <p className="text-base text-[#545454] mb-4">{track.desc}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {track.docs.map(d => (
+                              <span key={d} className="text-[11px] px-3 py-1 font-bold bg-gray-200 text-gray-600 rounded-sm">
+                                {d}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  <label className="flex items-start gap-4 p-4 bg-gray-50 cursor-pointer border-l-4 border-[#BC955C]">
+                    <input
+                      type="checkbox"
+                      checked={form.acceptTerms}
+                      onChange={e => setForm(p => ({ ...p, acceptTerms: e.target.checked }))}
+                      className="mt-1 h-5 w-5 accent-[#9D2449]"
+                    />
+                    <span className="text-base text-[#545454]">
+                      Acepto los <span className="text-[#9D2449] font-bold underline">términos y condiciones</span> y la política de privacidad institucional.
+                    </span>
+                  </label>
+
+                  {error && <p className="text-red-600 font-bold bg-red-50 p-4 border-l-4 border-red-600">{error}</p>}
+
+                  <div className="flex gap-6">
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="flex-1 py-6 border-2 border-gray-200 hover:border-gray-400 font-bold text-xl uppercase transition-all"
+                    >
+                      Atrás
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="flex-[2] btn-gob-primary !py-6 !text-2xl !font-black shadow-xl hover:-translate-y-1 transition-all disabled:opacity-50"
+                    >
+                      {loading ? "REGISTRANDO..." : "COMPLETAR REGISTRO"}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {step === 3 && (
+                <div className="text-center space-y-10">
+                  <div className="h-24 w-24 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+                    <CheckCircle className="h-12 w-12 text-green-600" />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-heading font-black text-[#1B1B1B] uppercase tracking-tight mb-4">
+                      ¡Registro Exitoso!
+                    </h1>
+                    <p className="text-xl text-[#545454] leading-relaxed max-w-lg mx-auto">
+                      Su empresa <strong className="text-[#1B1B1B]">{form.companyName}</strong> ha sido registrada en el padrón institucional.
+                    </p>
+                  </div>
+                  <div className="bg-[#F8F8F8] p-8 text-left space-y-4">
+                    <p className="text-[#1B1B1B] font-black text-lg mb-4 uppercase tracking-widest">Próximos Pasos:</p>
+                    {[
+                      "Inicie sesión con sus credenciales",
+                      "Siga el track sectorial seleccionado",
+                      "Cargue la documentación técnica requerida",
+                    ].map((s, i) => (
+                      <div key={i} className="flex items-center gap-4">
+                        <span className="h-8 w-8 bg-[#9D2449] text-white font-black flex items-center justify-center rounded-full shrink-0">
+                          {i + 1}
+                        </span>
+                        <span className="text-lg text-[#545454]">{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <Link href="/auth/signin"
+                    className="flex items-center justify-center gap-4 w-full btn-gob-primary !py-6 !text-2xl !font-black shadow-2xl hover:-translate-y-1 transition-all">
+                    INICIAR SESIÓN <ArrowRight className="h-8 w-8" />
+                  </Link>
+                </div>
+              )}
+
+              <div className="mt-12 text-center pt-8 border-t border-gray-100">
+                <p className="text-lg text-[#545454]">
+                  ¿Dificultades técnicas?{' '}
+                  <span className="text-[#9D2449] font-bold underline cursor-pointer">Soporte Institutional</span>
                 </p>
               </div>
-              <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5 text-left space-y-2.5 text-sm">
-                <p className="text-white font-medium mb-3">Próximos pasos:</p>
-                {[
-                  "Inicia sesión con tu correo y contraseña",
-                  "Sube los documentos requeridos para tu certificación",
-                  "La IA analizará automáticamente tu expediente",
-                  "Un Data Assessor revisará y emitirá el dictamen",
-                ].map((s, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <span className="h-5 w-5 rounded-full bg-cetiem-green text-white text-[10px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-                    <span className="text-cetiem-gray">{s}</span>
-                  </div>
-                ))}
-              </div>
-              <Link href="/auth/signin"
-                className="flex items-center justify-center gap-2 w-full bg-cetiem-green hover:bg-cetiem-green/90 text-white font-medium py-3 rounded-xl transition-colors">
-                Iniciar Sesión <ArrowRight className="h-4 w-4" />
-              </Link>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

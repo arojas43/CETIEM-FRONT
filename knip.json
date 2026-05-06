@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/app/**/{page,layout,route,middleware}.{ts,tsx}",
+    "src/middleware.ts",
+    "src/lib/queue/workers.ts",
+    "process-document.ts",
+    "prisma/seed.ts",
+    "playwright.config.ts",
+    "tests/**/*.{ts,tsx}"
+  ],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignore": [
+    "src/app/**/{page,layout}.tsx",
+    "src/components/**",
+    "src/types/**"
+  ],
+  "ignoreDependencies": ["canvas", "tsx"]
+}

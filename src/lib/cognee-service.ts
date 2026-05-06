@@ -164,15 +164,11 @@ const DOMAIN_CONFIGS: Record<CogneeDomain, {
 };
 
 export class CogneeService {
-  private graphName: string = 'certificacion';
-  private defaultDomain: CogneeDomain = 'industria'; // Default para certificación empresarial ESG
+  private defaultDomain: CogneeDomain = 'industria';
 
   /**
-   * Extrae conocimiento de un chunk de texto usando LLM
-   * Soporta múltiples dominios: medical, legal, technical, academic, custom
-   * 
-   * IMPORTANTE: Guarda referencias a PageIndex (page, section, offsets)
-   * para permitir Q&A contextual preciso
+   * Extrae conocimiento de un chunk individual.
+   * Para procesamiento masivo usar `batchExtractKnowledge` (DeepSeek V4 Pro, 1M ctx).
    */
   async extractKnowledge(
     content: string,
@@ -186,25 +182,135 @@ export class CogneeService {
       end_index?: number;
     },
     extractionConfig?: ExtractionConfig,
-    companyId?: string // [Mejora 2] ID del usuario-empresa para el grafo global
+    companyId?: string
   ): Promise<{ entities: CogneeEntity[]; relations: CogneeRelation[] }> {
     const selectedDomain = domain || this.defaultDomain;
     const prompt = this.buildDomainPrompt(content, documentName, selectedDomain, extractionConfig);
 
     try {
       const config = DOMAIN_CONFIGS[selectedDomain];
-      const response = await nimService.generateText({
-        model: process.env.NVIDIA_CHAT_MODEL || 'meta/llama-3.1-70b-instruct',
-        prompt,
+      const response = await nimService.generateWithDeepSeek({
+        userPrompt: prompt,
         systemPrompt: config.systemPrompt,
-        maxTokens: 4000,
-        temperature: 0.2,
+        maxTokens: 4096,
+        temperature: 0.1,
       });
-
       return this.parseKnowledgeGraph(response, documentId, pageIndexReference, companyId);
     } catch (error: any) {
       console.error('[Cognee] Error extrayendo conocimiento:', error.message);
       return { entities: [], relations: [] };
+    }
+  }
+
+  /**
+   * Extrae entidades/relaciones de un batch de chunks en UNA SOLA llamada a DeepSeek V4 Pro.
+   * Con 1M de contexto puede procesar 20-50 chunks simultáneamente, reduciendo las
+   * llamadas a la API de N a ceil(N/batchSize).
+   *
+   * @returns Array parallel a `chunks`; cada posición contiene las entidades/relaciones
+   *          del chunk correspondiente.
+   */
+  async batchExtractKnowledge(
+    chunks: Array<{
+      content: string;
+      title: string;
+      page?: number;
+      id: string;
+    }>,
+    documentId: string,
+    documentName: string,
+    domain: CogneeDomain,
+    companyId?: string
+  ): Promise<Array<{ entities: CogneeEntity[]; relations: CogneeRelation[] }>> {
+    if (chunks.length === 0) return [];
+
+    const config = DOMAIN_CONFIGS[domain];
+
+    const chunksText = chunks
+      .map((c, i) =>
+        `### FRAGMENTO ${i + 1} (id: ${c.id}${c.page ? `, página: ${c.page}` : ''}, sección: "${c.title}")\n${c.content.slice(0, 12000)}`
+      )
+      .join('\n\n---\n\n');
+
+    const prompt = `Analiza los siguientes ${chunks.length} fragmentos del documento "${documentName}" y extrae entidades y relaciones de CADA fragmento.
+
+## TIPOS DE ENTIDAD VÁLIDOS:
+${config.entityTypes.map(t => `- ${t}`).join('\n')}
+
+## TIPOS DE RELACIÓN VÁLIDOS:
+${config.relationTypes.map(t => `- ${t}`).join('\n')}
+
+## FORMATO DE SALIDA (JSON estricto, sin texto adicional):
+[
+  {
+    "chunk_index": 0,
+    "entities": [{"id": "1", "type": "ORGANIZATION", "name": "...", "description": "..."}],
+    "relations": [{"source": "1", "target": "2", "type": "COMPLIES_WITH"}]
+  },
+  ...
+]
+El array debe tener exactamente ${chunks.length} objetos (uno por fragmento), en el mismo orden.
+
+## FRAGMENTOS:
+
+${chunksText}`;
+
+    try {
+      const response = await nimService.generateWithDeepSeek({
+        userPrompt: prompt,
+        systemPrompt: config.systemPrompt,
+        maxTokens: Math.min(8192, chunks.length * 400 + 512),
+        temperature: 0.1,
+      });
+
+      const parsed = extractFirstJSON(response);
+      if (!Array.isArray(parsed)) {
+        console.warn('[Cognee] batchExtract: respuesta no es array, usando fallback individual');
+        return chunks.map(() => ({ entities: [], relations: [] }));
+      }
+
+      return chunks.map((chunk, i) => {
+        const item = parsed[i] ?? {};
+        const rawEntities: any[] = Array.isArray(item.entities) ? item.entities : [];
+        const rawRelations: any[] = Array.isArray(item.relations) ? item.relations : [];
+
+        const entityIdMap = new Map<string, string>();
+        const entities: CogneeEntity[] = rawEntities.map((e: any) => {
+          const uid = `${documentId}-${chunk.id}-${e.id || Math.random().toString(36).slice(2)}`;
+          entityIdMap.set(String(e.id), uid);
+          return {
+            id: uid,
+            type: String(e.type || 'ENTITY').toUpperCase(),
+            name: String(e.name || ''),
+            description: e.description ? String(e.description) : undefined,
+            properties: {
+              page: chunk.page,
+              section: chunk.title,
+              documentId,
+              ...(companyId ? { companyId } : {}),
+            },
+          };
+        });
+
+        const relations: CogneeRelation[] = rawRelations
+          .map((r: any) => {
+            const src = entityIdMap.get(String(r.source));
+            const tgt = entityIdMap.get(String(r.target));
+            if (!src || !tgt) return null;
+            return {
+              id: `${src}-${r.type}-${tgt}`,
+              source: src,
+              target: tgt,
+              type: String(r.type || 'RELATED').toUpperCase(),
+            };
+          })
+          .filter((r): r is CogneeRelation => r !== null);
+
+        return { entities, relations };
+      });
+    } catch (error: any) {
+      console.error('[Cognee] batchExtract error:', error.message);
+      return chunks.map(() => ({ entities: [], relations: [] }));
     }
   }
 
@@ -291,10 +397,11 @@ ${content.slice(0, 15000)}`;
     entities: CogneeEntity[],
     relations: CogneeRelation[],
     documentId: string,
-    companyId?: string // [Mejora 2] propaga companyId a cada nodo en FalkorDB
-  ): Promise<{ saved: number; failed: number }> {
+    companyId?: string
+  ): Promise<{ saved: number; failed: number; relationsSaved: number }> {
     let saved = 0;
     let failed = 0;
+    let relationsSaved = 0;
 
     // Guardar entidades en batch agrupado por tipo (UNWIND)
     if (entities.length > 0) {
@@ -304,8 +411,8 @@ ${content.slice(0, 15000)}`;
           properties: {
             id: entity.id,
             name: entity.name,
-            documentId, // CLAVE: aísla por documento
-            ...(companyId ? { companyId } : {}), // [Mejora 2] grafo global
+            documentId,
+            ...(companyId ? { companyId } : {}),
             ...(entity.description ? { description: entity.description } : {}),
             ...(entity.properties ? entity.properties : {}),
           },
@@ -313,6 +420,19 @@ ${content.slice(0, 15000)}`;
         const created = await falkorDBService.createEntitiesBatch(batchInput);
         saved += created;
         failed += entities.length - created;
+
+        // Enriquecer nodos con embeddings para búsqueda semántica (HNSW)
+        try {
+          const texts = entities.map(e =>
+            `${e.type}: ${e.name}${e.description ? ` — ${e.description.slice(0, 200)}` : ''}`
+          );
+          const embeddings = await nimService.generateEmbeddings(texts);
+          const embeddingItems = entities.map((e, i) => ({ id: e.id, embedding: embeddings[i] }));
+          await falkorDBService.setEntityEmbeddings(embeddingItems);
+        } catch (embErr: any) {
+          // Non-critical: grafo funciona sin embeddings, solo pierde búsqueda vectorial
+          console.warn('[Cognee] No se generaron embeddings para entidades:', embErr.message);
+        }
       } catch (error: any) {
         console.error('[Cognee] Error en batch de entidades:', error.message);
         failed += entities.length;
@@ -328,13 +448,13 @@ ${content.slice(0, 15000)}`;
           relation.type,
           relation.properties
         );
-        saved++;
+        relationsSaved++;
       } catch {
-        failed++;
+        // Relation may reference entities that failed to save — non-fatal
       }
     }
 
-    return { saved, failed };
+    return { saved, failed, relationsSaved };
   }
 
   /**
@@ -350,43 +470,79 @@ ${content.slice(0, 15000)}`;
       page?: number;        // Búsqueda por página específica
       section?: string;     // Búsqueda por sección específica
       domain?: CogneeDomain; // Dominio para fallback de tipos
+      companyId?: string;   // Defense-in-depth: filtro multi-tenant adicional
     }
   ): Promise<CogneeSearchResult> {
     const limit = options?.limit || 20;
     const includeRelations = options?.includeRelations !== false;
     const domain = options?.domain || this.defaultDomain;
+    const companyId = options?.companyId;
 
-    // 1. Buscar entidades en el grafo del documento específico
-    const entitiesResult = await falkorDBService.roQuery(
-      `MATCH (n)
-       WHERE n.documentId = $docId
-         AND (n.name CONTAINS $q OR n.description CONTAINS $q)
-       RETURN labels(n)[0] AS type, n.name AS name, n.description AS desc, n.id AS id
-       LIMIT $lim`,
-      { docId: documentId, q: query, lim: limit }
-    );
+    // Validar dominio — evitar throw si llega valor inesperado
+    const safeDomain: CogneeDomain = domain in DOMAIN_CONFIGS ? domain : 'industria';
 
-    // 2. Si no encuentra por nombre, buscar por tipos del dominio correspondiente
-    let entities: CogneeEntity[] = entitiesResult.rows.map(r => ({
-      id: r.id,
-      type: r.type,
-      name: r.name,
-      description: r.desc,
-    }));
+    // 1a. Búsqueda semántica vectorial (FalkorDB 4.0+ HNSW) — alta precisión
+    let entities: CogneeEntity[] = [];
+    try {
+      const queryEmbedding = await nimService.generateEmbedding(query);
+      const vectorHits = await falkorDBService.vectorSearch('ENTITY', queryEmbedding, limit, documentId, companyId);
+      // También buscar en tipos específicos del dominio
+      const domainLabels = (DOMAIN_CONFIGS[safeDomain]?.entityTypes ?? [])
+        .map(t => t.split(':')[0].trim()).slice(0, 3); // top 3 labels del dominio
+      for (const label of domainLabels) {
+        const hits = await falkorDBService.vectorSearch(label, queryEmbedding, Math.ceil(limit / 2), documentId, companyId);
+        vectorHits.push(...hits);
+      }
+      // Deduplicar por nombre + ordenar por score
+      const seen = new Set<string>();
+      entities = vectorHits
+        .sort((a, b) => b.score - a.score)
+        .filter(h => { const k = h.name?.toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true; })
+        .slice(0, limit)
+        .map((h, i) => ({ id: `vec-${i}`, type: h.type, name: h.name, description: h.description }));
+    } catch {
+      // Vector search no disponible — fallback a CONTAINS
+    }
 
+    // FalkorDB doesn't support parametrized LIMIT — validate and interpolate
+    const safeLim = Math.min(1000, Math.max(1, Math.floor(limit)));
+
+    // 1b. Fallback: búsqueda textual case-insensitive
     if (entities.length === 0) {
-      // Obtener tipos de entidad válidos para este dominio
-      const domainEntityTypes = DOMAIN_CONFIGS[domain].entityTypes
-        .map(t => `'${t.split(':')[0].trim()}'`)
-        .join(', ');
+      const params1b: Record<string, any> = { docId: documentId, q: query };
+      const cFilter1b = companyId ? 'AND n.companyId = $cid ' : '';
+      if (companyId) params1b.cid = companyId;
+      const entitiesResult = await falkorDBService.roQuery(
+        `MATCH (n)
+         WHERE n.documentId = $docId ${cFilter1b}
+           AND (toLower(n.name) CONTAINS toLower($q) OR toLower(n.description) CONTAINS toLower($q))
+         RETURN labels(n)[0] AS type, n.name AS name, n.description AS desc, n.id AS id
+         LIMIT ${safeLim}`,
+        params1b
+      );
+      entities = entitiesResult.rows.map(r => ({
+        id: r.id,
+        type: r.type,
+        name: r.name,
+        description: r.desc,
+      }));
+    }
 
+    // 2. Si aún no encuentra, buscar por tipos del dominio (sin filtro de texto)
+    if (entities.length === 0) {
+      const domainEntityTypes = (DOMAIN_CONFIGS[safeDomain]?.entityTypes ?? [])
+        .map(t => t.split(':')[0].trim());
+
+      const params2: Record<string, any> = { docId: documentId, types: domainEntityTypes };
+      const cFilter2 = companyId ? 'AND n.companyId = $cid ' : '';
+      if (companyId) params2.cid = companyId;
       const typeSearch = await falkorDBService.roQuery(
         `MATCH (n)
-         WHERE n.documentId = $docId
-           AND labels(n)[0] IN [${domainEntityTypes}]
+         WHERE n.documentId = $docId ${cFilter2}
+           AND labels(n)[0] IN $types
          RETURN labels(n)[0] AS type, n.name AS name, n.description AS desc, n.id AS id
-         LIMIT $lim`,
-        { docId: documentId, lim: limit }
+         LIMIT ${safeLim}`,
+        params2
       );
 
       entities = typeSearch.rows.map(r => ({
@@ -398,16 +554,21 @@ ${content.slice(0, 15000)}`;
     }
 
     // 3. Obtener relaciones si se solicita
+    // Use entity names for the match — vector search entities have synthetic IDs (vec-N)
+    // that don't correspond to graph node IDs, so matching by name is the only robust approach.
     let relations: CogneeRelation[] = [];
     if (includeRelations && entities.length > 0) {
-      const entityIds = entities.map(e => `"${e.id}"`).join(',');
+      const entityNames = entities.map(e => e.name).filter(Boolean);
+      const relParams: Record<string, any> = { docId: documentId, names: entityNames };
+      const cFilterRel = companyId ? 'AND a.companyId = $cid AND b.companyId = $cid ' : '';
+      if (companyId) relParams.cid = companyId;
       const relationsResult = await falkorDBService.roQuery(
         `MATCH (a)-[r]->(b)
-         WHERE a.documentId = $docId AND b.documentId = $docId
-           AND a.id IN [${entityIds}]
+         WHERE a.documentId = $docId AND b.documentId = $docId ${cFilterRel}
+           AND a.name IN $names
          RETURN a.name AS source, type(r) AS type, b.name AS target
          LIMIT 50`,
-        { docId: documentId }
+        relParams
       );
 
       relations = relationsResult.rows.map(r => ({
@@ -429,7 +590,7 @@ ${content.slice(0, 15000)}`;
       entities,
       relations,
       context,
-      sources: entities.map(e => ({
+      sources: entities.map(_e => ({
         documentId,
       })),
     };
@@ -538,6 +699,10 @@ ${content.slice(0, 15000)}`;
     try {
       const parsed = extractFirstJSON(response);
       if (!parsed || !Array.isArray(parsed.entities)) {
+        console.warn(
+          `[Cognee] ⚠️  LLM no devolvió JSON válido para documento ${documentId} — 0 entidades extraídas.`,
+          `Respuesta (primeros 300 chars): ${response?.slice(0, 300)}`
+        );
         return { entities: [], relations: [] };
       }
 

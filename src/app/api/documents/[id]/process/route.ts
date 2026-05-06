@@ -3,24 +3,25 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { processDocument } from "@/lib/process-document-service";
 import { canAccessDocument } from "@/lib/access";
+import { withValidation } from "@/lib/api/with-validation";
+import { processSchema, VALID_DOMAINS } from "@/lib/schemas/documents";
+import type { ExtractionConfig } from "@/lib/cognee-service";
 
 export const dynamic = "force-dynamic";
-
-export type DocumentDomainType = 'INDUSTRIA' | 'CONSTRUCCION' | 'TECNOLOGIA';
 
 /**
  * POST /api/documents/[id]/process
  * Procesa manualmente un documento con el dominio especificado
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const POST = withValidation({ body: processSchema })(
+  async (
+    _request: NextRequest,
+    { body: { domain, extractionConfig } },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
     const session = await auth();
     const { id } = await params;
-    const body = await request.json();
-    const { domain, extractionConfig } = body || {};
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -40,13 +41,10 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Validar dominio
-    const validDomains: DocumentDomainType[] = ['INDUSTRIA', 'CONSTRUCCION', 'TECNOLOGIA'];
     const selectedDomain = (domain?.toUpperCase() || document.domain || 'INDUSTRIA') as string;
-
-    if (!validDomains.includes(selectedDomain as DocumentDomainType)) {
+    if (!VALID_DOMAINS.includes(selectedDomain as typeof VALID_DOMAINS[number])) {
       return NextResponse.json(
-        { error: `Dominio inválido. Debe ser uno de: ${validDomains.join(', ')}` },
+        { error: `Dominio inválido. Debe ser uno de: ${VALID_DOMAINS.join(', ')}` },
         { status: 400 }
       );
     }
@@ -66,7 +64,7 @@ export async function POST(
     // Pero esperamos a que termine para dar feedback al usuario
     try {
       const domainLower = selectedDomain.toLowerCase() as 'industria' | 'construccion' | 'tecnologia';
-      const result = await processDocument(id, domainLower, extractionConfig ?? undefined);
+      const result = await processDocument(id, domainLower, extractionConfig as ExtractionConfig | undefined);
 
       if (result.success) {
         return NextResponse.json({
@@ -111,7 +109,7 @@ export async function POST(
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * PUT /api/documents/[id]/domain
@@ -131,10 +129,9 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const validDomains: DocumentDomainType[] = ['INDUSTRIA', 'CONSTRUCCION', 'TECNOLOGIA'];
-    if (!domain || !validDomains.includes(domain.toUpperCase() as DocumentDomainType)) {
+    if (!domain || !VALID_DOMAINS.includes(domain.toUpperCase() as typeof VALID_DOMAINS[number])) {
       return NextResponse.json(
-        { error: `Dominio inválido. Debe ser uno de: ${validDomains.join(', ')}` },
+        { error: `Dominio inválido. Debe ser uno de: ${VALID_DOMAINS.join(', ')}` },
         { status: 400 }
       );
     }

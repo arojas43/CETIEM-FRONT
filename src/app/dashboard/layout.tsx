@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { Sidebar } from '@/components/sidebar'
 import { RoleProvider } from '@/lib/role-context'
+import { DashboardShell } from '@/components/dashboard-shell'
 import type { UserRole } from '@/lib/role-context'
 
 export default async function DashboardLayout({
@@ -16,12 +16,9 @@ export default async function DashboardLayout({
 
   return (
     <RoleProvider defaultRole={sessionRole}>
-      <div className="dark flex h-screen bg-cetiem-dark text-white overflow-hidden">
-        <Sidebar userName={session.user.name} userEmail={session.user.email} />
-        <div className="flex-1 overflow-auto">
-          {children}
-        </div>
-      </div>
+      <DashboardShell userName={session.user.name} userEmail={session.user.email}>
+        {children}
+      </DashboardShell>
     </RoleProvider>
   )
 }

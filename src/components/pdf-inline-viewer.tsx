@@ -14,8 +14,8 @@ interface PdfInlineViewerProps {
 type IframeState = "idle" | "loading" | "ready" | "error";
 
 export function PdfInlineViewer({ url, height = "70vh", className }: PdfInlineViewerProps) {
-  const [open, setOpen]             = useState(false);
-  const [state, setState]           = useState<IframeState>("idle");
+  const [open, setOpen] = useState(false);
+  const [state, setState] = useState<IframeState>("idle");
 
   const handleToggle = () => {
     if (!open) setState("loading");
@@ -34,10 +34,10 @@ export function PdfInlineViewer({ url, height = "70vh", className }: PdfInlineVi
           className={cn(
             "flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-colors border",
             unavailable
-              ? "opacity-40 cursor-not-allowed border-white/5 text-cetiem-gray"
+              ? "opacity-40 cursor-not-allowed border-border text-muted-foreground"
               : open
-                ? "bg-cetiem-green/10 border-cetiem-green/30 text-cetiem-green hover:bg-cetiem-green/20"
-                : "bg-cetiem-card border-white/10 text-cetiem-gray hover:border-cetiem-green/40 hover:text-cetiem-green"
+                ? "bg-economia-guinda/10 border-economia-guinda/30 text-economia-guinda hover:bg-economia-guinda/20"
+                : "bg-card border-border text-muted-foreground hover:border-economia-guinda/40 hover:text-economia-guinda"
           )}
           title={unavailable ? "PDF no disponible" : open ? "Ocultar PDF" : "Ver PDF inline"}
         >
@@ -56,7 +56,7 @@ export function PdfInlineViewer({ url, height = "70vh", className }: PdfInlineVi
             target="_blank"
             rel="noopener noreferrer"
             title="Abrir en nueva pestaña"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm transition-colors border bg-cetiem-card border-white/10 text-cetiem-gray/50 hover:text-cetiem-gray hover:border-white/20"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm transition-colors border bg-card border-border text-muted-foreground/50 hover:text-muted-foreground hover:border-border"
           >
             <ExternalLink className="h-4 w-4" />
           </a>
@@ -64,19 +64,19 @@ export function PdfInlineViewer({ url, height = "70vh", className }: PdfInlineVi
       </div>
 
       {open && (
-        <div className="mt-3 rounded-xl border border-white/10 overflow-hidden bg-white" style={{ height }}>
+        <div className="mt-3 rounded-xl border border-border overflow-hidden bg-white" style={{ height }}>
           {state === "error" ? (
             /* ── Error fallback ─────────────────────────────────────── */
-            <div className="flex flex-col items-center justify-center h-full gap-3 bg-cetiem-dark p-6">
-              <AlertCircle className="h-10 w-10 text-cetiem-red/50" />
-              <p className="text-cetiem-gray text-sm text-center">
+            <div className="flex flex-col items-center justify-center h-full gap-3 bg-economia-verdeDark p-6">
+              <AlertCircle className="h-10 w-10 text-economia-error/50" />
+              <p className="text-muted-foreground text-sm text-center">
                 No se pudo mostrar el PDF en el navegador.
               </p>
               <a
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-xs bg-cetiem-green hover:bg-cetiem-green/90 text-white font-medium px-4 py-2 rounded-xl transition-colors"
+                className="flex items-center gap-2 text-xs bg-economia-guinda hover:bg-economia-guinda/90 text-primary-foreground font-medium px-4 py-2 rounded-xl transition-colors"
               >
                 <FileText className="h-4 w-4" />
                 Abrir PDF en nueva pestaña
@@ -86,8 +86,8 @@ export function PdfInlineViewer({ url, height = "70vh", className }: PdfInlineVi
             /* ── iframe ─────────────────────────────────────────────── */
             <>
               {state === "loading" && (
-                <div className="absolute inset-0 flex items-center justify-center bg-cetiem-dark/80 z-10">
-                  <Loader2 className="h-8 w-8 text-cetiem-green animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center bg-economia-verdeDark/80 z-10">
+                  <Loader2 className="h-8 w-8 text-economia-guinda animate-spin" />
                 </div>
               )}
               <iframe

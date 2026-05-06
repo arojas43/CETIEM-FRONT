@@ -7,8 +7,8 @@ import Link from "next/link";
 import {
   FileText, Upload, Search, CheckCircle, Clock, AlertCircle,
   Building2, ClipboardList, Users, ArrowRight, Eye,
-  TrendingUp, Shield, Award, RefreshCw, ShieldAlert,
-  Network, ScrollText, Download, ChevronRight, MessageSquare, XCircle,
+  Award, RefreshCw, ShieldAlert,
+  Network, ScrollText, Download, ChevronRight, MessageSquare, XCircle, Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -60,28 +60,28 @@ interface Props {
 }
 
 const DOC_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ComponentType<{ className?: string }> }> = {
-  PENDING:    { label: 'Pendiente',   color: 'text-cetiem-gray',  bg: 'bg-cetiem-gray/10',  icon: Clock },
-  PROCESSING: { label: 'Procesando', color: 'text-cetiem-amber', bg: 'bg-cetiem-amber/10', icon: RefreshCw },
-  INDEXED:    { label: 'Indexado',   color: 'text-cetiem-teal',  bg: 'bg-cetiem-teal/10',  icon: Search },
-  ANALYZED:   { label: 'Analizado',  color: 'text-cetiem-lime',  bg: 'bg-cetiem-lime/10',  icon: CheckCircle },
-  FAILED:     { label: 'Fallido',    color: 'text-cetiem-red',   bg: 'bg-cetiem-red/10',   icon: AlertCircle },
+  PENDING: { label: 'Pendiente', color: 'text-muted-foreground', bg: 'bg-economia-gris/10', icon: Clock },
+  PROCESSING: { label: 'Procesando', color: 'text-economia-warning', bg: 'bg-economia-warning/10', icon: RefreshCw },
+  INDEXED: { label: 'Indexado', color: 'text-economia-info', bg: 'bg-economia-info/10', icon: Search },
+  ANALYZED: { label: 'Analizado', color: 'text-economia-success', bg: 'bg-economia-success/10', icon: CheckCircle },
+  FAILED: { label: 'Fallido', color: 'text-economia-error', bg: 'bg-economia-error/10', icon: AlertCircle },
 }
 
 const CERT_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  APPROVED:  { label: 'Aprobado',    color: 'text-cetiem-lime',  bg: 'bg-cetiem-lime/10' },
-  IN_REVIEW: { label: 'En revisión', color: 'text-cetiem-amber', bg: 'bg-cetiem-amber/10' },
-  REJECTED:  { label: 'Rechazado',   color: 'text-cetiem-red',   bg: 'bg-cetiem-red/10' },
-  REVOKED:   { label: 'Revocado',    color: 'text-cetiem-red',   bg: 'bg-cetiem-red/10' },
-  CAPA_OPEN: { label: 'CAPA Abierta',color: 'text-cetiem-amber', bg: 'bg-cetiem-amber/10' },
-  DRAFT:     { label: 'Borrador',    color: 'text-cetiem-gray',  bg: 'bg-white/5' },
+  APPROVED: { label: 'Aprobado', color: 'text-economia-success', bg: 'bg-economia-success/10' },
+  IN_REVIEW: { label: 'En revisión', color: 'text-economia-warning', bg: 'bg-economia-warning/10' },
+  REJECTED: { label: 'Rechazado', color: 'text-economia-error', bg: 'bg-economia-error/10' },
+  REVOKED: { label: 'Revocado', color: 'text-economia-error', bg: 'bg-economia-error/10' },
+  CAPA_OPEN: { label: 'CAPA Abierta', color: 'text-economia-warning', bg: 'bg-economia-warning/10' },
+  DRAFT: { label: 'Borrador', color: 'text-muted-foreground', bg: 'bg-muted' },
 }
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = DOC_STATUS_CONFIG[status] ?? DOC_STATUS_CONFIG.PENDING
   const Icon = cfg.icon
   return (
-    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium', cfg.color, cfg.bg)}>
-      <Icon className="h-2.5 w-2.5" />
+    <span className={cn('inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider', cfg.color, cfg.bg)}>
+      <Icon className="h-3.5 w-3.5" />
       {cfg.label}
     </span>
   )
@@ -91,7 +91,7 @@ function CertBadge({ status }: { status: string }) {
   const cfg = CERT_STATUS_CONFIG[status]
   if (!cfg) return null
   return (
-    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium', cfg.color, cfg.bg)}>
+    <span className={cn('inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider', cfg.color, cfg.bg)}>
       {cfg.label}
     </span>
   )
@@ -102,10 +102,10 @@ function DonutChart({ analyzed, processing, indexed, failed, total }: DocStats) 
   const r = 44; const cx = 56; const cy = 56
   const circ = 2 * Math.PI * r
   const data = [
-    { pct: analyzed / safeTotal,   color: '#9fc031' },
-    { pct: processing / safeTotal, color: '#ffbf00' },
-    { pct: indexed / safeTotal,    color: '#1e7d93' },
-    { pct: failed / safeTotal,     color: '#aa3939' },
+    { pct: analyzed / safeTotal, color: '#1e5b4f' }, // verde — aprobado
+    { pct: processing / safeTotal, color: '#a57f2c' }, // dorado — en proceso
+    { pct: indexed / safeTotal, color: '#98989a' }, // gris — revisión
+    { pct: failed / safeTotal, color: '#9b2247' }, // guinda — fallido
   ]
   let offset = 0
   const segments = data.filter(d => d.pct > 0).map(d => {
@@ -113,58 +113,58 @@ function DonutChart({ analyzed, processing, indexed, failed, total }: DocStats) 
   })
   return (
     <svg width="112" height="112" viewBox="0 0 112 112" className="rotate-[-90deg]">
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#ffffff08" strokeWidth="14" />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="currentColor" strokeOpacity="0.05" strokeWidth="14" />
       {total === 0
-        ? <circle cx={cx} cy={cy} r={r} fill="none" stroke="#ffffff10" strokeWidth="14" strokeDasharray={`${circ} ${circ}`} />
+        ? <circle cx={cx} cy={cy} r={r} fill="none" stroke="currentColor" strokeOpacity="0.10" strokeWidth="14" strokeDasharray={`${circ} ${circ}`} />
         : segments.map((seg, i) => (
-            <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={seg.color} strokeWidth="14"
-              strokeDasharray={`${seg.pct * circ} ${circ}`}
-              strokeDashoffset={-(seg.offset * circ) + circ * 0.25} />
-          ))
+          <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={seg.color} strokeWidth="14"
+            strokeDasharray={`${seg.pct * circ} ${circ}`}
+            strokeDashoffset={-(seg.offset * circ) + circ * 0.25} />
+        ))
       }
     </svg>
   )
 }
 
 // ─── DICTAMEN BANNER — shown on company dashboard when assessor emits verdict ──
-function DictamenBanner({ certStats, companyId }: { certStats: CertStats; companyId?: string }) {
-  const { certStatus, certNotes, certFindings = [], capaOpen, esgScore, assessedAt, certId } = certStats
+function DictamenBanner({ certStats, companyId: _companyId }: { certStats: CertStats; companyId?: string }) {
+  const { certStatus, certNotes, certFindings = [], capaOpen, esgScore, assessedAt, certId: _certId } = certStats
   if (!certStatus || certStatus === 'DRAFT') return null
 
   const findingsSummary = {
-    nc:  (certFindings as any[]).filter(f => f.type === 'NON_COMPLIANCE').length,
+    nc: (certFindings as any[]).filter(f => f.type === 'NON_COMPLIANCE').length,
     obs: (certFindings as any[]).filter(f => f.type === 'OBSERVATION').length,
-    comp:(certFindings as any[]).filter(f => f.type === 'COMPLIANCE').length,
+    comp: (certFindings as any[]).filter(f => f.type === 'COMPLIANCE').length,
   }
 
   if (certStatus === 'APPROVED') {
     return (
-      <div className="bg-gradient-to-r from-cetiem-lime/15 to-cetiem-green/10 border border-cetiem-lime/30 rounded-2xl p-5">
+      <div role="alert" aria-live="polite" className="bg-gradient-to-r from-economia-success/15 to-economia-guinda/10 border border-economia-success/30 rounded-2xl p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <Award className="h-8 w-8 text-cetiem-lime shrink-0 mt-0.5" />
+            <Award className="h-8 w-8 text-economia-success shrink-0 mt-0.5" aria-hidden="true" />
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-heading font-bold text-cetiem-lime text-base">Certificado ESG Aprobado</h3>
+                <h3 className="font-heading font-bold text-economia-success text-base">Certificado ESG Aprobado</h3>
                 {esgScore !== null && esgScore !== undefined && (
-                  <span className="text-xs font-bold bg-cetiem-lime/20 text-cetiem-lime px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-bold bg-economia-success/20 text-economia-success px-2 py-0.5 rounded-full">
                     Score {Math.round(esgScore)}%
                   </span>
                 )}
               </div>
               {certNotes && (
-                <p className="text-white/70 text-sm italic mb-2">"{certNotes}"</p>
+                <p className="text-foreground/70 text-sm italic mb-2">&ldquo;{certNotes}&rdquo;</p>
               )}
-              <p className="text-cetiem-gray/60 text-xs">
+              <p className="text-muted-foreground/60 text-sm">
                 {assessedAt ? `Emitido el ${new Date(assessedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}` : 'Dictamen emitido'}
               </p>
             </div>
           </div>
           <Link
             href="/dashboard/mi-certificado"
-            className="shrink-0 flex items-center gap-2 bg-cetiem-lime hover:bg-cetiem-lime/90 text-black font-semibold text-sm px-4 py-2 rounded-xl transition-colors"
+            className="shrink-0 flex items-center gap-2 bg-economia-success hover:bg-economia-success/90 text-black font-semibold text-sm px-4 py-2 rounded-xl transition-colors"
           >
-            <Download className="h-4 w-4" /> Ver Certificado
+            <Download className="h-4 w-4" aria-hidden="true" /> Ver Certificado
           </Link>
         </div>
       </div>
@@ -173,16 +173,16 @@ function DictamenBanner({ certStats, companyId }: { certStats: CertStats; compan
 
   if (certStatus === 'REJECTED') {
     return (
-      <div className="bg-cetiem-red/10 border border-cetiem-red/30 rounded-2xl p-5">
+      <div role="alert" aria-live="assertive" className="bg-economia-error/10 border border-economia-error/30 rounded-2xl p-5">
         <div className="flex items-start gap-3">
-          <XCircle className="h-6 w-6 text-cetiem-red shrink-0 mt-0.5" />
+          <XCircle className="h-6 w-6 text-economia-error shrink-0 mt-0.5" aria-hidden="true" />
           <div className="flex-1">
-            <h3 className="font-heading font-semibold text-cetiem-red text-sm mb-2">Dictamen: No aprobado</h3>
-            {certNotes && <p className="text-white/70 text-sm italic mb-2">"{certNotes}"</p>}
+            <h3 className="font-heading font-semibold text-economia-error text-sm mb-2">Dictamen: No aprobado</h3>
+            {certNotes && <p className="text-foreground/70 text-sm italic mb-2">&ldquo;{certNotes}&rdquo;</p>}
             {findingsSummary.nc > 0 && (
-              <p className="text-cetiem-gray text-xs">{findingsSummary.nc} no conformidad{findingsSummary.nc !== 1 ? 'es' : ''} identificada{findingsSummary.nc !== 1 ? 's' : ''}</p>
+              <p className="text-muted-foreground text-xs">{findingsSummary.nc} no conformidad{findingsSummary.nc !== 1 ? 'es' : ''} identificada{findingsSummary.nc !== 1 ? 's' : ''}</p>
             )}
-            <p className="text-cetiem-gray/60 text-xs mt-1">Contacta a tu Assessor ESG para orientación.</p>
+            <p className="text-muted-foreground/60 text-xs mt-1">Contacta a tu Assessor ESG para orientación.</p>
           </div>
         </div>
       </div>
@@ -191,46 +191,46 @@ function DictamenBanner({ certStats, companyId }: { certStats: CertStats; compan
 
   // IN_REVIEW or CAPA_OPEN
   return (
-    <div className="bg-cetiem-amber/10 border border-cetiem-amber/30 rounded-2xl p-5">
+    <div className="bg-economia-warning/10 border border-economia-warning/30 rounded-2xl p-5">
       <div className="flex items-start gap-3">
-        <MessageSquare className="h-6 w-6 text-cetiem-amber shrink-0 mt-0.5" />
+        <MessageSquare className="h-6 w-6 text-economia-warning shrink-0 mt-0.5" />
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <h3 className="font-heading font-semibold text-cetiem-amber text-sm">
+            <h3 className="font-heading font-semibold text-economia-warning text-sm">
               {certStatus === 'CAPA_OPEN' ? 'Acciones correctivas requeridas' : 'Revisión en curso — feedback del Assessor'}
             </h3>
           </div>
           {certNotes && (
-            <p className="text-white text-sm italic mb-3 bg-white/5 rounded-xl px-3 py-2 border-l-2 border-cetiem-amber/40">
+            <p className="text-foreground text-sm italic mb-3 bg-muted rounded-xl px-3 py-2 border-l-2 border-economia-warning/40">
               "{certNotes}"
             </p>
           )}
           <div className="flex items-center gap-3 text-xs flex-wrap">
             {findingsSummary.nc > 0 && (
-              <span className="bg-cetiem-red/15 text-cetiem-red px-2 py-1 rounded-lg font-medium">
+              <span className="bg-economia-error/15 text-economia-error px-2 py-1 rounded-lg font-medium">
                 {findingsSummary.nc} No conformidad{findingsSummary.nc !== 1 ? 'es' : ''}
               </span>
             )}
             {findingsSummary.obs > 0 && (
-              <span className="bg-cetiem-amber/15 text-cetiem-amber px-2 py-1 rounded-lg font-medium">
+              <span className="bg-economia-warning/15 text-economia-warning px-2 py-1 rounded-lg font-medium">
                 {findingsSummary.obs} Observación{findingsSummary.obs !== 1 ? 'es' : ''}
               </span>
             )}
             {findingsSummary.comp > 0 && (
-              <span className="bg-cetiem-lime/10 text-cetiem-lime px-2 py-1 rounded-lg font-medium">
+              <span className="bg-economia-success/10 text-economia-success px-2 py-1 rounded-lg font-medium">
                 {findingsSummary.comp} Cumplimiento{findingsSummary.comp !== 1 ? 's' : ''}
               </span>
             )}
             {capaOpen > 0 && (
               <Link href="/dashboard/capa"
-                className="bg-cetiem-red/15 text-cetiem-red px-2 py-1 rounded-lg font-medium hover:bg-cetiem-red/25 transition-colors flex items-center gap-1">
+                className="bg-economia-error/15 text-economia-error px-2 py-1 rounded-lg font-medium hover:bg-economia-error/25 transition-colors flex items-center gap-1">
                 <ShieldAlert className="h-3 w-3" />
                 {capaOpen} ticket{capaOpen !== 1 ? 's' : ''} CAPA
               </Link>
             )}
           </div>
           {certStatus === 'CAPA_OPEN' && capaOpen > 0 && (
-            <Link href="/dashboard/capa" className="mt-3 inline-flex items-center gap-2 text-xs bg-cetiem-amber text-black font-medium px-3 py-1.5 rounded-lg hover:bg-cetiem-amber/90 transition-colors">
+            <Link href="/dashboard/capa" className="mt-3 inline-flex items-center gap-2 text-xs bg-economia-warning text-black font-medium px-3 py-1.5 rounded-lg hover:bg-economia-warning/90 transition-colors">
               Gestionar acciones correctivas <ChevronRight className="h-3 w-3" />
             </Link>
           )}
@@ -241,84 +241,88 @@ function DictamenBanner({ certStats, companyId }: { certStats: CertStats; compan
 }
 
 // ─── COMPANY VIEW ─────────────────────────────────────────────────────────────
-function CompanyDashboard({ userName, stats, recentDocs, companyMeta, certStats }: Pick<Props, 'userName' | 'stats' | 'recentDocs' | 'companyMeta' | 'certStats'>) {
-  const firstName = userName.split(' ')[0].split('@')[0]
+function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta: _companyMeta, certStats }: Pick<Props, 'userName' | 'stats' | 'recentDocs' | 'companyMeta' | 'certStats'>) {
   const pct = (n: number) => stats.total > 0 ? Math.round((n / stats.total) * 100) : 0
 
-  const hasCert      = (certStats?.total ?? 0) > 0
+  const hasCert = (certStats?.total ?? 0) > 0
   const certApproved = (certStats?.approved ?? 0) > 0
-  const capaOpen     = certStats?.capaOpen ?? 0
+  const capaOpen = certStats?.capaOpen ?? 0
 
-  const TRACK_LABEL: Record<string, string> = {
-    A: 'Track A — Industria', B: 'Track B — Construcción', C: 'Track C — Tecnología',
-  }
-  const SPRINT_LABEL: Record<string, string> = {
-    STARTUP: 'Sprint 1 — Startup', PEQUENA: 'Sprint 2 — Pequeña', MEDIANA: 'Sprint 3 — Mediana',
-  }
-
-  // 4 steps: each is independently determined
   const certSteps = [
-    { n: 1, label: 'Documentos\nSubidos',       done: stats.total > 0,      active: stats.total === 0 },
-    { n: 2, label: 'Análisis IA\nImpulsado por NVIDIA', done: stats.analyzed > 0,   active: stats.total > 0 && stats.analyzed === 0 },
-    { n: 3, label: 'Revisión\nAssessor ESG',    done: hasCert,               active: stats.analyzed > 0 && !hasCert },
-    { n: 4, label: 'Certificado\nESG Emitido',  done: certApproved,          active: hasCert && !certApproved },
+    { n: 1, label: 'Documentos\nSubidos', done: stats.total > 0, active: stats.total === 0 },
+    { n: 2, label: 'Análisis IA\nImpulsado por NVIDIA', done: stats.analyzed > 0, active: stats.total > 0 && stats.analyzed === 0 },
+    { n: 3, label: 'Revisión\nAssessor ESG', done: hasCert, active: stats.analyzed > 0 && !hasCert },
+    { n: 4, label: 'Certificado\nESG Emitido', done: certApproved, active: hasCert && !certApproved },
   ]
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-8 py-5 border-b border-white/5">
+    <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#F5F5F5]/30">
+      {/* Breadcrumbs — gob.mx v3 spec: ol.breadcrumb con icon-home */}
+      <nav aria-label="Ubicación" className="mb-2">
+        <ol className="breadcrumb-gob">
+          <li>
+            <Link href="/" aria-label="Inicio">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+            </Link>
+          </li>
+          <li>Mi Certificación</li>
+        </ol>
+      </nav>
+
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-white">Bienvenido, {firstName}</h1>
-          <p className="text-cetiem-gray text-sm mt-0.5">Sigue el progreso de tu proceso de certificación ESG.</p>
+          <h1 className="text-3xl font-heading font-bold text-[#1B1B1B] leading-tight mb-2">Panel de Certificación</h1>
+          <div className="pleca-dorada" />
+          <p className="text-muted-foreground text-sm font-medium">Gestión de cumplimiento ambiental, social y de gobernanza.</p>
         </div>
-        <Link href="/dashboard/upload" className="flex items-center gap-2 bg-cetiem-green hover:bg-cetiem-green/90 text-white text-sm font-medium px-4 py-2 rounded-xl">
-          <Upload className="h-4 w-4" /> Subir Documento
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/upload" className="btn-gob-primary !px-10 !py-3 flex items-center gap-2">
+            <Upload className="h-4 w-4" /> SUBIR DOCUMENTACIÓN
+          </Link>
+        </div>
       </div>
 
-      <div className="flex-1 p-8 grid grid-cols-3 gap-6 overflow-auto">
-        <div className="col-span-2 space-y-6">
-
-          {/* Dictamen banner — shown when assessor has issued verdict */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="col-span-2 space-y-5">
           {certStats && <DictamenBanner certStats={certStats} />}
 
-          {/* CAPA alert — only when no dictamen banner (no duplication) */}
           {capaOpen > 0 && (!certStats?.certStatus || certStats.certStatus === 'DRAFT') && (
-            <Link href="/dashboard/capa" className="flex items-center gap-3 bg-cetiem-amber/10 border border-cetiem-amber/30 rounded-2xl p-4 hover:border-cetiem-amber/50 transition-colors">
-              <ShieldAlert className="h-5 w-5 text-cetiem-amber shrink-0" />
+            <Link href="/dashboard/capa" className="flex items-center gap-3 bg-economia-warning/10 border border-economia-warning/30 rounded-2xl p-6 hover:border-economia-warning/50 transition-colors shadow-gob">
+              <ShieldAlert className="h-6 w-6 text-economia-warning shrink-0" />
               <div className="flex-1">
-                <p className="text-cetiem-amber font-semibold text-sm">
-                  {capaOpen} ticket{capaOpen !== 1 ? 's' : ''} CAPA abierto{capaOpen !== 1 ? 's' : ''}
+                <p className="text-economia-warning font-black text-sm uppercase tracking-widest">
+                  {capaOpen} ACCIÓN CORRECTIVA {capaOpen !== 1 ? 'S' : ''} PENDIENTE{capaOpen !== 1 ? 'S' : ''}
                 </p>
-                <p className="text-cetiem-amber/70 text-xs">Tienes acciones correctivas pendientes con plazo de 30 días. Haz clic para gestionarlos.</p>
+                <p className="text-muted-foreground text-xs font-medium">Tienes hallazgos que requieren atención inmediata. Haz clic para gestionarlos.</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-cetiem-amber shrink-0" />
+              <ChevronRight className="h-5 w-5 text-economia-warning shrink-0" />
             </Link>
           )}
 
-          {/* Progreso de certificación */}
-          <div className="bg-cetiem-card border border-white/5 rounded-2xl p-6">
-            <h2 className="font-heading font-semibold text-white mb-1">Tu proceso de certificación</h2>
-            <p className="text-cetiem-gray text-xs mb-5">Completa cada etapa para obtener tu certificado ESG.</p>
+          <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-gob">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="pleca-dorada w-1 h-6" />
+              <h2 className="text-lg font-heading font-bold text-[#1B1B1B] uppercase tracking-wider">Flujo Institucional</h2>
+            </div>
             <div className="flex items-center gap-0">
               {certSteps.map((step, i) => (
                 <div key={step.n} className="flex items-center flex-1">
                   <div className="flex flex-col items-center flex-1">
                     <div className={cn(
-                      "h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold border-2 mb-2",
-                      step.done   ? "bg-cetiem-green border-cetiem-green text-white" :
-                      step.active ? "bg-cetiem-amber/20 border-cetiem-amber text-cetiem-amber" :
-                                    "bg-white/5 border-white/10 text-cetiem-gray/40"
+                      "h-12 w-12 rounded-full flex items-center justify-center text-sm font-black border-2 mb-3 shadow-sm transition-all",
+                      step.done ? "bg-economia-guinda border-economia-guinda text-white" :
+                        step.active ? "bg-economia-warning/20 border-economia-warning text-economia-warning animate-pulse" :
+                          "bg-muted border-border text-muted-foreground/60"
                     )}>
-                      {step.done ? <CheckCircle className="h-4 w-4" /> : step.n}
+                      {step.done ? <CheckCircle className="h-6 w-6" /> : step.n}
                     </div>
-                    <span className={cn("text-[10px] text-center leading-tight whitespace-pre-line",
-                      step.done ? "text-cetiem-green" : step.active ? "text-cetiem-amber" : "text-cetiem-gray/40"
+                    <span className={cn("text-xs text-center font-black leading-tight whitespace-pre-line uppercase tracking-widest",
+                      step.done ? "text-economia-guinda" : step.active ? "text-economia-warning" : "text-muted-foreground/60"
                     )}>{step.label}</span>
                   </div>
                   {i < certSteps.length - 1 && (
-                    <div className={cn("h-0.5 w-full mx-1 mb-4 rounded-full",
-                      step.done ? "bg-cetiem-green" : "bg-white/5"
+                    <div className={cn("h-1 w-full mx-2 mb-8 rounded-full",
+                      step.done ? "bg-economia-guinda" : "bg-muted"
                     )} />
                   )}
                 </div>
@@ -326,68 +330,73 @@ function CompanyDashboard({ userName, stats, recentDocs, companyMeta, certStats 
             </div>
           </div>
 
-          {/* KPIs — empresa-friendly */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-cetiem-green rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-white/70 text-xs">Mis Documentos</span>
-                <FileText className="h-4 w-4 text-white/60" />
+            <div className="bg-economia-guinda rounded-2xl p-6 shadow-gob group hover:scale-[1.02] transition-transform">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-white/70 text-sm font-bold uppercase tracking-widest">Documentos</span>
+                <FileText className="h-5 w-5 text-white/60" />
               </div>
               <div className="text-4xl font-heading font-bold text-white">{stats.total}</div>
-              <Link href="/dashboard/documents" className="text-white/70 text-xs mt-1 flex items-center gap-1 hover:text-white">
-                Ver todos <ArrowRight className="h-3 w-3" />
+              <Link href="/dashboard/documents" className="text-white/80 text-xs mt-4 flex items-center gap-1 hover:text-white font-bold uppercase tracking-tighter">
+                Ver Repositorio <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
-            <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-cetiem-gray text-xs">Analizados por IA</span>
-                <CheckCircle className="h-4 w-4 text-cetiem-lime" />
+            <div className="bg-card border border-border rounded-2xl p-6 shadow-gob group hover:border-economia-guinda/30 transition-all">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-muted-foreground text-sm font-bold uppercase tracking-widest">Analizados</span>
+                <div className="h-8 w-8 rounded-lg bg-economia-success/10 flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-economia-success" />
+                </div>
               </div>
-              <div className="text-4xl font-heading font-bold text-white">{stats.analyzed}</div>
-              <span className="text-cetiem-gray text-xs mt-1 block">Listos para assessor</span>
+              <div className="text-4xl font-heading font-bold text-foreground">{stats.analyzed}</div>
+              <span className="text-muted-foreground/60 text-xs mt-4 block font-medium">Listos para dictamen</span>
             </div>
-            <div className={cn("rounded-2xl p-5", certApproved ? "bg-cetiem-lime/10 border border-cetiem-lime/20" : "bg-cetiem-card border border-white/5")}>
-              <div className="flex items-center justify-between mb-2">
-                <span className={cn("text-xs", certApproved ? "text-cetiem-lime" : "text-cetiem-gray")}>Certificaciones</span>
-                <Award className={cn("h-4 w-4", certApproved ? "text-cetiem-lime" : "text-cetiem-gray/40")} />
+            <div className={cn("rounded-2xl p-8 shadow-gob group transition-all border", certApproved ? "bg-economia-success/10 border-economia-success/30" : "bg-card border-border")}>
+              <div className="flex items-center justify-between mb-4">
+                <span className={cn("text-xs font-black uppercase tracking-widest", certApproved ? "text-economia-success" : "text-muted-foreground")}>Sellos ESG</span>
+                <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", certApproved ? "bg-economia-success/20" : "bg-muted")}>
+                  <Award className={cn("h-5 w-5", certApproved ? "text-economia-success" : "text-muted-foreground/60")} />
+                </div>
               </div>
-              <div className="text-4xl font-heading font-bold text-white">{certStats?.approved ?? 0}</div>
-              <span className={cn("text-xs mt-1 block", certApproved ? "text-cetiem-lime/70" : "text-cetiem-gray")}>
-                {certApproved ? 'ESG aprobadas' : 'Sin aprobaciones aún'}
+              <div className="text-4xl font-heading font-bold text-foreground">{certStats?.approved ?? 0}</div>
+              <span className={cn("text-xs mt-4 block font-medium", certApproved ? "text-economia-success/70" : "text-muted-foreground/60")}>
+                {certApproved ? 'Felicidades: Aprobado' : 'Pendiente de emisión'}
               </span>
             </div>
           </div>
 
-          {/* Documentos recientes */}
-          <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5">
+          <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-gob">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-heading font-semibold text-white text-sm">Documentos Recientes</h2>
-              <Link href="/dashboard/documents" className="text-cetiem-green text-xs hover:underline">Ver todos</Link>
+              <div className="flex items-center gap-3">
+                <div className="pleca-dorada w-1 h-6" />
+                <h2 className="font-heading font-semibold text-foreground text-base uppercase tracking-wider">Cargas Recientes</h2>
+              </div>
+              <Link href="/dashboard/documents" className="text-secondary text-xs font-black hover:underline uppercase tracking-widest">Ver repositorio completo →</Link>
             </div>
             {recentDocs.length === 0 ? (
-              <div className="text-center py-8">
-                <Upload className="h-10 w-10 text-cetiem-gray/20 mx-auto mb-3" />
-                <p className="text-cetiem-gray text-sm">Aún no has subido documentos.</p>
-                <Link href="/dashboard/upload" className="inline-block mt-3 bg-cetiem-green text-white text-sm px-4 py-2 rounded-xl">
-                  Subir primer documento
+              <div className="text-center py-12">
+                <Upload className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+                <p className="text-muted-foreground text-sm font-medium mb-6">Aún no has subido documentos.</p>
+                <Link href="/dashboard/upload" className="btn-gob-primary !px-8">
+                  Subir mi primer documento
                 </Link>
               </div>
             ) : (
-              <div className="space-y-2">
-                {recentDocs.map(doc => (
+              <div className="space-y-1">
+                {recentDocs.map((doc, i) => (
                   <Link key={doc.id} href={`/dashboard/documents/${doc.id}`}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors group">
-                    <div className="h-8 w-8 bg-white/5 rounded-lg flex items-center justify-center shrink-0">
-                      <FileText className="h-4 w-4 text-cetiem-gray" />
+                    className={cn("flex items-center gap-4 p-4 rounded-xl transition-all border border-transparent hover:border-primary/20 hover:bg-white hover:shadow-sm group", i % 2 === 0 ? "bg-muted/60" : "")}>
+                    <div className="h-10 w-10 bg-white rounded-lg flex items-center justify-center shrink-0 border border-border shadow-sm group-hover:bg-economia-guinda group-hover:border-economia-guinda transition-colors">
+                      <FileText className="h-5 w-5 text-muted-foreground group-hover:text-white transition-colors" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium truncate">{doc.name}</p>
-                      <p className="text-cetiem-gray/50 text-[10px]">{new Date(doc.createdAt).toLocaleDateString('es-MX')}</p>
+                      <p className="text-foreground text-sm font-bold truncate tracking-tight">{doc.name}</p>
+                      <p className="text-muted-foreground/70 text-[10px] font-bold uppercase tracking-widest">{new Date(doc.createdAt).toLocaleDateString('es-MX')}</p>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-3 shrink-0">
                       {doc.certStatus && <CertBadge status={doc.certStatus} />}
+                      <ArrowRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-economia-guinda transition-all group-hover:translate-x-1" />
                     </div>
-                    <ArrowRight className="h-3.5 w-3.5 text-cetiem-gray/30 group-hover:text-cetiem-green transition-colors shrink-0" />
                   </Link>
                 ))}
               </div>
@@ -395,87 +404,81 @@ function CompanyDashboard({ userName, stats, recentDocs, companyMeta, certStats 
           </div>
         </div>
 
-        {/* Columna derecha */}
-        <div className="space-y-4">
-          {/* Distribución de estados */}
-          <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5">
-            <h2 className="font-heading font-semibold text-white text-sm mb-1">Estado de Documentos</h2>
-            <p className="text-cetiem-gray text-xs mb-4">Distribución actual</p>
-            <div className="flex justify-center relative mb-4">
+        <div className="space-y-6">
+          <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-gob">
+            <h2 className="font-heading font-semibold text-foreground text-sm mb-1 uppercase tracking-widest">Integridad IA</h2>
+            <p className="text-muted-foreground text-[10px] font-bold uppercase mb-4 tracking-tighter">Estado de procesamiento NVIDIA</p>
+            <div className="flex justify-center relative mb-8">
               <DonutChart {...stats} />
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-heading font-bold text-2xl text-white">{stats.total}</span>
-                <span className="text-cetiem-gray text-[10px]">Total</span>
+                <span className="font-heading font-bold text-4xl text-foreground">{stats.total}</span>
+                <span className="text-muted-foreground text-[9px] font-black uppercase tracking-[0.2em]">Total</span>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {[
-                { label: 'Analizados',  color: 'bg-cetiem-lime',  count: stats.analyzed },
-                { label: 'Procesando',  color: 'bg-cetiem-amber', count: stats.processing },
-                { label: 'Indexados',   color: 'bg-cetiem-teal',  count: stats.indexed },
-                { label: 'Fallidos',    color: 'bg-cetiem-red',   count: stats.failed },
+                { label: 'Analizados', color: 'bg-economia-success', count: stats.analyzed },
+                { label: 'Procesando', color: 'bg-economia-warning', count: stats.processing },
+                { label: 'Indexados', color: 'bg-economia-info', count: stats.indexed },
+                { label: 'Fallidos', color: 'bg-economia-error', count: stats.failed },
               ].map(item => (
-                <div key={item.label} className="flex items-center gap-2 text-xs">
-                  <span className={cn('h-2 w-2 rounded-full shrink-0', item.color)} />
-                  <span className="text-white flex-1">{item.label}</span>
-                  <span className="text-cetiem-gray">{pct(item.count)}%</span>
+                <div key={item.label} className="flex items-center gap-3">
+                  <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', item.color)} />
+                  <span className="text-foreground text-xs font-bold flex-1 uppercase tracking-tighter">{item.label}</span>
+                  <span className="text-muted-foreground text-xs font-black">{pct(item.count)}%</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Perfil ESG */}
-          {companyMeta?.track && (
-            <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5">
-              <h2 className="font-heading font-semibold text-white text-sm mb-3">Perfil ESG</h2>
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-cetiem-gray">Track sectorial</span>
-                  <span className="font-medium text-cetiem-teal">{TRACK_LABEL[companyMeta.track] || companyMeta.track}</span>
+          <div className="space-y-4">
+            <div className="alert-gob-info shadow-sm !px-6 !py-5">
+              <div className="flex gap-4">
+                <ShieldAlert className="h-6 w-6 text-economia-info shrink-0" />
+                <div>
+                  <p className="font-black text-xs uppercase tracking-widest mb-1">PROTOCOLO V.L.A.P.</p>
+                  <p className="text-[11px] font-medium leading-relaxed opacity-80">Documentación protegida por Verificación, Validación y Auditoría.</p>
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-cetiem-gray">Sprint actual</span>
-                  <span className="font-medium text-cetiem-lime">{SPRINT_LABEL[companyMeta.sprintLevel] || companyMeta.sprintLevel}</span>
-                </div>
-                {certStats && certStats.total > 0 && (
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-cetiem-gray">Dictámenes</span>
-                    <span className="text-white">{certStats.total} total · <span className="text-cetiem-lime">{certStats.approved} aprob.</span></span>
-                  </div>
-                )}
-                {companyMeta.assessor && (
-                  <div className="pt-2 mt-1 border-t border-white/5">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-3.5 w-3.5 text-cetiem-amber shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-[10px] text-cetiem-gray/50 uppercase tracking-wider">Assessor ESG asignado</p>
-                        <p className="text-xs text-white font-medium truncate">{companyMeta.assessor.name || companyMeta.assessor.email}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
-          )}
 
-          {/* CTA — cambia según estado */}
+            {recentDocs.some(d => d.certStatus === 'APPROVED') && (
+              <div className="alert-gob-success shadow-sm !px-6 !py-5">
+                <div className="flex gap-4">
+                  <Award className="h-6 w-6 text-economia-success shrink-0" />
+                  <div>
+                    <p className="font-black text-xs uppercase tracking-widest mb-1">DICTAMEN POSITIVO</p>
+                    <p className="text-[11px] font-medium leading-relaxed opacity-80">Tienes certificados institucionales aprobados para descarga.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {certApproved ? (
-            <Link href="/dashboard/documents" className="block bg-cetiem-lime/10 border border-cetiem-lime/20 rounded-2xl p-5 hover:border-cetiem-lime/40 transition-colors">
-              <Award className="h-8 w-8 text-cetiem-lime mb-3" />
-              <h3 className="font-heading font-semibold text-white text-sm mb-1">Certificado ESG Activo</h3>
-              <p className="text-cetiem-gray/70 text-xs mb-3 leading-relaxed">Tu certificación está aprobada. Descárgala desde el detalle del documento.</p>
-              <span className="text-cetiem-lime text-xs font-medium flex items-center gap-1">
-                Ver documentos <ChevronRight className="h-3 w-3" />
+            <Link href="/dashboard/documents" className="block bg-white border border-economia-success/30 rounded-2xl p-6 shadow-gob hover:scale-[1.02] transition-all group">
+              <div className="h-12 w-12 rounded-xl bg-economia-success/10 flex items-center justify-center mb-4 group-hover:bg-economia-success/20 transition-colors">
+                <Award className="h-6 w-6 text-economia-success" />
+              </div>
+              <h3 className="font-heading font-black text-[#1B1B1B] text-xs uppercase tracking-widest mb-2">Certificado ESG Activo</h3>
+              <p className="text-muted-foreground text-[11px] font-medium mb-4 leading-relaxed">Tu cumplimiento ha sido validado satisfactoriamente por el comité evaluador.</p>
+              <span className="text-economia-success text-xs font-black flex items-center gap-1 uppercase tracking-widest group-hover:gap-2 transition-all">
+                DESCARGAR SELLOS <ChevronRight className="h-3.5 w-3.5" />
               </span>
             </Link>
           ) : (
-            <div className="bg-gradient-to-br from-cetiem-green/20 to-cetiem-teal/10 border border-cetiem-green/20 rounded-2xl p-5">
-              <Award className="h-8 w-8 text-cetiem-green mb-3" />
-              <h3 className="font-heading font-semibold text-white text-sm mb-1">Obtén tu Certificación ESG</h3>
-              <p className="text-cetiem-gray/70 text-xs mb-4 leading-relaxed">Sube todos tus documentos y un Data Assessor revisará tu expediente.</p>
-              <Link href="/dashboard/upload" className="block text-center bg-cetiem-green hover:bg-cetiem-green/90 text-white text-xs font-medium py-2 rounded-lg transition-colors">
-                Subir documentos
-              </Link>
+            <div className="bg-gradient-to-br from-economia-guinda to-[#4a0e26] rounded-2xl p-6 shadow-gob relative overflow-hidden group">
+              <div className="relative z-10">
+                <Award className="h-10 w-10 text-white/40 mb-4" />
+                <h3 className="font-heading font-black text-white text-xs uppercase tracking-widest mb-2">Obtén tu Certificación</h3>
+                <p className="text-white/70 text-[11px] font-medium mb-6 leading-relaxed">Sube tu evidencia para iniciar el proceso de dictamen institucional.</p>
+                <Link href="/dashboard/upload" className="block text-center bg-white text-economia-guinda hover:bg-white/90 text-[11px] font-black py-3 rounded-xl transition-all uppercase tracking-[0.2em]">
+                  SUBIR EVIDENCIA
+                </Link>
+              </div>
+              <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
+                <Award className="h-32 w-32 text-white" />
+              </div>
             </div>
           )}
         </div>
@@ -485,109 +488,115 @@ function CompanyDashboard({ userName, stats, recentDocs, companyMeta, certStats 
 }
 
 // ─── ASSESSOR VIEW ─────────────────────────────────────────────────────────────
-function AssessorDashboard({ userName, globalStats, allDocsGlobal }: Pick<Props, 'userName' | 'globalStats' | 'allDocsGlobal'>) {
-  const firstName = userName.split(' ')[0].split('@')[0]
+function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: Pick<Props, 'userName' | 'globalStats' | 'allDocsGlobal'>) {
   const queue = allDocsGlobal.filter(d => d.status === 'ANALYZED' || d.status === 'INDEXED')
 
   const quickActions = [
-    { href: '/dashboard/queue',     label: 'Cola de Revisión',    icon: ClipboardList, color: 'text-cetiem-amber', bg: 'bg-cetiem-amber/10', border: 'border-cetiem-amber/20', count: queue.length },
-    { href: '/dashboard/companies', label: 'Empresas Asignadas',  icon: Building2,     color: 'text-cetiem-teal',  bg: 'bg-cetiem-teal/10',  border: 'border-cetiem-teal/20',  count: null },
-    { href: '/dashboard/capa',      label: 'Tickets CAPA',        icon: ShieldAlert,   color: 'text-cetiem-red',   bg: 'bg-cetiem-red/10',   border: 'border-cetiem-red/20',   count: globalStats.capaOpen },
-    { href: '/dashboard/graph',     label: 'Grafo Global',        icon: Network,       color: 'text-cetiem-lime',  bg: 'bg-cetiem-lime/10',  border: 'border-cetiem-lime/20',  count: null },
+    { href: '/dashboard/queue', label: 'Cola de Revisión', icon: ClipboardList, color: 'text-economia-warning', bg: 'bg-economia-warning/10', border: 'border-economia-warning/20', count: queue.length },
+    { href: '/dashboard/companies', label: 'Empresas Asignadas', icon: Building2, color: 'text-economia-info', bg: 'bg-economia-info/10', border: 'border-economia-info/20', count: null },
+    { href: '/dashboard/capa', label: 'Tickets CAPA', icon: ShieldAlert, color: 'text-economia-error', bg: 'bg-economia-error/10', border: 'border-economia-error/20', count: globalStats.capaOpen },
+    { href: '/dashboard/graph', label: 'Grafo Global', icon: Network, color: 'text-economia-success', bg: 'bg-economia-success/10', border: 'border-economia-success/20', count: null },
   ]
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-8 py-5 border-b border-white/5">
+    <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#F5F5F5]/30">
+      {/* Breadcrumbs — gob.mx v3 spec: ol.breadcrumb-gob con icon-home */}
+      <nav aria-label="Ubicación" className="mb-2">
+        <ol className="breadcrumb-gob">
+          <li>
+            <Link href="/" aria-label="Inicio">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+            </Link>
+          </li>
+          <li>Revisión Técnica</li>
+        </ol>
+      </nav>
+
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-white">Panel Assessor — {firstName}</h1>
-          <p className="text-cetiem-gray text-sm mt-0.5">Revisión de documentos y emisión de dictámenes.</p>
+          <h1 className="text-3xl font-heading font-bold text-[#1B1B1B] leading-tight mb-2">Consola del Assessor</h1>
+          <div className="pleca-dorada" />
+          <p className="text-muted-foreground text-sm font-medium">Validación de expedientes y emisión de dictámenes institucionales.</p>
         </div>
-        <Link
-          href="/dashboard/queue"
-          className={cn("flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-xl transition-colors",
-            queue.length > 0
-              ? "bg-cetiem-amber text-black hover:bg-cetiem-amber/90"
-              : "border border-white/10 text-cetiem-gray hover:text-white"
-          )}
-        >
-          <ClipboardList className="h-4 w-4" />
-          {queue.length > 0 ? `${queue.length} pendiente${queue.length !== 1 ? 's' : ''} en cola` : 'Cola de revisión'}
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/queue" className="btn-gob-primary !px-10 !py-3">
+            IR A COLA DE REVISIÓN
+          </Link>
+        </div>
       </div>
 
-      <div className="flex-1 p-8 grid grid-cols-3 gap-6 overflow-auto">
-        <div className="col-span-2 space-y-6">
+      <div className="grid grid-cols-2 gap-10">
+        <div className="col-span-2 space-y-5">
 
           {/* KPIs */}
-          <div className="grid grid-cols-4 gap-4">
-            <div className="bg-cetiem-amber/10 border border-cetiem-amber/20 rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-cetiem-amber text-xs font-medium">Por Revisar</span>
-                <ClipboardList className="h-4 w-4 text-cetiem-amber" />
+          <div className="grid grid-cols-4 gap-6">
+            <div className="bg-economia-warning/10 border border-economia-warning/30 rounded-2xl p-6 shadow-gob">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-economia-warning text-xs font-bold uppercase">Por Revisar</span>
+                <ClipboardList className="h-5 w-5 text-economia-warning" aria-hidden="true" />
               </div>
-              <div className="text-4xl font-heading font-bold text-white">{queue.length}</div>
-              <span className="text-cetiem-amber/60 text-xs mt-1 block">En cola</span>
+              <div className="text-4xl font-heading font-black text-foreground">{queue.length}</div>
+              <span className="text-economia-warning/60 text-xs mt-1 block">En cola de dictamen</span>
             </div>
-            <div className="bg-cetiem-lime/10 border border-cetiem-lime/20 rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-cetiem-lime text-xs font-medium">Aprobados</span>
-                <CheckCircle className="h-4 w-4 text-cetiem-lime" />
+            <div className="bg-economia-success/10 border border-economia-success/30 rounded-2xl p-6 shadow-gob">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-economia-success text-xs font-bold uppercase">Aprobados</span>
+                <CheckCircle className="h-5 w-5 text-economia-success" aria-hidden="true" />
               </div>
-              <div className="text-4xl font-heading font-bold text-white">{globalStats.approved}</div>
-              <span className="text-cetiem-lime/60 text-xs mt-1 block">Certificados emitidos</span>
+              <div className="text-4xl font-heading font-black text-foreground">{globalStats.approved}</div>
+              <span className="text-economia-success/60 text-xs mt-1 block">Sellos emitidos</span>
             </div>
-            <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-cetiem-gray text-xs">Empresas</span>
-                <Building2 className="h-4 w-4 text-cetiem-teal" />
+            <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-gob">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-muted-foreground text-xs font-bold uppercase">Empresas</span>
+                <Building2 className="h-5 w-5 text-economia-info" aria-hidden="true" />
               </div>
-              <div className="text-4xl font-heading font-bold text-white">{globalStats.users}</div>
-              <span className="text-cetiem-gray text-xs mt-1 block">Registradas</span>
+              <div className="text-4xl font-heading font-black text-foreground">{globalStats.users}</div>
+              <span className="text-muted-foreground text-xs mt-1 block">Participantes</span>
             </div>
-            <div className={cn("rounded-2xl p-5 border", globalStats.capaOpen > 0 ? "bg-cetiem-red/10 border-cetiem-red/20" : "bg-cetiem-card border-white/5")}>
-              <div className="flex items-center justify-between mb-2">
-                <span className={cn("text-xs", globalStats.capaOpen > 0 ? "text-cetiem-red" : "text-cetiem-gray")}>CAPA Abiertos</span>
-                <ShieldAlert className={cn("h-4 w-4", globalStats.capaOpen > 0 ? "text-cetiem-red" : "text-cetiem-gray/40")} />
+            <div className={cn("rounded-2xl p-6 border shadow-gob", globalStats.capaOpen > 0 ? "bg-economia-error/10 border-economia-error/30" : "bg-card border-border/60")}>
+              <div className="flex items-center justify-between mb-3">
+                <span className={cn("text-xs font-bold uppercase", globalStats.capaOpen > 0 ? "text-economia-error" : "text-muted-foreground")}>CAPA Abiertos</span>
+                <ShieldAlert className={cn("h-5 w-5", globalStats.capaOpen > 0 ? "text-economia-error" : "text-muted-foreground/60")} aria-hidden="true" />
               </div>
-              <div className="text-4xl font-heading font-bold text-white">{globalStats.capaOpen}</div>
-              <span className="text-cetiem-gray text-xs mt-1 block">Pendientes de cierre</span>
+              <div className="text-4xl font-heading font-black text-foreground">{globalStats.capaOpen}</div>
+              <span className="text-muted-foreground text-xs mt-1 block">Feedback pendiente</span>
             </div>
           </div>
 
           {/* Cola de revisión */}
-          <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5">
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-gob">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="font-heading font-semibold text-white text-sm">Cola de Revisión</h2>
-                <p className="text-cetiem-gray/60 text-xs">Documentos analizados por IA listos para dictamen</p>
+                <h2 className="font-heading font-semibold text-foreground text-sm">Cola de Revisión</h2>
+                <p className="text-muted-foreground/60 text-xs">Documentos analizados por IA listos para dictamen</p>
               </div>
-              <Link href="/dashboard/queue" className="text-cetiem-green text-xs hover:underline flex items-center gap-1">
+              <Link href="/dashboard/queue" className="text-economia-guinda text-xs hover:underline flex items-center gap-1">
                 Ver cola completa <ChevronRight className="h-3 w-3" />
               </Link>
             </div>
             {queue.length === 0 ? (
               <div className="text-center py-8">
-                <CheckCircle className="h-10 w-10 text-cetiem-lime/30 mx-auto mb-3" />
-                <p className="text-cetiem-gray text-sm">Cola vacía — sin documentos pendientes.</p>
+                <CheckCircle className="h-10 w-10 text-economia-success/30 mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">Cola vacía — sin documentos pendientes.</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {queue.slice(0, 5).map(doc => (
-                  <div key={doc.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/3 border border-white/5">
-                    <div className="h-8 w-8 bg-cetiem-amber/10 rounded-lg flex items-center justify-center shrink-0">
-                      <FileText className="h-4 w-4 text-cetiem-amber" />
+                  <div key={doc.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted border border-border">
+                    <div className="h-8 w-8 bg-economia-warning/10 rounded-lg flex items-center justify-center shrink-0">
+                      <FileText className="h-4 w-4 text-economia-warning" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium truncate">{doc.name}</p>
-                      <p className="text-cetiem-gray/50 text-[10px]">
+                      <p className="text-foreground text-sm font-medium truncate">{doc.name}</p>
+                      <p className="text-muted-foreground/70 text-[10px]">
                         {doc.user.companyName || doc.user.name || doc.user.email}
                       </p>
                     </div>
                     <StatusBadge status={doc.status} />
                     <Link
                       href={`/dashboard/review/company/${doc.userId}`}
-                      className="flex items-center gap-1 text-xs bg-cetiem-amber hover:bg-cetiem-amber/90 text-black font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0"
+                      className="flex items-center gap-1 text-xs bg-economia-warning hover:bg-economia-warning/90 text-black font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0"
                     >
                       <Eye className="h-3 w-3" /> Revisar
                     </Link>
@@ -601,25 +610,25 @@ function AssessorDashboard({ userName, globalStats, allDocsGlobal }: Pick<Props,
         {/* Columna derecha */}
         <div className="space-y-4">
           {/* Acciones rápidas */}
-          <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5">
-            <h2 className="font-heading font-semibold text-white text-sm mb-3">Acciones Rápidas</h2>
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-gob">
+            <h2 className="font-heading font-semibold text-foreground text-sm mb-3">Acciones Rápidas</h2>
             <div className="space-y-2">
               {quickActions.map(action => {
                 const Icon = action.icon
                 return (
                   <Link key={action.href} href={action.href}
-                    className={cn("flex items-center gap-3 p-3 rounded-xl border transition-colors hover:bg-white/5", action.border, "border-opacity-30")}
+                    className={cn("flex items-center gap-3 p-3 rounded-xl border transition-colors hover:bg-muted font-heading font-black text-xs uppercase tracking-widest", action.border, "border-opacity-30")}
                   >
                     <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", action.bg)}>
                       <Icon className={cn("h-4 w-4", action.color)} />
                     </div>
-                    <span className="text-white text-sm flex-1">{action.label}</span>
+                    <span className="text-foreground flex-1">{action.label}</span>
                     {action.count !== null && action.count > 0 && (
-                      <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", action.bg, action.color)}>
+                      <span className={cn("font-bold px-2 py-0.5 rounded-full", action.bg, action.color)}>
                         {action.count}
                       </span>
                     )}
-                    <ChevronRight className="h-3.5 w-3.5 text-cetiem-gray/30 shrink-0" />
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
                   </Link>
                 )
               })}
@@ -627,22 +636,22 @@ function AssessorDashboard({ userName, globalStats, allDocsGlobal }: Pick<Props,
           </div>
 
           {/* Actividad reciente */}
-          <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5">
-            <h2 className="font-heading font-semibold text-white text-sm mb-4">Actividad Reciente</h2>
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-gob">
+            <h2 className="font-heading font-semibold text-foreground text-sm mb-4">Actividad Reciente</h2>
             <div className="space-y-3">
               {allDocsGlobal.slice(0, 6).map(doc => {
                 const certStatus = doc.certifications[0]?.status
                 return (
                   <Link key={doc.id} href={`/dashboard/documents/${doc.id}`} className="flex items-start gap-2 hover:opacity-80 transition-opacity">
                     <div className={cn("h-1.5 w-1.5 rounded-full mt-1.5 shrink-0",
-                      certStatus === 'APPROVED' ? 'bg-cetiem-lime' :
-                      certStatus === 'REJECTED' ? 'bg-cetiem-red' :
-                      doc.status === 'ANALYZED' ? 'bg-cetiem-teal' :
-                      doc.status === 'PROCESSING' ? 'bg-cetiem-amber' : 'bg-cetiem-gray'
+                      certStatus === 'APPROVED' ? 'bg-economia-success' :
+                        certStatus === 'REJECTED' ? 'bg-economia-error' :
+                          doc.status === 'ANALYZED' ? 'bg-economia-info' :
+                            doc.status === 'PROCESSING' ? 'bg-economia-warning' : 'bg-economia-gris'
                     )} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-white text-xs font-medium truncate">{doc.name}</p>
-                      <p className="text-cetiem-gray/50 text-[10px]">{doc.user.companyName || doc.user.name || doc.user.email}</p>
+                      <p className="text-foreground text-xs font-medium truncate">{doc.name}</p>
+                      <p className="text-muted-foreground/70 text-[10px]">{doc.user.companyName || doc.user.name || doc.user.email}</p>
                     </div>
                     {certStatus
                       ? <CertBadge status={certStatus} />
@@ -660,168 +669,188 @@ function AssessorDashboard({ userName, globalStats, allDocsGlobal }: Pick<Props,
 }
 
 // ─── ADMIN VIEW ─────────────────────────────────────────────────────────────
-function AdminDashboard({ userName, globalStats, allUsers, allDocsGlobal }: Pick<Props, 'userName' | 'globalStats' | 'allUsers' | 'allDocsGlobal'>) {
-  const firstName = userName.split(' ')[0].split('@')[0]
-
+function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlobal }: Pick<Props, 'userName' | 'globalStats' | 'allUsers' | 'allDocsGlobal'>) {
   const kpis = [
-    { label: 'Empresas',         value: globalStats.users,    color: 'text-cetiem-lime',  icon: Building2,   bg: 'bg-cetiem-lime/10',  href: '/dashboard/companies' },
-    { label: 'Documentos',       value: globalStats.total,    color: 'text-cetiem-teal',  icon: FileText,    bg: 'bg-cetiem-teal/10',  href: '/dashboard/documents' },
-    { label: 'Certificados ESG', value: globalStats.approved, color: 'text-cetiem-green', icon: Award,       bg: 'bg-cetiem-green/10', href: '/dashboard/documents' },
-    { label: 'CAPA Abiertos',    value: globalStats.capaOpen, color: 'text-cetiem-amber', icon: ShieldAlert, bg: 'bg-cetiem-amber/10', href: '/dashboard/capa' },
-    { label: 'IA Analizados',    value: globalStats.analyzed, color: 'text-white',        icon: CheckCircle, bg: 'bg-white/5',         href: '/dashboard/documents' },
+    { label: 'Empresas', value: globalStats.users, color: 'text-economia-success', icon: Building2, bg: 'bg-economia-success/10', href: '/dashboard/companies' },
+    { label: 'Documentos', value: globalStats.total, color: 'text-economia-info', icon: FileText, bg: 'bg-economia-info/10', href: '/dashboard/documents' },
+    { label: 'Certificados ESG', value: globalStats.approved, color: 'text-economia-guinda', icon: Award, bg: 'bg-economia-guinda/10', href: '/dashboard/documents' },
+    { label: 'CAPA Abiertos', value: globalStats.capaOpen, color: 'text-economia-warning', icon: ShieldAlert, bg: 'bg-economia-warning/10', href: '/dashboard/capa' },
+    { label: 'IA Analizados', value: globalStats.analyzed, color: 'text-foreground', icon: CheckCircle, bg: 'bg-muted', href: '/dashboard/documents' },
   ]
 
   const adminActions = [
-    { href: '/dashboard/companies',  label: 'Gestionar Empresas',    icon: Building2,   color: 'text-cetiem-teal' },
-    { href: '/dashboard/assessors',  label: 'Ver Assessors',         icon: Users,       color: 'text-cetiem-lime' },
-    { href: '/dashboard/capa',       label: 'Tickets CAPA',          icon: ShieldAlert, color: 'text-cetiem-amber' },
-    { href: '/dashboard/logs',       label: 'Logs de Auditoría',     icon: ScrollText,  color: 'text-cetiem-gray' },
-    { href: '/api/export/documents', label: 'Exportar CSV',          icon: Download,    color: 'text-cetiem-green', external: true },
-    { href: '/dashboard/graph',      label: 'Grafo Global',          icon: Network,     color: 'text-cetiem-lime' },
+    { href: '/dashboard/companies', label: 'Gestionar Empresas', icon: Building2, color: 'text-economia-info' },
+    { href: '/dashboard/assessors', label: 'Ver Assessors', icon: Users, color: 'text-economia-success' },
+    { href: '/dashboard/capa', label: 'Tickets CAPA', icon: ShieldAlert, color: 'text-economia-warning' },
+    { href: '/dashboard/logs', label: 'Logs de Auditoría', icon: ScrollText, color: 'text-muted-foreground' },
+    { href: '/api/export/documents', label: 'Exportar CSV', icon: Download, color: 'text-economia-guinda', external: true },
+    { href: '/dashboard/graph', label: 'Grafo Global', icon: Network, color: 'text-economia-success' },
   ]
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-8 py-5 border-b border-white/5">
+    <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#F5F5F5]/30">
+      {/* Breadcrumbs — gob.mx v3 spec: ol.breadcrumb-gob con icon-home */}
+      <nav aria-label="Ubicación" className="mb-2">
+        <ol className="breadcrumb-gob">
+          <li>
+            <Link href="/" aria-label="Inicio">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+            </Link>
+          </li>
+          <li>Dashboard</li>
+        </ol>
+      </nav>
+
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="font-heading font-bold text-2xl text-white">Super Admin — {firstName}</h1>
-          <p className="text-cetiem-gray text-sm mt-0.5">Gestión global de empresas, assessors y certificaciones.</p>
+          <h1 className="text-3xl font-heading font-bold text-[#1B1B1B] leading-tight mb-2">Expediente Empresarial</h1>
+          <div className="pleca-dorada" />
+          <p className="text-muted-foreground text-sm font-medium">Gestión integral de cumplimiento normativo y activos digitales.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/dashboard/logs" className="flex items-center gap-2 border border-white/10 hover:border-white/20 text-cetiem-gray hover:text-white text-sm px-3 py-2 rounded-xl transition-colors">
-            <ScrollText className="h-4 w-4" /> Logs
-          </Link>
-          <a href="/api/export/documents" className="flex items-center gap-2 border border-white/10 hover:border-cetiem-lime/40 text-cetiem-gray hover:text-cetiem-lime text-sm px-3 py-2 rounded-xl transition-colors">
-            <Download className="h-4 w-4" /> Exportar CSV
-          </a>
-          <Link href="/dashboard/companies" className="flex items-center gap-2 bg-cetiem-green hover:bg-cetiem-green/90 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors">
-            <Building2 className="h-4 w-4" /> Gestionar Empresas
+        <div className="flex items-center gap-4">
+          <button className="flex items-center gap-2 bg-white border border-border/60 shadow-sm px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all">
+            <Download className="h-4 w-4" aria-hidden="true" /> Exportar Reporte
+          </button>
+          <Link href="/dashboard/upload" className="btn-gob-primary !px-8 !py-3 flex items-center gap-2">
+            <Plus className="h-4 w-4" aria-hidden="true" /> Cargar Documento
           </Link>
         </div>
       </div>
 
-      <div className="flex-1 p-8 space-y-6 overflow-auto">
-
-        {/* KPI grid — clickable */}
-        <div className="grid grid-cols-5 gap-4">
+      {/* Métricas e Indicadores */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="pleca-dorada w-1 h-6" />
+          <h2 className="text-lg font-heading font-bold text-[#1B1B1B] uppercase tracking-wider">Estado de Cumplimiento</h2>
+        </div>
+        <div className="grid grid-cols-5 gap-6">
           {kpis.map(kpi => {
             const Icon = kpi.icon
             return (
-              <Link key={kpi.label} href={kpi.href} className="bg-cetiem-card border border-white/5 rounded-2xl p-4 hover:border-white/10 transition-colors">
-                <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center mb-3", kpi.bg)}>
-                  <Icon className={cn("h-4 w-4", kpi.color)} />
+              <Link key={kpi.label} href={kpi.href} className="bg-card border border-border/60 rounded-2xl p-6 shadow-gob hover:border-economia-guinda/30 transition-all">
+                <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center mb-4", kpi.bg)}>
+                  <Icon className={cn("h-5 w-5", kpi.color)} />
                 </div>
-                <div className={cn("text-3xl font-heading font-bold", kpi.color)}>{kpi.value}</div>
-                <p className="text-cetiem-gray text-[10px] mt-1 leading-tight">{kpi.label}</p>
+                <div className={cn("text-3xl font-heading font-black", kpi.color)}>{kpi.value}</div>
+                <p className="text-muted-foreground text-xs font-bold mt-1 uppercase tracking-wider">{kpi.label}</p>
               </Link>
             )
           })}
         </div>
+      </div>
 
-        {/* Stack NVIDIA — visible solo para Admin */}
-        <div className="bg-gradient-to-r from-[#1a1a2e] to-[#0d1b2a] border border-[#76b900]/20 rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="h-7 w-7 rounded-lg bg-[#76b900]/20 flex items-center justify-center shrink-0">
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="#76b900"><path d="M9 3L3 9v12h6V9h6V3H9zm6 6v12h6V9h-6z"/></svg>
-            </div>
-            <div>
-              <h2 className="font-heading font-semibold text-white text-sm">Stack Tecnológico NVIDIA</h2>
-              <p className="text-cetiem-gray/50 text-[10px]">Modelos y APIs activos en la plataforma</p>
-            </div>
+      {/* Stack NVIDIA — visible solo para Admin */}
+      <div className="bg-gradient-to-r from-[#1a1a2e] to-[#0d1b2a] border border-[#76b900]/20 rounded-2xl p-5 shadow-gob">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-7 w-7 rounded-lg bg-[#76b900]/20 flex items-center justify-center shrink-0">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="#76b900"><path d="M9 3L3 9v12h6V9h6V3H9zm6 6v12h6V9h-6z" /></svg>
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { name: 'NVIDIA NIM', role: 'API de inferencia', desc: 'Orquesta todos los modelos de lenguaje vía NVIDIA Inference Microservices', badge: 'Infraestructura', color: 'border-[#76b900]/30 bg-[#76b900]/5' },
-              { name: 'Llama 3.1 · 70B', role: 'Procesamiento de documentos', desc: 'Extracción de estructura, entidades y relaciones de los PDFs analizados', badge: 'Procesamiento', color: 'border-cetiem-teal/30 bg-cetiem-teal/5' },
-              { name: 'Qwen 3.5 · 122B', role: 'Motor Q&A', desc: 'Generación de respuestas en streaming para consultas sobre documentos', badge: 'Q&A', color: 'border-cetiem-lime/30 bg-cetiem-lime/5' },
-            ].map(item => (
-              <div key={item.name} className={`rounded-xl border p-4 ${item.color}`}>
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className="font-heading font-bold text-white text-sm">{item.name}</span>
-                  <span className="text-[9px] font-semibold text-[#76b900] bg-[#76b900]/10 px-1.5 py-0.5 rounded-full shrink-0">{item.badge}</span>
+          <div>
+            <h2 className="font-heading font-semibold text-white text-sm">Stack Tecnológico NVIDIA</h2>
+            <p className="text-white/60 text-[10px]">Modelos y APIs activos en la plataforma</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { name: 'NVIDIA NIM', role: 'API de inferencia', desc: 'Orquesta todos los modelos de lenguaje vía NVIDIA Inference Microservices', badge: 'Infraestructura', color: 'border-[#76b900]/30 bg-[#76b900]/5' },
+            { name: 'Llama 3.1 · 70B', role: 'Procesamiento de documentos', desc: 'Extracción de estructura, entidades y relaciones de los PDFs analizados', badge: 'Procesamiento', color: 'border-economia-info/30 bg-economia-info/5' },
+            { name: 'Qwen 3.5 · 122B', role: 'Motor Q&A', desc: 'Generación de respuestas en streaming para consultas sobre documentos', badge: 'Q&A', color: 'border-economia-success/30 bg-economia-success/5' },
+          ].map(item => (
+            <div key={item.name} className={`rounded-xl border p-4 ${item.color}`}>
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <span className="font-heading font-bold text-white text-sm">{item.name}</span>
+                <span className="text-[9px] font-semibold text-[#76b900] bg-[#76b900]/10 px-1.5 py-0.5 rounded-full shrink-0">{item.badge}</span>
+              </div>
+              <p className="text-white/70 text-[10px] font-medium mb-1">{item.role}</p>
+              <p className="text-white/50 text-[10px] leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Acciones administrativas */}
+      <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-gob">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="pleca-dorada w-1 h-6" />
+          <h2 className="font-heading font-semibold text-foreground text-base uppercase tracking-wider">Acciones Administrativas</h2>
+        </div>
+        <div className="grid grid-cols-6 gap-4">
+          {adminActions.map(action => {
+            const Icon = action.icon
+            const content = (
+              <div className="flex flex-col items-center gap-3 p-4 rounded-xl border border-border/60 hover:border-economia-guinda/30 hover:bg-muted/40 transition-all text-center group">
+                <Icon className={cn("h-6 w-6 group-hover:scale-110 transition-transform", action.color)} />
+                <span className="text-muted-foreground text-xs font-medium leading-tight">{action.label}</span>
+              </div>
+            )
+            return action.external
+              ? <a key={action.href} href={action.href} target="_blank">{content}</a>
+              : <Link key={action.href} href={action.href}>{content}</Link>
+          })}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-10">
+        {/* Empresas Registradas */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-gob">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="pleca-dorada w-1 h-6" />
+              <h2 className="font-heading font-semibold text-foreground text-base uppercase tracking-wider">Empresas Registradas</h2>
+            </div>
+            <Link href="/dashboard/companies" className="text-secondary text-xs font-black hover:underline uppercase tracking-widest">Gestionar →</Link>
+          </div>
+          <div className="space-y-1">
+            {allUsers.slice(0, 10).map((user, i) => (
+              <div key={user.id} className={cn("flex items-center gap-4 p-3 rounded-lg transition-colors border border-transparent", i % 2 === 0 ? "bg-muted/60" : "")}>
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+                  <span className="text-xs font-black text-primary">
+                    {(user.companyName || user.name || user.email)[0].toUpperCase()}
+                  </span>
                 </div>
-                <p className="text-cetiem-gray/70 text-[10px] font-medium mb-1">{item.role}</p>
-                <p className="text-cetiem-gray/40 text-[10px] leading-relaxed">{item.desc}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-foreground text-sm font-bold truncate">{user.companyName || user.name || user.email}</p>
+                  <p className="text-muted-foreground/70 text-[10px] uppercase font-bold tracking-tighter truncate">{user.email}</p>
+                </div>
+                <span className="text-economia-info text-[10px] font-black bg-economia-info/10 px-3 py-1 rounded-full shrink-0 border border-economia-info/20">
+                  {user._count.documents} DOCS
+                </span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Acciones administrativas */}
-        <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5">
-          <h2 className="font-heading font-semibold text-white text-sm mb-3">Acciones Administrativas</h2>
-          <div className="grid grid-cols-6 gap-3">
-            {adminActions.map(action => {
-              const Icon = action.icon
-              const content = (
-                <div className="flex flex-col items-center gap-2 p-3 rounded-xl border border-white/5 hover:border-white/15 hover:bg-white/3 transition-colors text-center">
-                  <Icon className={cn("h-5 w-5", action.color)} />
-                  <span className="text-cetiem-gray text-[10px] leading-tight">{action.label}</span>
-                </div>
-              )
-              return action.external
-                ? <a key={action.href} href={action.href}>{content}</a>
-                : <Link key={action.href} href={action.href}>{content}</Link>
-            })}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-6">
-          {/* Empresas */}
-          <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-heading font-semibold text-white text-sm">Empresas Registradas</h2>
-              <Link href="/dashboard/companies" className="text-cetiem-green text-xs hover:underline">Gestionar →</Link>
+        {/* Actividad Global */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-gob">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="pleca-dorada w-1 h-6" />
+              <h2 className="font-heading font-semibold text-foreground text-base uppercase tracking-wider">Actividad Global</h2>
             </div>
-            <div className="space-y-2">
-              {allUsers.slice(0, 7).map(user => (
-                <div key={user.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 transition-colors">
-                  <div className="h-7 w-7 rounded-full bg-cetiem-green/20 flex items-center justify-center shrink-0">
-                    <span className="text-[10px] font-bold text-cetiem-green">
-                      {(user.companyName || user.name || user.email)[0].toUpperCase()}
-                    </span>
-                  </div>
+            <Link href="/dashboard/documents" className="text-secondary text-xs font-black hover:underline uppercase tracking-widest">Ver todo →</Link>
+          </div>
+          <div className="space-y-1">
+            {allDocsGlobal.slice(0, 10).map((doc, i) => {
+              const certStatus = doc.certifications[0]?.status
+              return (
+                <Link key={doc.id} href={`/dashboard/documents/${doc.id}`} className={cn("flex items-center gap-4 p-3 rounded-lg transition-all border border-transparent hover:border-primary/20 hover:bg-white hover:shadow-sm", i % 2 === 0 ? "bg-muted/60" : "")}>
+                  <div className={cn("h-2 w-2 rounded-full shrink-0",
+                    certStatus === 'APPROVED' ? 'bg-economia-success' :
+                      certStatus === 'REJECTED' ? 'bg-economia-error' :
+                        doc.status === 'ANALYZED' ? 'bg-economia-info' :
+                          doc.status === 'PROCESSING' ? 'bg-economia-warning' : 'bg-economia-gris'
+                  )} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-xs font-medium truncate">{user.companyName || user.name || user.email}</p>
-                    <p className="text-cetiem-gray/50 text-[10px] truncate">{user.email}</p>
+                    <p className="text-foreground text-sm font-medium truncate">{doc.name}</p>
+                    <p className="text-muted-foreground/60 text-[10px] uppercase tracking-tighter truncate">{doc.user.companyName || doc.user.name || doc.user.email}</p>
                   </div>
-                  <span className="text-cetiem-teal text-[10px] font-medium bg-cetiem-teal/10 px-2 py-0.5 rounded-full shrink-0">
-                    {user._count.documents} doc{user._count.documents !== 1 ? 's' : ''}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Actividad global con cert status */}
-          <div className="bg-cetiem-card border border-white/5 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-heading font-semibold text-white text-sm">Actividad Global</h2>
-              <Link href="/dashboard/documents" className="text-cetiem-green text-xs hover:underline">Ver todos →</Link>
-            </div>
-            <div className="space-y-2">
-              {allDocsGlobal.slice(0, 7).map(doc => {
-                const certStatus = doc.certifications[0]?.status
-                return (
-                  <Link key={doc.id} href={`/dashboard/documents/${doc.id}`} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-white/5 transition-colors">
-                    <div className={cn("h-1.5 w-1.5 rounded-full shrink-0",
-                      certStatus === 'APPROVED' ? 'bg-cetiem-lime' :
-                      certStatus === 'REJECTED' ? 'bg-cetiem-red' :
-                      doc.status === 'ANALYZED' ? 'bg-cetiem-teal' :
-                      doc.status === 'PROCESSING' ? 'bg-cetiem-amber' : 'bg-cetiem-gray'
-                    )} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-xs truncate">{doc.name}</p>
-                      <p className="text-cetiem-gray/50 text-[10px] truncate">{doc.user.companyName || doc.user.name || doc.user.email}</p>
-                    </div>
-                    {certStatus
-                      ? <CertBadge status={certStatus} />
-                      : <StatusBadge status={doc.status} />
-                    }
-                  </Link>
-                )
-              })}
-            </div>
+                  {certStatus
+                    ? <CertBadge status={certStatus} />
+                    : <StatusBadge status={doc.status} />
+                  }
+                </Link>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -842,6 +871,6 @@ export function DashboardView(props: Props) {
   }, [role, router])
 
   if (role === 'assessor') return <AssessorDashboard userName={props.userName} globalStats={props.globalStats} allDocsGlobal={props.allDocsGlobal} />
-  if (role === 'admin')    return <AdminDashboard    userName={props.userName} globalStats={props.globalStats} allUsers={props.allUsers} allDocsGlobal={props.allDocsGlobal} />
+  if (role === 'admin') return <AdminDashboard userName={props.userName} globalStats={props.globalStats} allUsers={props.allUsers} allDocsGlobal={props.allDocsGlobal} />
   return <CompanyDashboard userName={props.userName} stats={props.stats} recentDocs={props.recentDocs} companyMeta={props.companyMeta} certStats={props.certStats} />
 }

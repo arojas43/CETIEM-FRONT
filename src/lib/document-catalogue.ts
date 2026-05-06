@@ -1,5 +1,5 @@
 /**
- * Catálogo de documentos requeridos para la certificación ESG CETIEM.
+ * Catálogo de documentos requeridos para la certificación ESG ECONOMIA.
  * Cada empresa debe subir los 60 documentos de este catálogo.
  * El assessor evalúa el conjunto completo antes de emitir el dictamen.
  */
@@ -460,13 +460,13 @@ export const TOTAL_REQUERIDOS = CATALOGO_DOCUMENTOS.length;
 export const TOTAL_OBLIGATORIOS = CATALOGO_DOCUMENTOS.filter(d => d.obligatorio).length;
 
 export const CATEGORIAS: Record<CategoriaDocumento, { label: string; color: string; bgColor: string }> = {
-  GOBERNANZA:  { label: "Gobernanza",  color: "text-cetiem-teal",  bgColor: "bg-cetiem-teal/10"  },
-  FINANCIERO:  { label: "Financiero",  color: "text-cetiem-lime",  bgColor: "bg-cetiem-lime/10"  },
-  AMBIENTAL:   { label: "Ambiental",   color: "text-cetiem-green", bgColor: "bg-cetiem-green/10" },
-  SOCIAL:      { label: "Social",      color: "text-cetiem-amber", bgColor: "bg-cetiem-amber/10" },
-  LEGAL:       { label: "Legal",       color: "text-white",        bgColor: "bg-white/10"        },
-  OPERACIONES: { label: "Operaciones", color: "text-purple-400",   bgColor: "bg-purple-400/10"   },
-  OTRO:        { label: "Otro",        color: "text-cetiem-gray",  bgColor: "bg-white/5"         },
+  GOBERNANZA: { label: "Gobernanza", color: "text-economia-info", bgColor: "bg-economia-info/10" },
+  FINANCIERO: { label: "Financiero", color: "text-economia-success", bgColor: "bg-economia-success/10" },
+  AMBIENTAL: { label: "Ambiental", color: "text-economia-guinda", bgColor: "bg-economia-guinda/10" },
+  SOCIAL: { label: "Social", color: "text-economia-warning", bgColor: "bg-economia-warning/10" },
+  LEGAL: { label: "Legal", color: "text-foreground", bgColor: "bg-muted" },
+  OPERACIONES: { label: "Operaciones", color: "text-purple-400", bgColor: "bg-purple-400/10" },
+  OTRO: { label: "Otro", color: "text-muted-foreground", bgColor: "bg-muted" },
 };
 
 export function getCatalogoById(id: string): TipoDocumento | undefined {

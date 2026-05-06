@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { canAccessDocument } from "@/lib/access";
+import { calcEsgScore, hasVlapHardStop } from "@/lib/esg-score";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,14 @@ export async function POST(
       return NextResponse.json({ error: "Veredicto inválido" }, { status: 400 });
     }
 
+    // Server-side V.L.A.P. hard stop
+    if (vlap && hasVlapHardStop(vlap)) {
+      return NextResponse.json(
+        { error: "Hard Stop V.L.A.P.: al menos una dimensión no alcanza el umbral de confianza (85%). Use el override si corresponde." },
+        { status: 422 }
+      );
+    }
+
     const document = await prisma.document.findUnique({ where: { id }, include: { user: { select: { id: true, assessorId: true } } } });
     if (!document) return NextResponse.json({ error: "Document not found" }, { status: 404 });
 
@@ -70,23 +79,17 @@ export async function POST(
     }
 
     const statusMap: Record<string, "APPROVED" | "IN_REVIEW" | "REJECTED" | "CAPA_OPEN"> = {
-      APPROVED:          "APPROVED",
+      APPROVED: "APPROVED",
       CHANGES_REQUESTED: "IN_REVIEW",
-      REJECTED:          "REJECTED",
+      REJECTED: "REJECTED",
     };
 
     // If has NC findings → CAPA_OPEN instead
     const hasNC = findings.some((f: any) => f.type === "NON_COMPLIANCE");
     const certStatus = hasNC && verdict === "CHANGES_REQUESTED" ? "CAPA_OPEN" : statusMap[verdict];
 
-    // Compute ESG score from V.L.A.P.
-    let esgScore: number | null = null;
-    if (vlap) {
-      const v = vlap as Record<string, { value: boolean | null; confidence: number; override: boolean }>;
-      const passed = [v.vigencia?.value, v.legibilidad?.value, v.autoria?.value, v.pertinencia?.value]
-        .filter(val => val === true).length;
-      esgScore = (passed / 4) * 100;
-    }
+    // Compute ESG score — same formula as company-level certification
+    const esgScore = calcEsgScore(vlap, findings);
 
     // Generate public token and SHA-256 hash for approved certifications
     let publicToken: string | null = null;
@@ -100,13 +103,19 @@ export async function POST(
       sha256Hash = createHash("sha256").update(hashData).digest("hex");
     }
 
+    // Close old CAPA tickets linked to this document before re-issuing
+    await prisma.capaTicket.updateMany({
+      where: { documentId: id, status: { in: ["OPEN", "IN_PROGRESS", "OVERDUE"] } },
+      data: { status: "CLOSED", resolution: "Cerrado automáticamente al emitir nuevo dictamen." },
+    });
+
     // Delete previous certifications
     await prisma.certification.deleteMany({ where: { documentId: id } });
 
     // Create new certification with findings
     const cert = await prisma.certification.create({
       data: {
-        name: `Dictamen CETIEM — ${new Date().toLocaleDateString("es-MX")}`,
+        name: `Dictamen ECONOMIA — ${new Date().toLocaleDateString("es-MX")}`,
         type: "CUSTOM",
         status: certStatus,
         esgScore,

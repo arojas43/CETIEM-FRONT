@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { canAccessDocument } from "@/lib/access";
+import { makeSubscriber, PROGRESS_CHANNEL_PREFIX } from "@/lib/progress-publisher";
+
+const TERMINAL_STATUSES = new Set(["ANALYZED", "INDEXED", "FAILED"]);
 
 /**
  * GET /api/documents/[id]/progress
- * Obtiene el progreso de procesamiento de un documento
+ * - Accept: application/json  → snapshot (polling-compatible)
+ * - Accept: text/event-stream → SSE stream via Redis pub/sub
  */
 export async function GET(
   request: NextRequest,
@@ -26,11 +30,7 @@ export async function GET(
         userId: true,
         status: true,
         processingProgress: true,
-        pageIndices: {
-          select: {
-            id: true,
-          },
-        },
+        pageIndices: { select: { id: true } },
       },
     });
 
@@ -42,9 +42,78 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Calcular progreso estimado
-    const progress = calculateProgress(document);
+    // SSE path
+    if (request.headers.get("accept")?.includes("text/event-stream")) {
+      const encoder = new TextEncoder();
+      const channel = `${PROGRESS_CHANNEL_PREFIX}${id}`;
 
+      const stream = new ReadableStream({
+        async start(controller) {
+          const send = (data: object) =>
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+
+          // Send initial snapshot
+          const snap = calculateProgress(document);
+          send({ status: document.status, progress: snap });
+
+          // If already terminal, close immediately
+          if (TERMINAL_STATUSES.has(document.status)) {
+            controller.close();
+            return;
+          }
+
+          const sub = makeSubscriber();
+          if (!sub) {
+            // Redis unavailable: close; client falls back to polling
+            controller.close();
+            return;
+          }
+
+          const heartbeat = setInterval(() => {
+            try { controller.enqueue(encoder.encode(": ping\n\n")); } catch { }
+          }, 15_000);
+
+          sub.on("message", (_ch: string, message: string) => {
+            try {
+              const payload = JSON.parse(message);
+              send({ progress: { percentage: payload.percentage, step: payload.step, details: payload.details }, status: payload.status });
+              if (payload.status && TERMINAL_STATUSES.has(payload.status)) {
+                clearInterval(heartbeat);
+                controller.close();
+                sub.disconnect();
+              }
+            } catch { }
+          });
+
+          sub.on("error", () => {
+            clearInterval(heartbeat);
+            try { controller.close(); } catch { }
+            sub.disconnect();
+          });
+
+          await sub.subscribe(channel);
+
+          // Safety timeout: close after 10 min regardless
+          setTimeout(() => {
+            clearInterval(heartbeat);
+            try { controller.close(); } catch { }
+            sub.disconnect();
+          }, 600_000);
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache, no-transform",
+          "Connection": "keep-alive",
+          "X-Accel-Buffering": "no",
+        },
+      });
+    }
+
+    // JSON snapshot path (polling-compatible)
+    const progress = calculateProgress(document);
     return NextResponse.json({
       success: true,
       documentId: id,

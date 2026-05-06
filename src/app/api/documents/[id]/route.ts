@@ -51,7 +51,7 @@ export async function GET(
  * Elimina un documento
  */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -71,8 +71,24 @@ export async function DELETE(
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
-    if (document.userId !== session.user.id) {
+    const deleteRole = (session.user as any).role as string;
+    if (document.userId !== session.user.id && deleteRole !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Block deletion if document is part of an approved company certification
+    const approvedCert = await prisma.companyCertification.findFirst({
+      where: {
+        companyId: document.userId,
+        status: "APPROVED",
+        requirements: { path: ["documentIds"], array_contains: id },
+      },
+    });
+    if (approvedCert) {
+      return NextResponse.json(
+        { error: "No puedes eliminar un documento incluido en una certificación aprobada." },
+        { status: 409 }
+      );
     }
 
     // Eliminar archivo del almacenamiento
@@ -82,7 +98,7 @@ export async function DELETE(
       console.warn("Error eliminando archivo:", storageError);
     }
 
-    // Eliminar registro de la BD (en cascada elimina pageIndices y certifications)
+    // Eliminar registro de la BD (en cascada elimina pageIndices, certifications y capaTickets)
     await prisma.document.delete({
       where: { id },
     });
@@ -126,7 +142,8 @@ export async function PATCH(
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
-    if (document.userId !== session.user.id) {
+    const patchRole = (session.user as any).role as string;
+    if (document.userId !== session.user.id && patchRole !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

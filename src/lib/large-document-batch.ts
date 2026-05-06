@@ -148,7 +148,7 @@ async function processSingleChunk(
   chunk: TextChunk,
   documentId: string,
   documentName: string,
-  domain?: CogneeDomain
+  _domain?: CogneeDomain
 ): Promise<ChunkAnalysis> {
   const startTime = Date.now();
   

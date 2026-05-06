@@ -18,6 +18,12 @@ export async function PATCH(
     const { id } = await params;
     const { assessorId } = await req.json();
 
+    // Capture previous assessor before overwriting
+    const previous = await prisma.user.findUnique({
+      where: { id },
+      select: { assessorId: true, companyName: true, name: true },
+    });
+
     const updated = await prisma.user.update({
       where: { id },
       data: { assessorId: assessorId || null },
@@ -31,7 +37,31 @@ export async function PATCH(
       payload: { assessorId: assessorId || null },
     });
 
-    // Notify company about assessor assignment
+    const companyLabel = previous?.companyName || previous?.name || "Una empresa";
+
+    // Notify the newly assigned assessor
+    if (assessorId && assessorId !== previous?.assessorId) {
+      await notify({
+        userId: assessorId,
+        type: "ASSESSOR_ASSIGNED",
+        title: "Nueva empresa asignada",
+        body: `${companyLabel} ha sido asignada a tu cartera. Revisa sus documentos en la cola de revisión.`,
+        link: "/dashboard/queue",
+      });
+    }
+
+    // Notify previous assessor if they were removed/replaced
+    if (previous?.assessorId && previous.assessorId !== assessorId) {
+      await notify({
+        userId: previous.assessorId,
+        type: "ASSESSOR_REMOVED",
+        title: "Empresa reasignada",
+        body: `${companyLabel} ha sido reasignada a otro assessor y ya no aparece en tu cartera.`,
+        link: "/dashboard/queue",
+      });
+    }
+
+    // Notify company about their assessor assignment
     if (assessorId) {
       const assessor = await prisma.user.findUnique({ where: { id: assessorId }, select: { name: true, email: true } });
       await notify({

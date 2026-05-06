@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
  * Endpoint de debug para ver todas las entidades en el grafo
  */
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {

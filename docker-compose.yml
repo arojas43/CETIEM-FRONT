@@ -1,5 +1,5 @@
 # ============================================================
-# CETIEM — Stack completo en Docker
+# SECRETARIA DE ECONOMIA — Stack completo en Docker
 #
 # Inicio rápido para desarrolladores:
 #   1. cp .env.example .env
@@ -20,14 +20,14 @@ x-app-env:
   # ── Base de datos ─────────────────────────────────────────
   # Usa el hostname del servicio Docker, no localhost
   &app-env
-  DATABASE_URL: "postgresql://postgres:cetiem@postgres:5432/cetiem_db?schema=certificacion_ia"
+  DATABASE_URL: "postgresql://postgres:secretaria-economia@postgres:5432/economia_db?schema=certificacion_ia"
 
   # ── Auth ──────────────────────────────────────────────────
   NEXTAUTH_URL: "http://localhost:3000"
   NEXT_PUBLIC_APP_URL: "http://localhost:3000"
   # Si no se define en .env, usa este valor de desarrollo
-  NEXTAUTH_SECRET: "${NEXTAUTH_SECRET:-cetiem-dev-secret-change-in-production}"
-  AUTH_SECRET: "${AUTH_SECRET:-cetiem-dev-secret-change-in-production}"
+  NEXTAUTH_SECRET: "${NEXTAUTH_SECRET:-secretaria-economia-dev-secret}"
+  AUTH_SECRET: "${AUTH_SECRET:-secretaria-economia-dev-secret}"
   AUTH_TRUST_HOST: "true"
 
   # ── Almacenamiento ────────────────────────────────────────
@@ -37,8 +37,11 @@ x-app-env:
   NVIDIA_API_KEY: "${NVIDIA_API_KEY}"
   NVIDIA_QA_API_KEY: "${NVIDIA_QA_API_KEY}"
   NVIDIA_CHAT_MODEL: "${NVIDIA_CHAT_MODEL:-meta/llama-3.1-70b-instruct}"
-  NVIDIA_EMBEDDING_MODEL: "${NVIDIA_EMBEDDING_MODEL:-llama-3_2-nemoretriever-300m-embed-v1}"
+  NVIDIA_EMBEDDING_MODEL: "${NVIDIA_EMBEDDING_MODEL:-nvidia/llama-3.2-nemoretriever-300m-embed-v1}"
   NVIDIA_QA_MODEL: "${NVIDIA_QA_MODEL:-z-ai/glm4.7}"
+  # kimi-k2.6 — 1M contexto, 446ms (reemplaza DeepSeek mientras esté caído en NIM)
+  NVIDIA_DEEPSEEK_MODEL: "${NVIDIA_DEEPSEEK_MODEL:-moonshotai/kimi-k2.6}"
+  DEEPSEEK_BATCH_SIZE: "${DEEPSEEK_BATCH_SIZE:-20}"
   # Kimi K2 para extracción de intención (razonamiento superior)
   NVIDIA_INTENT_API_KEY: "${NVIDIA_INTENT_API_KEY:-}"
   NVIDIA_INTENT_MODEL: "${NVIDIA_INTENT_MODEL:-moonshotai/kimi-k2-instruct-0905}"
@@ -59,28 +62,32 @@ x-app-env:
   FALKORDB_HOST: "falkordb"
   FALKORDB_PORT: "6379"
 
+  # ── Cognee microservice ───────────────────────────────────
+  COGNEE_SERVICE_URL: "http://cognee-api:8000"
+
   # ── Límites ───────────────────────────────────────────────
   MAX_CHUNKS_TO_PROCESS: "500"
   MAX_BATCHES: "100"
   # Chunks paralelos en Cognee. Default 5 = balance latencia/throughput con NIM
   COGNEE_PARALLEL_CHUNKS: "${COGNEE_PARALLEL_CHUNKS:-5}"
   NODE_ENV: "production"
+  RATE_LIMIT_DISABLED: "${RATE_LIMIT_DISABLED:-false}"
 
 services:
 
   # ── PostgreSQL ─────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: cetiem-postgres
+    container_name: secretaria-economia-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: cetiem
-      POSTGRES_DB: cetiem_db
+      POSTGRES_PASSWORD: secretaria-economia
+      POSTGRES_DB: economia_db
     ports:
       - "5434:5432" # 5434 evita conflicto con Postgres local en 5432/5433
     volumes:
-      - cetiem_postgres_data:/var/lib/postgresql/data
+      - economia_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
@@ -90,13 +97,13 @@ services:
   # ── Redis (BullMQ) ─────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: cetiem-redis
+    container_name: secretaria-economia-redis
     restart: unless-stopped
     command: redis-server --appendonly yes
     ports:
       - "6381:6379" # 6381 evita conflicto con Redis local en 6379
     volumes:
-      - cetiem_redis_data:/data
+      - economia_redis_data:/data
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
@@ -106,13 +113,13 @@ services:
   # ── FalkorDB (grafo de conocimiento) ───────────────────────
   falkordb:
     image: falkordb/falkordb:latest
-    container_name: cetiem-falkordb
+    container_name: secretaria-economia-falkordb
     restart: unless-stopped
     command: [ "--stop-writes-on-bgsave-error", "no" ]
     ports:
       - "6380:6379"
     volumes:
-      - cetiem_falkordb_data:/var/lib/falkordb/data
+      - economia_falkordb_data:/var/lib/falkordb/data
     healthcheck:
       test: [ "CMD", "redis-cli", "-p", "6379", "ping" ]
       interval: 5s
@@ -122,7 +129,7 @@ services:
   # ── FalkorDB Browser UI ─────────────────────────────────────
   falkordb-browser:
     image: falkordb/falkordb-browser:latest
-    container_name: cetiem-falkordb-browser
+    container_name: secretaria-economia-falkordb-browser
     restart: unless-stopped
     ports:
       - "3001:3000"
@@ -133,7 +140,7 @@ services:
   # ── DB Init (migración + seed, se ejecuta una vez y sale) ──
   db-init:
     build: .
-    container_name: cetiem-db-init
+    container_name: secretaria-economia-db-init
     command: >
       sh -c "
         echo '→ Aplicando schema Prisma...' &&
@@ -143,7 +150,7 @@ services:
         echo '✓ Base de datos lista'
       "
     environment:
-      DATABASE_URL: "postgresql://postgres:cetiem@postgres:5432/cetiem_db?schema=certificacion_ia"
+      DATABASE_URL: "postgresql://postgres:secretaria-economia@postgres:5432/economia_db?schema=certificacion_ia"
       NODE_ENV: "production"
     depends_on:
       postgres:
@@ -153,7 +160,7 @@ services:
   # ── Aplicación Next.js ─────────────────────────────────────
   app:
     build: .
-    container_name: cetiem-app
+    container_name: secretaria-economia-app
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -169,7 +176,7 @@ services:
       - ./postcss.config.js:/app/postcss.config.js
       - ./tailwind.config.js:/app/tailwind.config.js
       - ./tsconfig.json:/app/tsconfig.json
-      - cetiem_uploads:/app/uploads
+      - economia_uploads:/app/uploads
     command: npm run dev
     depends_on:
       db-init:
@@ -178,17 +185,50 @@ services:
         condition: service_healthy
       falkordb:
         condition: service_healthy
+      cognee-api:
+        condition: service_healthy
+
+  # ── Cognee Knowledge API (Python — graph + embeddings via NIM + FalkorDB) ──
+  cognee-api:
+    build: ./cognee-api
+    container_name: secretaria-economia-cognee
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    environment:
+      FALKORDB_HOST: "falkordb"
+      FALKORDB_PORT: "6379"
+      NVIDIA_API_KEY: "${NVIDIA_API_KEY}"
+      NVIDIA_EMBEDDING_MODEL: "${NVIDIA_EMBEDDING_MODEL:-nvidia/llama-3.2-nemoretriever-300m-embed-v1}"
+      NVIDIA_CHAT_MODEL: "${NVIDIA_CHAT_MODEL:-meta/llama-3.1-70b-instruct}"
+      # Disable JWT auth — service is internal-only (not exposed outside Docker network)
+      REQUIRE_AUTHENTICATION: "false"
+      ENABLE_BACKEND_ACCESS_CONTROL: "false"
+      COGNEE_DATA_DIR: "/data/cognee"
+    volumes:
+      # Mount writable volume at the exact path cognee uses for its SQLite DB
+      - economia_cognee_data:/usr/local/lib/python3.11/site-packages/cognee/.cognee_system
+    depends_on:
+      falkordb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # ── Workers BullMQ (procesamiento de documentos en background)
   workers:
     build: .
-    container_name: cetiem-workers
+    container_name: secretaria-economia-workers
     command: npm run workers
     restart: unless-stopped
     environment:
       <<: *app-env
     volumes:
-      - cetiem_uploads:/app/uploads
+      - ./src:/app/src
+      - economia_uploads:/app/uploads
     depends_on:
       db-init:
         condition: service_completed_successfully
@@ -196,9 +236,12 @@ services:
         condition: service_healthy
       falkordb:
         condition: service_healthy
+      cognee-api:
+        condition: service_healthy
 
 volumes:
-  cetiem_postgres_data:
-  cetiem_redis_data:
-  cetiem_falkordb_data:
-  cetiem_uploads: # PDFs compartidos entre app y workers
+  economia_postgres_data:
+  economia_redis_data:
+  economia_falkordb_data:
+  economia_uploads:
+  economia_cognee_data:

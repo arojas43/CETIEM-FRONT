@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { documentProcessingQueue } from "@/lib/queue";
+import { uploadFileSchema } from "@/lib/schemas/documents";
+import { withRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -111,12 +113,20 @@ export async function GET(request: NextRequest) {
  * POST /api/documents
  * Crea un nuevo documento y lo guarda
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const role = (session.user as any).role as string;
+    if (role !== "COMPANY") {
+      return NextResponse.json(
+        { error: "Solo las empresas pueden subir documentos" },
+        { status: 403 }
+      );
     }
 
     const formData = await request.formData();
@@ -129,10 +139,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Validar tipo de archivo
-    if (file.type !== "application/pdf") {
+    // Validar archivo con Zod (tipo, tamaño, nombre)
+    const fileValidation = uploadFileSchema.safeParse({
+      size: file.size,
+      type: file.type,
+      name: file.name,
+    });
+    if (!fileValidation.success) {
       return NextResponse.json(
-        { error: "Only PDF files are allowed" },
+        { error: "ValidationError", issues: fileValidation.error.issues.map(i => i.message) },
         { status: 400 }
       );
     }
@@ -141,9 +156,19 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Compute SHA-256 hash for forensic integrity
+    // SHA-256 dedup — rechazar si ya existe el mismo contenido para esta empresa
     const { createHash } = await import("crypto");
     const sha256 = createHash("sha256").update(buffer).digest("hex");
+    const duplicate = await prisma.document.findFirst({
+      where: { sha256, userId: session.user.id },
+      select: { id: true, name: true },
+    });
+    if (duplicate) {
+      return NextResponse.json(
+        { error: "Documento duplicado", existingId: duplicate.id, existingName: duplicate.name },
+        { status: 409 }
+      );
+    }
 
     // Primero crear registro en BD para obtener el ID
     const document = await prisma.document.create({
@@ -162,8 +187,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Guardar archivo usando el ID de la BD
-    const { localStorageService } = await import('@/lib/local-storage');
-    const result = await localStorageService.saveFileWithId(
+    const { storageService } = await import('@/lib/storage');
+    const result = await storageService.saveFileWithId(
       buffer,
       file.name,
       file.type,
@@ -187,6 +212,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Encolar trabajo de procesamiento (opcional, si Redis está disponible)
+    let queuedOk = true;
     try {
       await documentProcessingQueue.add("document-processing", {
         documentId: document.id,
@@ -196,7 +222,8 @@ export async function POST(request: NextRequest) {
       console.log(`[Upload] Trabajo encolado para documento ${document.id}`);
     } catch (queueError) {
       console.warn('[Upload] Redis no disponible, procesamiento manual requerido:', queueError);
-      // Actualizar estado para indicar que necesita procesamiento manual
+      queuedOk = false;
+      // Mantener estado PENDING — el assessor puede disparar el procesamiento manualmente
       await prisma.document.update({
         where: { id: document.id },
         data: { status: "PENDING" },
@@ -206,6 +233,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ...document,
       storageUrl: result.url,
+      ...(queuedOk ? {} : { warning: "El procesamiento automático no está disponible en este momento. El documento quedó en estado PENDIENTE y puede ser procesado manualmente por un assessor." }),
     });
   } catch (error) {
     console.error("Error uploading document:", error);
@@ -215,3 +243,13 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withRateLimit(
+  { points: 20, duration: 3600, keyPrefix: "rl:upload" },
+  postHandler as any,
+  async (_req) => {
+    const { auth } = await import("@/lib/auth");
+    const session = await auth();
+    return session?.user?.id;
+  }
+);

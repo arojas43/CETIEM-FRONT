@@ -79,7 +79,7 @@ export class QAService {
     const entities = await this.getRelatedEntities(documentId, pageIndexContext);
 
     // 4. Generar respuesta contextual con LLM
-    const answer = await this.generateContextualAnswer(intent.originalQuery, pageIndexContext, entities, documentName, documentId);
+    const answer = await this.generateContextualAnswer(intent.originalQuery, pageIndexContext, entities, documentName);
 
     return {
       answer,
@@ -392,20 +392,19 @@ Rules:
     if (contexts.length === 0) return [];
 
     // Obtener páginas mencionadas en el contexto
-    const pages = contexts.map(c => c.page).filter(Boolean);
+    const pages = contexts.map(c => c.page).filter((p): p is number => typeof p === 'number');
 
     if (pages.length === 0) return [];
 
     try {
-      // Buscar entidades en las páginas relevantes usando IN para mejor rendimiento
-      const pagesIN = pages.join(", ");
+      // Buscar entidades en las páginas relevantes con $pages param para evitar interpolación
       const entitiesResult = await falkorDBService.roQuery(
         `MATCH (n)
          WHERE n.documentId = $docId
-           AND n.page IN [${pagesIN}]
+           AND n.page IN $pages
          RETURN labels(n)[0] AS type, n.name AS name, n.description AS desc, n.page AS page, n.section AS section
          LIMIT 50`,
-        { docId: documentId }
+        { docId: documentId, pages }
       );
 
       return entitiesResult.rows.map(r => ({
@@ -418,143 +417,6 @@ Rules:
       }));
     } catch (error: any) {
       console.error('[QA] Error obteniendo entidades:', error.message);
-      return [];
-    }
-  }
-
-  /**
-   * Detecta si la pregunta es sobre una referencia bíblica
-   * Ejemplos: "ISAÍAS 60:9-22", "Juan 3:16", "Génesis 1:1"
-   */
-  private detectBiblicalReference(query: string): {
-    book?: string;
-    chapter?: number;
-    verseStart?: number;
-    verseEnd?: number;
-    isBiblical: boolean;
-  } | null {
-    // Lista de libros bíblicos conocidos para evitar falsos positivos (ej. "ISO 9001:2015")
-    const biblicalBooks = new Set([
-      'génesis', 'genesis', 'éxodo', 'exodo', 'levítico', 'levitico', 'números', 'numeros',
-      'deuteronomio', 'josué', 'josue', 'jueces', 'rut', 'ruth', 'samuel', 'reyes',
-      'crónicas', 'cronicas', 'esdras', 'nehemías', 'nehemias', 'ester', 'esther',
-      'job', 'salmos', 'proverbios', 'eclesiastés', 'eclesiastes', 'cantares',
-      'isaías', 'isaias', 'jeremías', 'jeremias', 'lamentaciones', 'ezequiel',
-      'daniel', 'oseas', 'joel', 'amós', 'amos', 'abdías', 'abdias', 'jonás', 'jonas',
-      'miqueas', 'nahúm', 'nahum', 'habacuc', 'sofonías', 'sofonias', 'hageo',
-      'zacarías', 'zacarias', 'malaquías', 'malaquias',
-      'mateo', 'marcos', 'lucas', 'juan', 'hechos', 'romanos', 'corintios',
-      'gálatas', 'galatas', 'efesios', 'filipenses', 'colosenses', 'tesalonicenses',
-      'timoteo', 'tito', 'filemón', 'filemon', 'hebreos', 'santiago', 'pedro',
-      'judas', 'apocalipsis',
-    ]);
-
-    // Patrones bíblicos comunes en español
-    const patterns = [
-      // "ISAÍAS 60:9-22", "Isaías 60:9-22" — solo números de versículo razonables (1-200)
-      /([a-zA-ZÁÉÍÓÚáéíóúñÑ]+)\s+(\d{1,3}):(\d{1,3})(?:-(\d{1,3}))?/i,
-      // "Isaías 60 versículo 9", "Isaías 60 versículos 9 al 22"
-      /([a-zA-ZÁÉÍÓÚáéíóúñÑ]+)\s+(\d+)\s+versícul(?:o|os)?\s+(\d+)(?:\s+(?:al|hasta|a)\s+(\d+))?/i,
-      // "Capítulo 60 de Isaías"
-      /capítulo\s+(\d+)\s+de\s+([a-zA-ZÁÉÍÓÚáéíóúñÑ]+)/i,
-    ];
-
-    for (const pattern of patterns) {
-      const match = query.match(pattern);
-      if (match) {
-        let book: string | undefined;
-        let chapter: number | undefined;
-        let verseStart: number | undefined;
-        let verseEnd: number | undefined;
-
-        if (pattern.source.includes('capítulo')) {
-          chapter = parseInt(match[1]);
-          book = match[2];
-        } else {
-          book = match[1];
-          chapter = parseInt(match[2]);
-          verseStart = match[3] ? parseInt(match[3]) : undefined;
-          verseEnd = match[4] ? parseInt(match[4]) : verseStart;
-        }
-
-        // Validar que el libro es realmente un libro bíblico conocido
-        // para evitar falsos positivos como "ISO 9001:2015" o "versión 2:3"
-        if (book && !biblicalBooks.has(book.toLowerCase())) {
-          continue;
-        }
-
-        return {
-          book,
-          chapter,
-          verseStart,
-          verseEnd,
-          isBiblical: true,
-        };
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Busca texto bíblico específico en PageIndex
-   */
-  private async searchBiblicalText(
-    documentId: string,
-    book: string,
-    chapter: number,
-    verseStart?: number,
-    verseEnd?: number
-  ): Promise<QAContext[]> {
-    try {
-      // Construir términos de búsqueda para el libro y capítulo
-      const searchTerms = [
-        `${book.toUpperCase()} ${chapter}`,
-        `${book} ${chapter}`,
-        `${book.toUpperCase()}\\s+${chapter}`,
-      ];
-
-      // Buscar en títulos y contenido
-      const sections = await prisma.pageIndex.findMany({
-        where: {
-          documentId,
-          OR: searchTerms.map(term => ({
-            title: { contains: term, mode: 'insensitive' },
-          })),
-        },
-        orderBy: { page: 'asc' },
-        take: 20, // Máximo 20 secciones
-      });
-
-      if (sections.length === 0) {
-        // Fallback: buscar por patrón de versículos
-        const versePattern = verseStart
-          ? `${chapter}:${verseStart}`
-          : `${chapter}:`;
-
-        const verseSections = await prisma.pageIndex.findMany({
-          where: {
-            documentId,
-            content: { contains: versePattern, mode: 'insensitive' },
-          },
-          orderBy: { page: 'asc' },
-          take: 20,
-        });
-
-        return verseSections.map(s => ({
-          text: s.content || '',
-          page: s.page || undefined,
-          section: s.title,
-        }));
-      }
-
-      return sections.map(s => ({
-        text: s.content || '',
-        page: s.page || undefined,
-        section: s.title,
-      }));
-    } catch (error: any) {
-      console.error('[QA] Error buscando texto bíblico:', error.message);
       return [];
     }
   }
@@ -663,28 +525,13 @@ Rules:
 
   /**
    * Búsqueda por keywords como fallback cuando el LLM Tree Search no encuentra nada.
-   * Incluye detección de referencias bíblicas.
    */
   private async fallbackKeywordSearch(
     documentId: string,
     query: string
   ): Promise<QAContext[]> {
     try {
-      // 1. Verificar si es referencia bíblica
-      const biblicalRef = this.detectBiblicalReference(query);
-      if (biblicalRef?.isBiblical && biblicalRef.book && biblicalRef.chapter) {
-        console.log(`[QA] Keyword fallback: referencia bíblica detectada`);
-        const biblicalResults = await this.searchBiblicalText(
-          documentId,
-          biblicalRef.book,
-          biblicalRef.chapter,
-          biblicalRef.verseStart,
-          biblicalRef.verseEnd
-        );
-        if (biblicalResults.length > 0) return biblicalResults;
-      }
-
-      // 2. Extraer keywords (palabras de 4+ letras, excluyendo stopwords)
+      // Extraer keywords (palabras de 4+ letras, excluyendo stopwords)
       const stopwords = new Set([
         'para', 'como', 'sobre', 'donde', 'cuando', 'cuál', 'cual',
         'qué', 'que', 'cómo', 'como', 'cuáles', 'cuales', 'este', 'esta',
@@ -734,98 +581,45 @@ Rules:
     contexts: QAContext[],
     entities: any[],
     documentName: string,
-    documentId: string
   ): Promise<string> {
-    // Detectar referencia bíblica — solo si el contexto aún está vacío o insuficiente
-    // (si ya vino de fallbackKeywordSearch, el contexto bíblico ya está incluido)
-    if (contexts.length === 0 || contexts.every(c => c.text.length < 100)) {
-      const biblicalRef = this.detectBiblicalReference(query);
-      if (biblicalRef?.isBiblical && biblicalRef.book && biblicalRef.chapter) {
-        console.log(`[QA] Referencia bíblica detectada: ${biblicalRef.book} ${biblicalRef.chapter}:${biblicalRef.verseStart || ''}-${biblicalRef.verseEnd || ''}`);
-        const biblicalContext = await this.searchBiblicalText(
-          documentId,
-          biblicalRef.book,
-          biblicalRef.chapter,
-          biblicalRef.verseStart,
-          biblicalRef.verseEnd
-        );
-        if (biblicalContext.length > 0) {
-          console.log(`[QA] Texto bíblico encontrado: ${biblicalContext.length} secciones`);
-          contexts.push(...biblicalContext);
-        }
-      }
-    }
-
-    const { qwenQAService } = await import('./qwen-qa');
-
-    // Preparar contexto de PageIndex
     const pageIndexText = contexts
       .map((c, i) => `### Sección ${i + 1}${c.page ? ` (Página ${c.page})` : ''}\n${c.text}`)
       .join('\n\n');
 
-    // Preparar entidades para Qwen
-    const entitiesFormatted = entities.map(e => ({
-      type: e.type,
-      name: e.name,
-      description: e.description,
-      page: e.page,
-    }));
+    const entitiesText = entities.length > 0
+      ? '## Entidades identificadas:\n' +
+        entities.map(e => `- ${e.type}: ${e.name}${e.description ? ` — ${e.description}` : ''}`).join('\n')
+      : '';
+
+    const fullContext = [pageIndexText, entitiesText].filter(Boolean).join('\n\n');
+
+    if (!fullContext || fullContext.length < 50) {
+      return 'No se encontró información suficiente en el documento para responder esta pregunta.';
+    }
+
+    // DeepSeek V4 Pro: 1M contexto permite incluir documentos completos sin truncar.
+    // Modo no-thinking activado en nimService.generateWithDeepSeek().
+    console.log(`[QA] DeepSeek V4 Pro: ${contexts.length} secciones, ${fullContext.length} chars`);
 
     try {
-      // Formatear relaciones para Qwen (si hay entidades)
-      const relationsFormatted = entities.length > 0
-        ? entities.map((e: any) => ({
-          source: e.name,
-          type: 'RELATED',
-          target: e.description || e.name,
-        }))
-        : [];
-
-      console.log(`[QA] Enviando a Qwen: ${contexts.length} secciones, ${pageIndexText.length} chars`);
-
-      // Usar Qwen 3.5 122B para mejor calidad de respuesta
-      return await qwenQAService.generateAnswer({
-        question: query,
-        pageIndexContext: pageIndexText,
-        entities: entitiesFormatted,
-        relations: relationsFormatted,
-        documentName,
+      return await nimService.generateWithDeepSeek({
+        userPrompt: `Basándote ÚNICAMENTE en la siguiente información del documento "${documentName}", responde la pregunta de forma clara y completa.\n\nPREGUNTA: ${query}\n\n---\n\n${fullContext}`,
+        systemPrompt: 'Eres un experto en auditoría ESG para la Secretaría de Economía de México. Responde en español, basándote ÚNICAMENTE en el contenido del documento proporcionado. Si la información no está en el documento, di explícitamente que no se encontró.',
+        maxTokens: 4096,
+        temperature: 0.2,
       });
     } catch (error: any) {
-      console.error('[QA] ❌ Error con Qwen:', error.message);
-      console.log(`[QA] ✅ Contexto disponible: ${contexts.length} secciones`);
-      console.log(`[QA] ✅ Primeras 3 secciones:`, contexts.slice(0, 3).map(c => c.section));
-
-      // Fallback a NIM normal si Qwen falla - USANDO EL CONTEXTO DE PAGEINDEX
-      const { nimService } = await import('./nim');
-
-      // Construir contexto completo con TODA la información disponible
-      const fullContext = [
-        pageIndexText,  // ← Texto de PageIndex (30 secciones encontradas)
-        entities.length > 0 ? '## Entidades:\n' + entities.map(e => `- ${e.type}: ${e.name}${e.description ? ` (${e.description})` : ''}`).join('\n') : '',
-      ].filter(Boolean).join('\n\n');
-
-      console.log(`[QA] 📤 Enviando ${fullContext.length} chars de contexto a Llama 3.1`);
-      console.log(`[QA] 📄 Contexto incluye ${contexts.length} secciones de PageIndex`);
-
-      if (!fullContext || fullContext.length < 50) {
-        console.warn('[QA] ⚠️ Contexto insuficiente (< 50 chars)');
-        return 'No se encontró información suficiente en el documento para responder esta pregunta.';
-      }
-
+      console.error('[QA] Error con DeepSeek V4 Pro:', error.message);
+      // Fallback a Llama 3.1
       try {
-        const response = await nimService.generateText({
+        return await nimService.generateText({
           model: process.env.NVIDIA_CHAT_MODEL || 'meta/llama-3.1-70b-instruct',
-          prompt: `Basándote ÚNICAMENTE en esta información del documento "${documentName}":\n\n${fullContext}\n\nResponde la pregunta: ${query}\n\nSi la pregunta es sobre una referencia bíblica específica (como ISAÍAS 60:9-22), busca en el texto proporcionado y cita los versículos exactos si están disponibles.`,
-          systemPrompt: 'Eres un asistente experto en análisis de documentos bíblicos. Responde basándote ÚNICAMENTE en la información proporcionada. Si encuentras la referencia bíblica específica, cita el texto exacto.',
+          prompt: `Documento: "${documentName}"\n\n${fullContext.slice(0, 28000)}\n\nPregunta: ${query}`,
+          systemPrompt: 'Eres un experto en auditoría ESG. Responde basándote ÚNICAMENTE en el documento.',
           maxTokens: 2048,
           temperature: 0.3,
         });
-
-        console.log(`[QA] ✅ Respuesta generada: ${response.length} chars`);
-        return response;
       } catch (fallbackError: any) {
-        console.error('[QA] ❌ Error en fallback Llama 3.1:', fallbackError.message);
         return `Error al generar respuesta: ${fallbackError.message}`;
       }
     }

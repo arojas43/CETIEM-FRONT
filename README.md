@@ -1,4 +1,4 @@
-# CETIEM — Plataforma de Certificación Empresarial ESG con IA
+# SECRETARIA DE ECONOMIA — Plataforma de Certificación Empresarial ESG con IA
 
 Sistema de auditoría y certificación ESG asistido por inteligencia artificial. Las empresas suben documentos, el sistema los procesa con IA (PageIndex + Cognee + FalkorDB), y los Data Assessors emiten dictámenes formales con el motor V.L.A.P.
 
@@ -52,10 +52,10 @@ Esto levanta **todos los servicios** automáticamente:
 
 | Email | Contraseña | Rol |
 |-------|-----------|-----|
-| `admin@cetiem.mx` | `cetiem2024` | Super Admin |
-| `assessor@cetiem.mx` | `cetiem2024` | Data Assessor |
-| `empresa1@cetiem.mx` | `cetiem2024` | Empresa (Track A — Industria) |
-| `empresa2@cetiem.mx` | `cetiem2024` | Empresa (Track B — Construcción) |
+| `admin@secretaria-economia.mx` | `secretaria-economia2024` | Super Admin |
+| `assessor@secretaria-economia.mx` | `secretaria-economia2024` | Data Assessor |
+| `empresa1@secretaria-economia.mx` | `secretaria-economia2024` | Empresa (Track A — Industria) |
+| `empresa2@secretaria-economia.mx` | `secretaria-economia2024` | Empresa (Track B — Construcción) |
 
 ---
 
@@ -72,7 +72,7 @@ Esto levanta **todos los servicios** automáticamente:
 | Cola de tareas | BullMQ + Redis 7 |
 | Almacenamiento | Local (`./uploads/`) en dev · Google Cloud Storage en prod |
 | OCR (fallback) | Tesseract.js |
-| UI | Tailwind CSS (tokens CETIEM dark theme) · Lucide Icons |
+| UI | Tailwind CSS (tokens SECRETARIA DE ECONOMIA dark theme) · Lucide Icons |
 
 ---
 
@@ -220,7 +220,7 @@ npm run start            # Servidor de producción
 |---------|---------------|---------|
 | Error `esgScore` no reconocido | Prisma Client no regenerado | `npm run db:generate` + reiniciar servidor |
 | `PrismaClientValidationError` en campo nuevo | Schema no aplicado a la BD | `npm run db:push` |
-| FalkorDB rechaza escrituras (MISCONF) | Config Redis en FalkorDB | `docker exec cetiem-falkordb redis-cli CONFIG SET stop-writes-on-bgsave-error no` |
+| FalkorDB rechaza escrituras (MISCONF) | Config Redis en FalkorDB | `docker exec secretaria-economia-falkordb redis-cli CONFIG SET stop-writes-on-bgsave-error no` |
 | Q&A responde en chino | GLM4.7 sin instrucción de idioma | Verificar system prompt en `lib/qwen-qa.ts` |
 | Workers no procesan documentos | Redis no disponible | `docker compose up -d redis` |
 | Puerto 3000 ocupado | Proceso previo | `lsof -ti:3000 \| xargs kill -9` |

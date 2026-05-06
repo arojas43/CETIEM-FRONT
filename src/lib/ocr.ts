@@ -117,7 +117,7 @@ export async function processPdfWithOcr(pdfBuffer: Buffer, lang: string = 'spa')
  * Fallback cuando no hay canvas disponible
  * Usa el texto básico extraído por pdf-parse
  */
-async function processPdfWithOcrFallback(pdfBuffer: Buffer, lang: string): Promise<{
+async function processPdfWithOcrFallback(pdfBuffer: Buffer, _lang: string): Promise<{
   text: string;
   pages: string[];
   ocrConfidence: number;
