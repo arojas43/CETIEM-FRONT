@@ -50,12 +50,21 @@ Esto levanta **todos los servicios** automáticamente:
 
 ## Usuarios de prueba
 
+### 1. Usuarios de Producción / Seed (Secretaría de Economía)
 | Email | Contraseña | Rol |
 |-------|-----------|-----|
 | `admin@secretaria-economia.mx` | `secretaria-economia2024` | Super Admin |
 | `assessor@secretaria-economia.mx` | `secretaria-economia2024` | Data Assessor |
 | `empresa1@secretaria-economia.mx` | `secretaria-economia2024` | Empresa (Track A — Industria) |
 | `empresa2@secretaria-economia.mx` | `secretaria-economia2024` | Empresa (Track B — Construcción) |
+
+### 2. Usuarios de Desarrollo y Testing (CETIEM)
+| Email | Contraseña | Rol |
+|-------|-----------|-----|
+| `admin@cetiem.mx` | `cetiem2024` | Super Admin |
+| `assessor@cetiem.mx` | `cetiem2024` | Data Assessor |
+| `empresa1@cetiem.mx` | `cetiem2024` | Empresa (Track A) |
+| `empresa2@cetiem.mx` | `cetiem2024` | Empresa (Track B) |
 
 ---
 

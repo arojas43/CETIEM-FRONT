@@ -70,6 +70,8 @@ x-app-env:
   MAX_BATCHES: "100"
   # Chunks paralelos en Cognee. Default 5 = balance latencia/throughput con NIM
   COGNEE_PARALLEL_CHUNKS: "${COGNEE_PARALLEL_CHUNKS:-5}"
+  # Saltar extracción de entidades con Cognee; documentos quedan ANALYZED sin grafo
+  SKIP_COGNEE: "${SKIP_COGNEE:-false}"
   NODE_ENV: "production"
   RATE_LIMIT_DISABLED: "${RATE_LIMIT_DISABLED:-false}"
 
@@ -205,6 +207,7 @@ services:
       REQUIRE_AUTHENTICATION: "false"
       ENABLE_BACKEND_ACCESS_CONTROL: "false"
       COGNEE_DATA_DIR: "/data/cognee"
+      COGNEE_SKIP_CONNECTION_TEST: "true"
     volumes:
       # Mount writable volume at the exact path cognee uses for its SQLite DB
       - economia_cognee_data:/usr/local/lib/python3.11/site-packages/cognee/.cognee_system

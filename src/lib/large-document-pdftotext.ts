@@ -109,7 +109,7 @@ async function runPdftotext(
   startTime?: number
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const cmd = `pdftotext -layout "${inputPath}" "${outputPath}"`;
+    const cmd = `pdftotext -layout -enc UTF-8 "${inputPath}" "${outputPath}"`;
     
     console.log(`[Pdftotext] Ejecutando: ${cmd}`);
     

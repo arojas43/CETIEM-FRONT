@@ -235,6 +235,16 @@ export async function runAnalysis(
   console.log(`[AI] ================================`);
 
   try {
+    // SKIP_COGNEE=true: saltar extracción de entidades, marcar como ANALYZED y disparar dictamen
+    if (process.env.SKIP_COGNEE === 'true') {
+      console.log(`[AI] SKIP_COGNEE activo — marcando ${documentId} como ANALYZED sin extracción`);
+      await prisma.document.update({ where: { id: documentId }, data: { status: 'ANALYZED' } });
+      await publishProgress(documentId, { step: '✓ Análisis completado (sin grafo)', percentage: 100, status: 'ANALYZED' });
+      const { maybeScheduleAiDictamen } = await import('./ai-dictamen-service');
+      maybeScheduleAiDictamen(documentId).catch(() => {});
+      return { entitiesExtracted: 0 };
+    }
+
     await updateProgress(documentId, 'Iniciando análisis de IA...', 60, { stage: 'ai_starting' });
 
     const document = await prisma.document.findUnique({ where: { id: documentId } });
@@ -295,6 +305,8 @@ export async function runAnalysis(
 
     const validIndices = indices.filter(i => i.content && i.content.length > 50);
     const MAX_CHUNKS = parseInt(process.env.MAX_CHUNKS_TO_PROCESS || '500');
+    // Cognee makes one LLM call per chunk in parallel — cap at 8 to stay under NIM rate limits
+    const MAX_COGNEE_CHUNKS = parseInt(process.env.MAX_COGNEE_CHUNKS || '8');
     const toProcess = validIndices.slice(0, MAX_CHUNKS);
     const domain = (document.domain?.toLowerCase() as CogneeDomain) || 'industria';
 
@@ -303,12 +315,19 @@ export async function runAnalysis(
 
     if (useCogneeService) {
       // ── Path A: Cognee Python microservice ────────────────────────────────
-      console.log(`[AI] Enviando ${toProcess.length} chunks a Cognee Python…`);
-      await updateProgress(documentId, 'Enviando chunks a Cognee', 62, { stage: 'cognee_add', chunks: toProcess.length });
+      if (toProcess.length === 0) {
+        console.log(`[AI] Sin chunks válidos para Cognee — marcando como INDEXED`);
+        await prisma.document.update({ where: { id: documentId }, data: { status: 'INDEXED' } });
+        return { entitiesExtracted: 0 };
+      }
+
+      const cogneeChunks = toProcess.slice(0, MAX_COGNEE_CHUNKS);
+      console.log(`[AI] Enviando ${cogneeChunks.length} chunks a Cognee Python… (${toProcess.length} disponibles, cap=${MAX_COGNEE_CHUNKS})`);
+      await updateProgress(documentId, 'Enviando chunks a Cognee', 62, { stage: 'cognee_add', chunks: cogneeChunks.length });
 
       await cogneeClient.addChunks(
         documentId,
-        toProcess.map(n => ({ title: n.title, content: n.content ?? '', page: n.page ?? undefined }))
+        cogneeChunks.map(n => ({ title: n.title, content: n.content ?? '', page: n.page ?? undefined }))
       );
 
       await updateProgress(documentId, 'Construyendo grafo de conocimiento (Cognee)', 70, { stage: 'cognee_cognify' });

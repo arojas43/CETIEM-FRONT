@@ -160,10 +160,17 @@ export async function generateAiDictamen(companyId: string): Promise<string> {
       docsForPrompt
     );
 
+    // Usar NVIDIA_INTENT_API_KEY como key alternativa para el dictamen —
+    // cuota separada a la del pipeline de indexación (NVIDIA_API_KEY)
+    const dictamenApiKey = process.env.NVIDIA_INTENT_API_KEY || process.env.NVIDIA_API_KEY;
+    const dictamenModel  = process.env.NVIDIA_INTENT_MODEL  || process.env.NVIDIA_DEEPSEEK_MODEL || "moonshotai/kimi-k2-instruct-0905";
+
     const raw = await nimService.generateWithDeepSeek({
       userPrompt: prompt,
       maxTokens: 4096,
       temperature: 0.2,
+      apiKey: dictamenApiKey,
+      model:  dictamenModel,
     });
 
     console.log(`[AiDictamen] Raw response (first 500): ${raw.slice(0, 500)}`);

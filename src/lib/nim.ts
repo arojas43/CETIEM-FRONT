@@ -25,6 +25,18 @@ export class NIMService {
     return AbortSignal.timeout(ms);
   }
 
+  // Reintenta fetch hasta 3 veces en caso de 429, con espera exponencial
+  private async fetchWithRetry(url: string, init: RequestInit, retries = 3): Promise<Response> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      const res = await fetch(url, init);
+      if (res.status !== 429 || attempt === retries) return res;
+      const wait = attempt * 30_000; // 30s, 60s, 90s
+      console.warn(`[NIM] 429 — reintentando en ${wait / 1000}s (intento ${attempt}/${retries})`);
+      await new Promise(r => setTimeout(r, wait));
+    }
+    return fetch(url, init); // never reached
+  }
+
   // ── Embeddings ─────────────────────────────────────────────────────────────
 
   async generateEmbedding(text: string): Promise<number[]> {
@@ -116,9 +128,9 @@ export class NIMService {
     if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
     messages.push({ role: "user", content: prompt });
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/chat/completions`, {
       method: "POST",
-      signal: this.withTimeout(timeoutMs),
+      signal: this.withTimeout(timeoutMs + 200_000), // ampliar timeout para cubrir reintentos
       headers: {
         Authorization: `Bearer ${apiKey || this.apiKey}`,
         "Content-Type": "application/json",
@@ -152,16 +164,19 @@ export class NIMService {
     systemPrompt?: string;
     maxTokens?: number;
     temperature?: number;
+    apiKey?: string;
+    model?: string;
   }): Promise<string> {
     const {
       userPrompt,
       systemPrompt,
       maxTokens = 8192,
       temperature = 0.1,
+      apiKey,
     } = options;
 
     // kimi-k2.6 por defecto — 1M ctx, 446ms, sin parámetros thinking especiales
-    const model =
+    const model = options.model ||
       process.env.NVIDIA_DEEPSEEK_MODEL || "moonshotai/kimi-k2.6";
 
     const messages: { role: string; content: string }[] = [];
@@ -172,11 +187,11 @@ export class NIMService {
     const isDeepSeek = model.includes("deepseek");
     const extraParams = isDeepSeek ? { chat_template_kwargs: { thinking: false } } : {};
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/chat/completions`, {
       method: "POST",
-      signal: this.withTimeout(300_000),
+      signal: this.withTimeout(500_000),
       headers: {
-        Authorization: `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${apiKey || this.apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

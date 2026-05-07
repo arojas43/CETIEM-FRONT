@@ -117,7 +117,7 @@ export default function DesignSystemPage() {
             <section className="space-y-6">
                 <h2 className="text-2xl font-black text-white">Tabla</h2>
                 <div className="overflow-hidden rounded-2xl" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <table className="min-w-full divide-y" style={{ divideColor: 'rgba(255,255,255,0.06)' }}>
+                    <table className="min-w-full divide-y divide-white/8">
                         <thead style={{ background: 'rgba(255,255,255,0.04)' }}>
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-bold text-white/40 uppercase tracking-widest">Documento</th>

@@ -9,7 +9,7 @@ interface InstitutionalLogoProps {
   variant?: 'default' | 'white' | 'compact';
 }
 
-export function InstitutionalLogo({ className, size = 'md', variant = 'default' }: InstitutionalLogoProps) {
+export function InstitutionalLogo({ className, size = 'md', variant: _variant = 'default' }: InstitutionalLogoProps) {
   const titleSizes = {
     sm: "text-lg",
     md: "text-2xl",

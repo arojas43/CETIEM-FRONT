@@ -64,11 +64,8 @@ export async function POST(
     }
   }
 
-  // Marcar cualquier AiDictamen existente como obsoleto (forzar regeneración)
-  await prisma.aiDictamen.updateMany({
-    where: { companyId, status: "READY" },
-    data: { status: "GENERATING" },
-  });
+  // Eliminar dictamenes anteriores para forzar regeneración limpia
+  await prisma.aiDictamen.deleteMany({ where: { companyId } });
 
   // Disparar en background
   generateAiDictamen(companyId).catch(console.error);

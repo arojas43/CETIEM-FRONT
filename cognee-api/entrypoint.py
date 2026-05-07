@@ -23,8 +23,9 @@ NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY", "")
 NVIDIA_EMBEDDING_MODEL = os.environ.get(
     "NVIDIA_EMBEDDING_MODEL", "nvidia/llama-3.2-nemoretriever-300m-embed-v1"
 )
-# kimi-k2.6 — 1M context, 446ms, reemplaza DeepSeek mientras esté caído en NIM
-NVIDIA_CHAT_MODEL = os.environ.get("NVIDIA_DEEPSEEK_MODEL", "moonshotai/kimi-k2.6")
+# kimi-k2.6 via NVIDIA NIM — LiteLLM needs "openai/" prefix for custom-endpoint models
+_raw_model = os.environ.get("NVIDIA_DEEPSEEK_MODEL", "moonshotai/kimi-k2.6")
+NVIDIA_CHAT_MODEL = _raw_model if _raw_model.startswith("openai/") else f"openai/{_raw_model}"
 NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
 
 # ── Vector DB — provider "falkor" as registered by the adapter ────────────────

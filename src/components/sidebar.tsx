@@ -8,7 +8,7 @@ import { useEffect, useState, useRef } from 'react'
 import {
   LayoutDashboard, FileText, Upload, Award, Building2,
   ClipboardList, Users, BarChart3, ScrollText, Settings,
-  MessageSquare, Network, ShieldAlert, Bell, X, CheckCheck, LogOut as SignOutIcon,
+  Network, ShieldAlert, Bell, X, CheckCheck, LogOut as SignOutIcon,
   Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
