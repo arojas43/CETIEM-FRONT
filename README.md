@@ -125,37 +125,51 @@ npm run start            # Servidor de producción
 ├── ARCHITECTURE.md           ← Documentación técnica completa del sistema
 ├── GUIA.md                   ← Guía de uso por rol con diagramas de flujo
 ├── openkb-api/               ← Microservicio Python (FastAPI + OpenKB)
-│   ├── main.py               ← Endpoints: /add, /search, /delete, /health
+│   ├── main.py               ← Endpoints: POST /add, POST /search, DELETE /documents/{id}, GET /health
+│   ├── requirements.txt
 │   └── Dockerfile
 ├── prisma/
 │   ├── schema.prisma         ← Modelos y enums
 │   └── seed.ts               ← Usuarios de prueba
 └── src/
     ├── app/
-    │   ├── page.tsx          ← Landing page
-    │   ├── auth/signin/      ← Login
-    │   ├── register/         ← Registro empresa (multi-paso)
-    │   └── dashboard/        ← Todas las páginas autenticadas
-    │       ├── upload/       ← Subida de documentos
-    │       ├── documents/    ← Lista y detalle de documentos
-    │       ├── review/       ← Split-View con motor V.L.A.P.
-    │       ├── queue/        ← Cola de revisión (Assessor)
-    │       ├── companies/    ← Gestión empresas + asignación assessor
-    │       ├── assessors/    ← Lista de assessors
-    │       ├── capa/         ← Tickets CAPA (todos los roles)
-    │       └── logs/         ← Audit Log (Admin)
+    │   ├── page.tsx                 ← Landing page
+    │   ├── auth/signin/             ← Login
+    │   ├── register/                ← Registro empresa (multi-paso)
+    │   └── dashboard/               ← Páginas autenticadas por rol
+    │       ├── upload/              ← Subida de PDFs (COMPANY)
+    │       ├── documents/           ← Lista y detalle de documentos
+    │       │   └── [id]/
+    │       │       ├── page.tsx     ← Detalle + Q&A + barra progreso SSE
+    │       │       └── content/     ← Árbol PageIndex (texto estructurado)
+    │       ├── review/              ← Consola de dictamen V.L.A.P.
+    │       │   ├── [id]/            ← Revisión de documento individual
+    │       │   └── company/[id]/    ← Revisión de empresa completa (split-view)
+    │       ├── queue/               ← Cola de revisión (ASSESSOR)
+    │       ├── companies/           ← Gestión empresas + asignación assessor
+    │       ├── assessors/           ← Gestión de assessors (ADMIN)
+    │       ├── capa/                ← Tickets CAPA (todos los roles)
+    │       └── logs/                ← Audit Log + exportar CSV (ADMIN)
     └── lib/
-        ├── document-pipeline.ts      ← Pipeline: runIndexing + runAnalysis
-        ├── ai-dictamen-service.ts    ← Dictamen IA con Kimi K2.6
-        ├── openkb-client.ts          ← Cliente para OpenKB API
-        ├── pageindex-real.ts         ← Indexación jerárquica PDF (pdfjs)
-        ├── qa-service.ts             ← Q&A: PageIndex + NIM (fallback)
+        ├── document-pipeline.ts        ← ★ Pipeline: runIndexing + runAnalysis + runFullPipeline
+        ├── ai-dictamen-service.ts      ← ★ Dictamen IA: assembler + Kimi K2.6
+        ├── openkb-client.ts            ← ★ Cliente OpenKB: add / search / delete
+        ├── pageindex-real.ts           ← ★ PageIndex local (pdfjs-dist)
+        ├── qa-service.ts               ← Q&A: búsqueda PageIndex + fallback NIM
+        ├── nim.ts                      ← Cliente NVIDIA NIM (LLM + embeddings)
+        ├── progress-publisher.ts       ← Redis PUBLISH para SSE de progreso
+        ├── storage.ts                  ← Fachada de almacenamiento (local → GCS futuro)
+        ├── large-document-pdftotext.ts ← pdftotext para PDFs > 50MB
+        ├── rate-limit.ts               ← Rate limiting con Redis
         ├── process-document-service.ts ← Proxy a runFullPipeline
-        ├── auth.ts                   ← Config NextAuth
-        ├── audit.ts                  ← logAudit() append-only
-        ├── access.ts                 ← canAccessDocument / canAccessCompany
-        ├── db.ts                     ← Prisma client singleton
-        └── queue/                    ← BullMQ workers
+        ├── pageindex.ts                ← Re-export de pageindex-real
+        ├── pipeline-types.ts           ← Tipos: CogneeDomain, ExtractionConfig
+        ├── auth.ts                     ← Config NextAuth v5
+        ├── audit.ts                    ← logAudit() append-only
+        ├── access.ts                   ← canAccessDocument / canAccessCompany
+        ├── db.ts                       ← Prisma client singleton
+        └── queue/
+            └── index.ts               ← BullMQ: colas "indexing" + "analysis" + workers
 ```
 
 ---
@@ -168,19 +182,25 @@ npm run start            # Servidor de producción
 3. Empresa sube un PDF  (/dashboard/upload)
       → SHA-256 calculado, guardado en /uploads/
       → AuditLog: DOCUMENT_UPLOADED
+      → Barra de progreso en tiempo real (SSE EventSource)
 4. Pipeline IA (automático vía BullMQ):
       a. PageIndex    → árbol jerárquico de secciones → Postgres (INDEXED)
-      b. OpenKB       → wiki por empresa (cross-documento) → ANALYZED
+                        Documentos > 50MB: pdftotext en lugar de pdfjs
+      b. OpenKB       → delete wiki anterior → add nuevo wiki por empresa
+                        → razonamiento cross-documento → ANALYZED
+                        → (no bloquea: si OpenKB cae, sigue adelante)
       c. Kimi K2.6    → Dictamen IA: VLAP + hallazgos + resumen (AiDictamen)
+                        → Una sola llamada con todos los docs de la empresa
 5. Admin ve el dictamen IA → asigna un Assessor a la empresa
 6. Assessor revisa en Split-View (/dashboard/review/company/[id])
+      → Lee Dictamen IA preliminar (punto de partida)
       → Motor V.L.A.P. (4 criterios, Hard Stop < 85%)
-      → Q&A con IA sobre documentos (OpenKB o PageIndex + NIM)
+      → Q&A con IA sobre documentos (OpenKB primero, PageIndex+NIM fallback)
       → Hallazgos con tipo y severidad
       → Veredicto: APPROVED / CHANGES_REQUESTED / REJECTED
       → Si NON_COMPLIANCE → CAPA tickets (30 días) automáticos
-7. Empresa ve el dictamen (/dashboard/documents/[id])
-      → Si APPROVED → descarga Certificado ESG (HTML + SHA-256)
+7. Empresa ve el resultado (/dashboard/documents/[id])
+      → Si APPROVED → descarga Certificado ESG (HTML + SHA-256 + UUID)
       → Si CAPA_OPEN → gestiona tickets en /dashboard/capa
 8. Admin puede revocar un certificado (Kill-switch)
       → AuditLog: CERT_REVOKED
@@ -216,7 +236,9 @@ npm run start            # Servidor de producción
 | Workers no procesan documentos | Redis no disponible | `docker compose up -d redis` |
 | OpenKB no indexa documentos | Contenedor caído | `docker compose up -d openkb-api` |
 | Q&A responde "No hay documentos indexados" | OpenKB KB vacío | Reprocesar el documento |
+| Q&A devuelve error de OpenKB en UI | OpenKB retorna vacío y PageIndex también falla | Verificar que el doc tenga status=ANALYZED |
 | Dictamen IA no se genera | NVIDIA_INTENT_API_KEY no configurada | Añadir al `.env` |
+| Re-indexar doc no actualiza Q&A | Wiki antiguo no purgado | Normal en versiones anteriores; ya corregido (delete-before-add) |
 | Puerto 3000 ocupado | Proceso previo | `lsof -ti:3000 \| xargs kill -9` |
 | Login falla con usuarios de prueba | Seed no ejecutado | `npx prisma db seed` |
 

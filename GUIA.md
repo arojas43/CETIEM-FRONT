@@ -230,20 +230,24 @@ NO PUEDE:
 │
 ├── Visor PDF inline    → toggle [Ver PDF / Ocultar PDF]
 │
-├── [Procesar]          → /api/documents/[id]/process
+├── [Procesar]          → POST /api/documents/[id]/process
 │     • Selecciona dominio: Industria / Construcción / Tecnología
+│     • Ejecuta runFullPipeline() directamente (sin cola BullMQ)
+│     • Útil cuando Redis está caído o para forzar reprocesamiento
 │
-├── [Preguntar]         → Q&A con IA
-│     • Primero usa OpenKB (wiki de la empresa, razonamiento cross-documento)
-│     • Si OpenKB no disponible → fallback a PageIndex + Kimi K2.6 directo
+├── [Preguntar]         → POST /api/documents/[id]/search (Q&A con IA)
+│     • Capa 1: OpenKB (wiki de la empresa, razonamiento cross-documento)
+│     • Capa 2: Si OpenKB falla → PageIndex + Llama 3.1 70B directo
+│     • La respuesta indica qué motor respondió (openkb / pageindex)
 │
 ├── [Ver Contenido]     → /dashboard/documents/[id]/content
-│     • Texto estructurado extraído por PageIndex
-│     • Secciones con jerarquía de niveles
+│     • Árbol PageIndex completo (capítulos, secciones, subsecciones)
+│     • Texto estructurado con jerarquía de niveles y páginas
 │
-└── [Dictamen IA]
-      • VLAP preliminar generado por Kimi K2.6
-      • Hallazgos sugeridos (el assessor valida o modifica)
+└── [Dictamen IA]       → /dashboard/review/company/{document.userId}
+      • Enlace a la consola de revisión completa de la empresa
+      • Muestra VLAP preliminar + hallazgos generados por Kimi K2.6
+      • El assessor valida, ajusta y emite su dictamen final
 ```
 
 ---
@@ -563,33 +567,43 @@ OPEN ──────► IN_PROGRESS ──────► CLOSED
 
 ```
 Públicas:
-  /                    Landing page
-  /auth/signin         Login
-  /register            Registro de empresa
+  /                            Landing page
+  /auth/signin                 Login
+  /register                    Registro de empresa (multi-paso)
 
+──────────────────────────────────────────────────────────────
 Empresa (COMPANY):
-  /dashboard                     Dashboard con progreso y KPIs propios
-  /dashboard/documents           Lista de mis documentos
-  /dashboard/documents/[id]      Detalle del documento + dictamen recibido
-  /dashboard/upload              Subir nuevos documentos (solo COMPANY)
-  /dashboard/capa                Mis tickets CAPA
-  /dashboard/mi-certificado      Certificado ESG vigente (si APPROVED)
+──────────────────────────────────────────────────────────────
+  /dashboard                   Dashboard con progreso y KPIs propios
+  /dashboard/upload            Subir nuevos PDFs (solo COMPANY)
+  /dashboard/documents         Lista de mis documentos con estados
+  /dashboard/documents/[id]    Detalle del doc + dictamen del assessor
+                               → card "Dictamen IA" (link a review)
+                               → barra de progreso SSE mientras procesa
+  /dashboard/capa              Mis tickets CAPA (acciones correctivas)
+  /dashboard/mi-certificado    Certificado ESG vigente (si APPROVED)
 
-Assessor (ASSESSOR):
-  /dashboard                     Dashboard con stats de empresas asignadas
-  /dashboard/queue               Cola de revisión (solo empresas asignadas)
-  /dashboard/review/company/[id] Consola de dictamen empresa + V.L.A.P.
-  /dashboard/documents           Documentos de empresas asignadas
-  /dashboard/documents/[id]      Detalle + procesamiento + Q&A
-  /dashboard/companies           Empresas asignadas
-  /dashboard/capa                Tickets CAPA de empresas asignadas
+──────────────────────────────────────────────────────────────
+Assessor (ASSESSOR):  [solo recursos de empresas asignadas]
+──────────────────────────────────────────────────────────────
+  /dashboard                      Dashboard con stats de empresas asignadas
+  /dashboard/queue                Cola de revisión (ANALYZED/INDEXED sin cert)
+  /dashboard/review/company/[id]  Consola completa de dictamen + V.L.A.P.
+  /dashboard/review/[docId]       Revisión de documento individual
+  /dashboard/documents            Documentos de empresas asignadas
+  /dashboard/documents/[id]       Detalle + [Procesar] + [Preguntar] + [Contenido]
+  /dashboard/documents/[id]/content  Árbol PageIndex (texto estructurado)
+  /dashboard/companies            Empresas asignadas con estado de certificación
+  /dashboard/capa                 Tickets CAPA de empresas asignadas
 
-Admin (ADMIN):
-  [Todo lo de Assessor sobre todos los recursos, más:]
-  /dashboard/assessors           Crear y gestionar assessors
-  /dashboard/logs                Audit Log global + exportar CSV
-  [Kill-switch en detalle de documento si cert=APPROVED]
-  [Asignación assessor en /dashboard/companies]
+──────────────────────────────────────────────────────────────
+Admin (ADMIN):  [acceso total a todos los recursos]
+──────────────────────────────────────────────────────────────
+  [Todo lo de Assessor sobre TODAS las empresas, más:]
+  /dashboard/assessors            Crear y gestionar assessors
+  /dashboard/logs                 Audit Log global paginado + exportar CSV
+  [Kill-switch]                   En detalle de documento si cert=APPROVED
+  [Asignación assessor]           En /dashboard/companies → dropdown por empresa
 ```
 
 ---
