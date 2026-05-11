@@ -3,12 +3,13 @@
  *
  * OpenKB construye un KB wiki-style por empresa (un directorio por companyId).
  * Esto permite razonamiento cross-documento: el assessor puede buscar en todos
- * los documentos de una empresa a la vez, igual que hacía FalkorDB/Cognee.
+ * los documentos de una empresa a la vez.
  *
  * Endpoints del microservicio:
- *   POST /api/v1/add    — indexar documento en el KB de la empresa
- *   POST /api/v1/search — Q&A sobre el KB de la empresa
- *   GET  /health        — healthcheck
+ *   POST   /api/v1/add                      — indexar documento en el KB
+ *   DELETE /api/v1/documents/{id}           — eliminar documento del KB
+ *   POST   /api/v1/search                   — Q&A sobre el KB
+ *   GET    /health                          — healthcheck
  */
 
 const BASE_URL = (process.env.OPENKB_SERVICE_URL || 'http://localhost:8001').replace(/\/$/, '');
@@ -52,6 +53,22 @@ class OpenKBClient {
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
       throw new Error(`OpenKB add failed (${res.status}): ${detail.slice(0, 200)}`);
+    }
+  }
+
+  /**
+   * Elimina un documento del KB de la empresa.
+   * Llamar antes de re-indexar si el contenido cambió, para evitar
+   * acumulación de páginas wiki obsoletas (OpenKB no limpia automáticamente).
+   */
+  async deleteDocument(companyId: string, documentId: string): Promise<void> {
+    const res = await fetch(
+      `${BASE_URL}/api/v1/documents/${documentId}?datasetName=${encodeURIComponent(companyId)}`,
+      { method: 'DELETE', signal: AbortSignal.timeout(10_000) }
+    );
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`OpenKB delete failed (${res.status}): ${detail.slice(0, 200)}`);
     }
   }
 

@@ -247,6 +247,11 @@ export async function runAnalysis(
         });
 
         if (nodes.length > 0) {
+          // Borrar versión anterior del wiki para este documento antes de re-indexar.
+          // OpenKB no elimina páginas obsoletas automáticamente — si el contenido
+          // cambió, sin esto quedan wiki/sources/ y wiki/summaries/ del run anterior.
+          await openKBClient.deleteDocument(companyId, documentId).catch(() => {});
+
           const docHeader = `# ${doc?.name ?? documentId}\n\n`;
           const body = nodes
             .filter(n => n.content && n.content.length > 20)

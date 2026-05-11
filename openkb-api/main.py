@@ -1,16 +1,17 @@
 """
-OpenKB API — reemplazo de Cognee para CETIEM.
+OpenKB API — knowledge base por empresa para CETIEM.
 
-Expone la misma API surface que usaba cognee-client.ts:
-  POST /api/v1/add      — indexar documento (form: data + datasetName)
-  POST /api/v1/cognify  — no-op (OpenKB indexa en /add); devuelve éxito
-  POST /api/v1/search   — Q&A sobre el dataset usando OpenKB + LLM
-  GET  /health          — healthcheck
+Endpoints:
+  POST   /api/v1/add                          — indexar documento en el KB de la empresa
+  POST   /api/v1/search                       — Q&A sobre el KB de la empresa
+  DELETE /api/v1/documents/{document_id}      — eliminar documento del KB
+  GET    /health                              — healthcheck
 
 LLM: NVIDIA NIM via LiteLLM (openai-compatible).
-Rutas de KB: /data/kb/<datasetName>/ (volume montado desde Docker).
+KB: /data/kb/<datasetName>/ (volume persistente, un directorio por empresa).
 """
 import asyncio
+import json
 import os
 import shutil
 import tempfile
@@ -35,7 +36,6 @@ _raw_model = os.environ.get("NVIDIA_DEEPSEEK_MODEL", "moonshotai/kimi-k2.6")
 # LiteLLM openai-compatible routing: prefix with "openai/" if not already there
 OPENKB_MODEL = _raw_model if _raw_model.startswith("openai/") else f"openai/{_raw_model}"
 
-# Forward NVIDIA creds to LiteLLM's OpenAI provider
 os.environ.setdefault("OPENAI_API_KEY", _nvidia_key)
 os.environ.setdefault("OPENAI_API_BASE", _nvidia_base)
 
@@ -45,11 +45,10 @@ print(f"[OpenKB] NIM base: {_nvidia_base}")
 
 # ── FastAPI ───────────────────────────────────────────────────────────────────
 
-app = FastAPI(title="OpenKB API", version="0.1.0")
+app = FastAPI(title="OpenKB API", version="0.2.0")
 
 
 def _kb_dir(dataset_name: str) -> Path:
-    """Devuelve la ruta del KB para el dataset, creándola si no existe."""
     kb = KB_ROOT / dataset_name
     kb.mkdir(parents=True, exist_ok=True)
     return kb
@@ -70,51 +69,85 @@ async def add_document(
     datasetName: str = Form(...),
 ):
     """
-    Recibe un archivo (texto o PDF) y lo indexa en el KB del dataset.
-    Compatible con el formato que usa cognee-client.ts.
+    Indexa un documento en el KB de la empresa.
+    Preserva el filename original (ej: <documentId>.txt) para que OpenKB
+    use el documentId como doc_name en wiki/summaries/ y wiki/sources/.
+    Esto hace posible la eliminación posterior y evita acumulación de nombres random.
     """
     from openkb.cli import add_single_file
 
     kb_dir = _kb_dir(datasetName)
-    suffix = Path(data.filename or "document.txt").suffix or ".txt"
-
-    # Guardar en archivo temporal para que add_single_file lo procese
-    tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+    # Usar el filename original para que wiki/sources/<documentId>.* sea determinístico
+    original_name = data.filename or "document.txt"
+    tmp_dir = tempfile.mkdtemp()
     try:
         contents = await data.read()
-        tmp.write(contents)
-        tmp.close()
+        file_path = Path(tmp_dir) / original_name
+        file_path.write_bytes(contents)
 
-        file_path = Path(tmp.name)
-        # add_single_file es síncrono — correrlo en thread pool para no bloquear
-        await asyncio.get_event_loop().run_in_executor(
-            None, add_single_file, file_path, kb_dir
+        loop = asyncio.get_running_loop()
+        # add_single_file es síncrono — ejecutar en thread pool con timeout
+        await asyncio.wait_for(
+            loop.run_in_executor(None, add_single_file, file_path, kb_dir),
+            timeout=280.0,
         )
         return JSONResponse({"status": "ok", "dataset": datasetName, "bytes": len(contents)})
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="OpenKB indexing timed out after 280s")
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+# ── Delete ────────────────────────────────────────────────────────────────────
+
+@app.delete("/api/v1/documents/{document_id}")
+async def delete_document(document_id: str, datasetName: str):
+    """
+    Elimina un documento del KB de la empresa.
+    Borra wiki/sources/<documentId>.*, wiki/summaries/<documentId>.md
+    y la entrada en .openkb/hashes.json para permitir re-indexación futura.
+    Los wiki/concepts/ que referenciaban el doc quedan (se actualizarán en el próximo add).
+    """
+    kb_dir = _kb_dir(datasetName)
+    removed = []
+
+    # Eliminar sources (puede ser .json para docs largos o .md/.txt para cortos)
+    sources_dir = kb_dir / "wiki" / "sources"
+    if sources_dir.exists():
+        for ext in [".json", ".md", ".txt"]:
+            f = sources_dir / f"{document_id}{ext}"
+            if f.exists():
+                f.unlink()
+                removed.append(f"sources/{document_id}{ext}")
+
+    # Eliminar summary
+    summary_file = kb_dir / "wiki" / "summaries" / f"{document_id}.md"
+    if summary_file.exists():
+        summary_file.unlink()
+        removed.append(f"summaries/{document_id}.md")
+
+    # Eliminar entrada en hashes.json para que se pueda re-indexar
+    hashes_file = kb_dir / ".openkb" / "hashes.json"
+    if hashes_file.exists():
         try:
-            os.unlink(tmp.name)
-        except OSError:
-            pass
+            hashes = json.loads(hashes_file.read_text())
+            # La metadata puede contener file_path o doc_name con el document_id
+            to_remove = [
+                h for h, meta in hashes.items()
+                if document_id in str(meta)
+            ]
+            for h in to_remove:
+                del hashes[h]
+            hashes_file.write_text(json.dumps(hashes, indent=2))
+            if to_remove:
+                removed.append(f"hashes.json ({len(to_remove)} entries)")
+        except Exception:
+            pass  # hashes.json corrupto o formato inesperado — no bloquear
 
-
-# ── Cognify (no-op) ───────────────────────────────────────────────────────────
-
-class CognifyRequest(BaseModel):
-    datasets: list[str] = []
-
-
-@app.post("/api/v1/cognify")
-async def cognify(req: CognifyRequest):
-    """
-    En Cognee este endpoint construía el grafo de conocimiento.
-    En OpenKB la indexación ocurre durante /add, así que esto es un no-op.
-    Devuelve éxito para que cognee-client.ts no falle.
-    """
-    return JSONResponse({"status": "ok", "datasets": req.datasets, "entities_count": 0})
+    return JSONResponse({"status": "ok", "dataset": datasetName, "removed": removed})
 
 
 # ── Search / Q&A ──────────────────────────────────────────────────────────────
@@ -122,15 +155,15 @@ async def cognify(req: CognifyRequest):
 class SearchRequest(BaseModel):
     query: str
     datasets: list[str] = []
-    search_type: str = "GRAPH_COMPLETION"
     top_k: int = 10
 
 
 @app.post("/api/v1/search")
 async def search(req: SearchRequest):
     """
-    Responde una pregunta usando OpenKB sobre el primer dataset.
-    Devuelve List[SearchResult] compatible con Cognee 1.0.
+    Q&A sobre el KB de la empresa (cross-documento).
+    Lanza HTTP 500 en caso de error para que el cliente Next.js
+    active el fallback a qaService (PageIndex + NIM directo).
     """
     from openkb.agent.query import run_query
 
@@ -140,17 +173,12 @@ async def search(req: SearchRequest):
     dataset_name = req.datasets[0]
     kb_dir = _kb_dir(dataset_name)
 
-    # Verificar que el KB tiene documentos indexados
     wiki_dir = kb_dir / "wiki"
     if not wiki_dir.exists():
-        return JSONResponse([{
-            "search_result": (
-                "No hay documentos indexados para este dataset. "
-                "Sube y procesa el documento primero."
-            ),
-            "dataset_id": dataset_name,
-            "dataset_name": dataset_name,
-        }])
+        raise HTTPException(
+            status_code=404,
+            detail=f"No hay documentos indexados para el dataset '{dataset_name}'"
+        )
 
     try:
         answer = await run_query(
@@ -167,13 +195,7 @@ async def search(req: SearchRequest):
         }])
     except Exception as e:
         traceback.print_exc()
-        # Devolver mensaje de error como respuesta (no 500) para que
-        # cognee-client.ts pueda degradar a qaService
-        return JSONResponse([{
-            "search_result": f"Error en OpenKB: {str(e)[:300]}",
-            "dataset_id": dataset_name,
-            "dataset_name": dataset_name,
-        }])
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
