@@ -6,7 +6,7 @@ import { useRole } from "@/lib/role-context";
 import {
   CheckCircle, XCircle, MessageSquare, ChevronLeft,
   Flag, Plus, Trash2, RefreshCw, AlertCircle, FileText,
-  ShieldCheck, ShieldAlert, Clock, Zap, Network, ChevronDown,
+  ShieldCheck, ShieldAlert, Clock, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -59,14 +59,6 @@ interface ExistingCert {
   }>;
 }
 
-interface GraphEntity { id: string; type: string; name: string; description: string }
-interface GraphRelation { source: string; type: string; target: string }
-interface GraphData {
-  entities: GraphEntity[];
-  relations: GraphRelation[];
-  stats: { entityCount: number; relationCount: number; documentInGraph: boolean };
-  warning?: string;
-}
 
 const FINDING_TYPES = [
   { id: "COMPLIANCE", label: "Cumplimiento", color: "text-economia-success" },
@@ -232,10 +224,6 @@ export default function ReviewPage() {
     type: "OBSERVATION", severity: "MEDIUM", title: "", description: "", page: undefined,
   });
 
-  // AI Knowledge Graph state
-  const [graphData, setGraphData] = useState<GraphData | null>(null);
-  const [graphExpanded, setGraphExpanded] = useState(false);
-
   // V.L.A.P. state
   const [vlap, setVlap] = useState<Vlap>({
     vigencia: { value: null, confidence: 0, override: false },
@@ -257,11 +245,6 @@ export default function ReviewPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-
-    fetch(`/api/documents/${id}/graph`)
-      .then(r => r.ok ? r.json() : null)
-      .then((data: GraphData | null) => { if (data) setGraphData(data); })
-      .catch(() => { });
 
     fetch(`/api/documents/${id}/certifications`)
       .then(r => r.ok ? r.json() : null)
@@ -494,68 +477,6 @@ export default function ReviewPage() {
             )}
 
             {/* ── AI Knowledge Graph ── */}
-            {graphData && (
-              <div className="bg-card border border-border rounded-xl overflow-hidden">
-                <button
-                  onClick={() => setGraphExpanded(p => !p)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-muted/40 transition-colors"
-                >
-                  <span className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                    <Network className="h-3.5 w-3.5 text-economia-info" />
-                    Grafo IA
-                    {graphData.stats.documentInGraph ? (
-                      <span className="text-[9px] font-bold bg-economia-success/20 text-economia-success px-1.5 py-0.5 rounded-full">
-                        {graphData.stats.entityCount}e · {graphData.stats.relationCount}r
-                      </span>
-                    ) : (
-                      <span className="text-[9px] text-muted-foreground/40">sin datos</span>
-                    )}
-                  </span>
-                  <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground/40 transition-transform", graphExpanded && "rotate-180")} />
-                </button>
-
-                {graphExpanded && (
-                  <div className="border-t border-border p-3 space-y-2 max-h-72 overflow-y-auto">
-                    {graphData.warning && (
-                      <p className="text-[10px] text-economia-warning/70 bg-economia-warning/10 px-2 py-1.5 rounded-lg">{graphData.warning}</p>
-                    )}
-                    {!graphData.stats.documentInGraph && !graphData.warning ? (
-                      <p className="text-[10px] text-muted-foreground/40 text-center py-2">
-                        {doc?.status === "ANALYZED" ? "Entidades no encontradas en el grafo" : "Documento aún no analizado por IA"}
-                      </p>
-                    ) : (
-                      <>
-                        {graphData.entities.slice(0, 20).map((e, i) => (
-                          <div key={i} className="flex items-start gap-2">
-                            <span className="text-[9px] font-bold text-economia-info/80 bg-economia-info/10 px-1.5 py-0.5 rounded shrink-0 mt-0.5">{e.type}</span>
-                            <div className="min-w-0">
-                              <p className="text-[10px] font-medium text-foreground truncate">{e.name}</p>
-                              {e.description && <p className="text-[9px] text-muted-foreground/50 leading-relaxed line-clamp-1">{e.description}</p>}
-                            </div>
-                          </div>
-                        ))}
-                        {graphData.entities.length > 20 && (
-                          <p className="text-[10px] text-muted-foreground/40 text-center">+{graphData.entities.length - 20} entidades más</p>
-                        )}
-                        {graphData.relations.length > 0 && (
-                          <div className="pt-1 border-t border-border">
-                            <p className="text-[10px] text-muted-foreground/50 mb-1.5 font-medium uppercase tracking-wider">Relaciones principales</p>
-                            {graphData.relations.slice(0, 8).map((r, i) => (
-                              <p key={i} className="text-[9px] text-muted-foreground/60 truncate">
-                                <span className="text-foreground/70">{r.source}</span>
-                                {" "}<span className="text-economia-warning/70">{r.type.replace(/_/g, " ")}</span>{" "}
-                                <span className="text-foreground/70">{r.target}</span>
-                              </p>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* ── V.L.A.P. Motor ── */}
             <VlapPanel vlap={vlap} onChange={updateVlap} />
 

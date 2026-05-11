@@ -531,11 +531,6 @@ export default function CompanyReviewPage() {
                           className="text-[10px] text-economia-info hover:underline">
                           Q&A →
                         </a>
-                        <a href={`/dashboard/documents/${doc.id}/graph`}
-                          target="_blank"
-                          className="text-[10px] text-economia-success hover:underline">
-                          Grafo →
-                        </a>
                         <a href={`/dashboard/documents/${doc.id}?from=review&companyId=${companyId}`}
                           target="_blank"
                           className="text-[10px] text-muted-foreground hover:underline">

@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import {
-  FileText, Brain, MessageSquare, Network, ChevronRight,
+  FileText, Brain, MessageSquare, ChevronRight,
   ArrowLeft, CheckCircle, XCircle, Flag, AlertCircle, Clock,
   Award, ShieldOff,
 } from "lucide-react";
@@ -373,15 +373,15 @@ export default async function DocumentDetailPage({
                 </div>
               </Link>
 
-              <Link href={`/dashboard/documents/${id}/graph`}>
+              <Link href={`/dashboard/review/company/${document.userId}`}>
                 <div className="bg-card border border-border rounded-2xl p-5 hover:border-economia-success/20 transition-colors cursor-pointer h-full">
                   <div className="h-10 w-10 bg-economia-success/10 rounded-xl flex items-center justify-center mb-3">
-                    <Network className="h-5 w-5 text-economia-success" />
+                    <Brain className="h-5 w-5 text-economia-success" />
                   </div>
-                  <h3 className="font-sans font-semibold text-foreground mb-1">Grafo de Conocimiento</h3>
-                  <p className="text-muted-foreground text-xs mb-4">Entidades y relaciones</p>
+                  <h3 className="font-sans font-semibold text-foreground mb-1">Dictamen IA</h3>
+                  <p className="text-muted-foreground text-xs mb-4">Análisis VLAP + hallazgos IA</p>
                   <div className="flex items-center gap-1 text-economia-success text-sm font-medium">
-                    Ver Grafo <ChevronRight className="h-4 w-4" />
+                    Ver Dictamen <ChevronRight className="h-4 w-4" />
                   </div>
                 </div>
               </Link>

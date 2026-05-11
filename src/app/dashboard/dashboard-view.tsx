@@ -8,7 +8,7 @@ import {
   FileText, Upload, Search, CheckCircle, Clock, AlertCircle,
   Building2, ClipboardList, Users, ArrowRight, Eye,
   Award, RefreshCw, ShieldAlert,
-  Network, ScrollText, Download, ChevronRight, MessageSquare, XCircle, Plus
+  ScrollText, Download, ChevronRight, MessageSquare, XCircle, Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -496,7 +496,6 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
     { href: '/dashboard/queue', label: 'Cola de Revisión', icon: ClipboardList, color: 'text-[#FBBF24]', bg: 'bg-economia-warning/10', border: 'border-economia-warning/20', count: queue.length },
     { href: '/dashboard/companies', label: 'Empresas Asignadas', icon: Building2, color: 'text-[#00C8E0]', bg: 'bg-economia-info/10', border: 'border-economia-info/20', count: null },
     { href: '/dashboard/capa', label: 'Tickets CAPA', icon: ShieldAlert, color: 'text-economia-error', bg: 'bg-economia-error/10', border: 'border-economia-error/20', count: globalStats.capaOpen },
-    { href: '/dashboard/graph', label: 'Grafo Global', icon: Network, color: 'text-[#00D47A]', bg: 'bg-economia-success/10', border: 'border-economia-success/20', count: null },
   ]
 
   return (
@@ -685,7 +684,6 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
     { href: '/dashboard/capa', label: 'Tickets CAPA', icon: ShieldAlert, color: 'text-[#FBBF24]' },
     { href: '/dashboard/logs', label: 'Logs de Auditoría', icon: ScrollText, color: 'text-muted-foreground' },
     { href: '/api/export/documents', label: 'Exportar CSV', icon: Download, color: 'text-[#00D47A]', external: true },
-    { href: '/dashboard/graph', label: 'Grafo Global', icon: Network, color: 'text-[#00D47A]' },
   ]
 
   return (
