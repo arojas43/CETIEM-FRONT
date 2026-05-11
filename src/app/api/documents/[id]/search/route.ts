@@ -1,27 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { cogneeService } from "@/lib/cognee-service";
-import { cogneeClient } from "@/lib/cognee-client";
+import { openKBClient } from "@/lib/openkb-client";
 import { qaService } from "@/lib/qa-service";
 import { withValidation } from "@/lib/api/with-validation";
 import { searchSchema } from "@/lib/schemas/documents";
 
 export const dynamic = "force-dynamic";
 
-export const maxDuration = 120; // segundos
+export const maxDuration = 120;
 
 /**
  * POST /api/documents/[id]/search
- * Búsqueda semántica y Q&A mejorado que combina:
- * - FalkorDB (entidades y relaciones)
- * - PageIndex (texto con ubicación exacta: página, sección, párrafo)
- * - LLM (respuesta contextual con referencias)
+ *
+ * Intenta Q&A con OpenKB (KB wiki por empresa, razonamiento cross-documento).
+ * Si OpenKB no está disponible, cae a qaService (PageIndex + NIM directo).
  */
 export const POST = withValidation({ body: searchSchema })(
   async (
     _request: NextRequest,
-    { body: { query, page, section } },
+    { body: { query } },
     { params }: { params: Promise<{ id: string }> }
   ) => {
   try {
@@ -36,7 +34,6 @@ export const POST = withValidation({ body: searchSchema })(
       return NextResponse.json({ error: "Query is required" }, { status: 400 });
     }
 
-    // Verificar que el documento existe y pertenece al usuario
     const document = await prisma.document.findUnique({
       where: { id },
       select: { id: true, userId: true, name: true, status: true },
@@ -52,34 +49,42 @@ export const POST = withValidation({ body: searchSchema })(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    console.log(`[Search] Query: "${query}", Document: ${id}, Page: ${page || 'any'}, Section: ${section || 'any'}`);
+    console.log(`[Search] Query: "${query}", Document: ${id}`);
 
-    // Prefer Cognee Python service; fall back to TS qa-service
-    const useCognee = cogneeClient.available && (await cogneeClient.isHealthy().catch(() => false));
-    console.log(`[Search] Backend: ${useCognee ? 'Cognee Python' : 'TS qa-service'}`);
-
-    if (useCognee) {
-      const cogneeResult = await cogneeClient.search(query, id);
-      return NextResponse.json({
-        success: true,
-        query,
-        answer: cogneeResult.answer,
-        entities: cogneeResult.entities,
-        relations: [],
-        context: cogneeResult.context,
-        references: cogneeResult.sources,
-        stats: {
-          entityCount: cogneeResult.entities.length,
-          relationCount: 0,
-          contextPages: cogneeResult.sources.map(s => s.page).filter(Boolean),
-        },
-      });
+    // Intentar OpenKB (KB por empresa → cross-documento)
+    if (openKBClient.available) {
+      const healthy = await openKBClient.isHealthy().catch(() => false);
+      if (healthy) {
+        try {
+          const companyId = document.userId;
+          const openkbResult = await openKBClient.search(query, companyId);
+          if (openkbResult.answer && openkbResult.answer.length > 20) {
+            console.log(`[Search] OpenKB respondió (${openkbResult.answer.length} chars)`);
+            return NextResponse.json({
+              success: true,
+              backend: 'openkb',
+              query,
+              answer: openkbResult.answer,
+              entities: [],
+              relations: [],
+              context: openkbResult.answer,
+              references: openkbResult.sources,
+              stats: { entityCount: 0, relationCount: 0, contextPages: [] },
+            });
+          }
+        } catch (err: any) {
+          console.warn(`[Search] OpenKB falló, usando qaService:`, err.message);
+        }
+      }
     }
 
+    // Fallback: PageIndex + NIM (qa-service)
+    console.log(`[Search] Usando qaService (PageIndex + NIM)`);
     const result = await qaService.answerSpecificQuestion(query, id, document.name);
 
     return NextResponse.json({
       success: true,
+      backend: 'pageindex',
       query,
       answer: result.answer,
       entities: result.entities,
@@ -95,60 +100,8 @@ export const POST = withValidation({ body: searchSchema })(
   } catch (error: any) {
     console.error("Error searching document:", error);
     return NextResponse.json(
-      {
-        error: "Error al buscar en el documento",
-        details: error.message,
-      },
+      { error: "Error al buscar en el documento", details: error.message },
       { status: 500 }
     );
   }
 });
-
-/**
- * GET /api/documents/[id]/search/stats
- * Obtiene estadísticas del grafo de conocimiento del documento
- */
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await auth();
-    const { id } = await params;
-
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Verificar documento
-    const document = await prisma.document.findUnique({
-      where: { id },
-      select: { id: true, userId: true },
-    });
-
-    if (!document) {
-      return NextResponse.json({ error: "Document not found" }, { status: 404 });
-    }
-
-    const userRole = (session.user as any).role;
-    const canAccessAll = userRole === "ASSESSOR" || userRole === "ADMIN";
-    if (!canAccessAll && document.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    // Obtener estadísticas del grafo
-    const stats = await cogneeService.getDocumentGraphStats(id);
-
-    return NextResponse.json({
-      success: true,
-      documentId: id,
-      ...stats,
-    });
-  } catch (error: any) {
-    console.error("Error getting graph stats:", error);
-    return NextResponse.json(
-      { error: "Error al obtener estadísticas", details: error.message },
-      { status: 500 }
-    );
-  }
-}

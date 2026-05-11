@@ -3,7 +3,7 @@
  * /api/documents/[id]/process while delegating to the canonical pipeline.
  */
 
-import type { CogneeDomain, ExtractionConfig } from './cognee-service';
+import type { CogneeDomain, ExtractionConfig } from './pipeline-types';
 import { runFullPipeline } from './document-pipeline';
 
 export type { ProcessResult } from './document-pipeline';

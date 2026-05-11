@@ -12,7 +12,6 @@
  */
 
 import { prisma } from './db';
-import { falkorDBService } from './falkordb';
 import { nimService } from './nim';
 
 export interface QAContext {
@@ -75,10 +74,8 @@ export class QAService {
     // 2. Obtener contexto de PageIndex basado en la intención
     const pageIndexContext = await this.getPageIndexByIntent(intent, documentId, intent.originalQuery);
 
-    // 3. Obtener entidades relacionadas de FalkorDB
-    const entities = await this.getRelatedEntities(documentId, pageIndexContext);
-
-    // 4. Generar respuesta contextual con LLM
+    // 3. Generar respuesta contextual con LLM
+    const entities: any[] = [];
     const answer = await this.generateContextualAnswer(intent.originalQuery, pageIndexContext, entities, documentName);
 
     return {
@@ -380,45 +377,6 @@ Rules:
     }
 
     return contexts;
-  }
-
-  /**
-   * Obtiene entidades relacionadas de FalkorDB
-   */
-  private async getRelatedEntities(
-    documentId: string,
-    contexts: QAContext[]
-  ): Promise<any[]> {
-    if (contexts.length === 0) return [];
-
-    // Obtener páginas mencionadas en el contexto
-    const pages = contexts.map(c => c.page).filter((p): p is number => typeof p === 'number');
-
-    if (pages.length === 0) return [];
-
-    try {
-      // Buscar entidades en las páginas relevantes con $pages param para evitar interpolación
-      const entitiesResult = await falkorDBService.roQuery(
-        `MATCH (n)
-         WHERE n.documentId = $docId
-           AND n.page IN $pages
-         RETURN labels(n)[0] AS type, n.name AS name, n.description AS desc, n.page AS page, n.section AS section
-         LIMIT 50`,
-        { docId: documentId, pages }
-      );
-
-      return entitiesResult.rows.map(r => ({
-        id: r.id,
-        type: r.type,
-        name: r.name,
-        description: r.desc,
-        page: r.page,
-        section: r.section,
-      }));
-    } catch (error: any) {
-      console.error('[QA] Error obteniendo entidades:', error.message);
-      return [];
-    }
   }
 
   /**

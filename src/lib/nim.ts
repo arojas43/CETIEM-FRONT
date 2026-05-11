@@ -5,7 +5,7 @@
  * Modelos configurables vía env:
  *   NVIDIA_CHAT_MODEL          — LLM general (default: meta/llama-3.1-70b-instruct)
  *   NVIDIA_DEEPSEEK_MODEL      — DeepSeek V4 Flash, 1M contexto, no-thinking
- *   NVIDIA_EMBEDDING_MODEL     — Embeddings (default: nvidia/llama-3.2-nemoretriever-300m-embed-v1)
+ *   NVIDIA_EMBEDDING_MODEL     — Embeddings (default: nvidia/llama-nemotron-embed-1b-v2)
  *   NVIDIA_QA_API_KEY          — Clave separada para QA (opcional)
  *   NVIDIA_INTENT_API_KEY      — Clave separada para extracción de intención
  */
@@ -18,7 +18,7 @@ export class NIMService {
     this.apiKey = process.env.NVIDIA_API_KEY || "";
     this.embeddingModel =
       process.env.NVIDIA_EMBEDDING_MODEL ||
-      "nvidia/llama-3.2-nemoretriever-300m-embed-v1";
+      "nvidia/llama-nemotron-embed-1b-v2";
   }
 
   private withTimeout(ms: number): AbortSignal {

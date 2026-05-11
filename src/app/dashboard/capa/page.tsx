@@ -63,12 +63,14 @@ export default function CapaPage() {
   // Carga inicial
   useEffect(() => { load(); }, []);
 
-  // Polling separado — pausa mientras el usuario está resolviendo un ticket
+  // Solo hace polling cuando hay tickets activos y el usuario no está resolviendo uno
   useEffect(() => {
     if (resolvingId) return;
-    const id = setInterval(load, 10000);
+    const hasOpen = tickets.some(t => ["OPEN", "IN_PROGRESS", "OVERDUE"].includes(t.status));
+    if (!hasOpen) return;
+    const id = setInterval(load, 30_000);
     return () => clearInterval(id);
-  }, [resolvingId]);
+  }, [resolvingId, tickets]);
 
   const updateStatus = async (id: string, status: string, resolution?: string): Promise<boolean> => {
     setUpdating(id);

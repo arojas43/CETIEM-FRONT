@@ -5,7 +5,7 @@
 
 import { processDocument } from './src/lib/process-document-service';
 import { prisma } from './src/lib/db';
-import type { CogneeDomain } from './src/lib/cognee-service';
+import type { CogneeDomain } from './src/lib/pipeline-types';
 import { fileURLToPath } from 'url';
 
 // Ejecutar desde CLI

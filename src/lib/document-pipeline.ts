@@ -3,20 +3,17 @@
  *
  * Expone tres funciones públicas:
  *   runIndexing     → Phase 1: PDF → PageIndex → PostgreSQL
- *   runAnalysis     → Phase 2: PageIndex → Cognee/NIM → FalkorDB
+ *   runAnalysis     → Phase 2: marca ANALYZED y dispara dictamen IA
  *   runFullPipeline → Ambas fases en secuencia, sin cola (escape hatch síncrono)
  *
  * Los workers de BullMQ (queue/index.ts) llaman a runIndexing / runAnalysis.
  * La ruta /api/documents/[id]/process llama a runFullPipeline.
  */
 
-import Bottleneck from 'bottleneck';
 import { prisma } from './db';
 import { storageService } from './storage';
 import { pageIndexService } from './pageindex';
-import { cogneeService } from './cognee-service';
-import type { CogneeDomain, ExtractionConfig } from './cognee-service';
-import { cogneeClient } from './cognee-client';
+import type { CogneeDomain, ExtractionConfig } from './pipeline-types';
 import { publishProgress } from './progress-publisher';
 
 export interface ProcessResult {
@@ -217,221 +214,62 @@ export async function runIndexing(documentId: string): Promise<{ indicesCreated:
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Phase 2: Análisis IA (PageIndex → Cognee/NIM → FalkorDB)
+// Phase 2: Análisis IA — marca ANALYZED y dispara dictamen
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Extrae entidades y relaciones de los nodos PageIndex y las persiste en FalkorDB.
- * Soporta procesamiento por micro-batches paralelos (COGNEE_PARALLEL_CHUNKS).
- * Establece status=ANALYZED (o INDEXED si no se extraen entidades).
+ * Indexa el contenido de PageIndex en OpenKB (si está disponible) y marca ANALYZED.
+ * OpenKB construye un KB wiki-style que luego sirve como backend de búsqueda.
  */
 export async function runAnalysis(
   documentId: string,
   _extractionConfig?: ExtractionConfig
 ): Promise<{ entitiesExtracted: number }> {
-  const startTime = Date.now();
-  console.log(`\n[AI] ================================`);
   console.log(`[AI] Iniciando análisis: ${documentId}`);
-  console.log(`[AI] ================================`);
-
   try {
-    // SKIP_COGNEE=true: saltar extracción de entidades, marcar como ANALYZED y disparar dictamen
-    if (process.env.SKIP_COGNEE === 'true') {
-      console.log(`[AI] SKIP_COGNEE activo — marcando ${documentId} como ANALYZED sin extracción`);
-      await prisma.document.update({ where: { id: documentId }, data: { status: 'ANALYZED' } });
-      await publishProgress(documentId, { step: '✓ Análisis completado (sin grafo)', percentage: 100, status: 'ANALYZED' });
-      const { maybeScheduleAiDictamen } = await import('./ai-dictamen-service');
-      maybeScheduleAiDictamen(documentId).catch(() => {});
-      return { entitiesExtracted: 0 };
-    }
+    await updateProgress(documentId, 'Indexando en OpenKB...', 65, { stage: 'openkb_indexing' });
 
-    await updateProgress(documentId, 'Iniciando análisis de IA...', 60, { stage: 'ai_starting' });
+    // Indexar en OpenKB (KB por empresa para razonamiento cross-documento).
+    // Si OpenKB no está disponible o falla, continúa sin bloquear el pipeline.
+    try {
+      const { openKBClient } = await import('./openkb-client');
+      if (await openKBClient.isHealthy()) {
+        const doc = await prisma.document.findUnique({
+          where: { id: documentId },
+          select: { userId: true, name: true },
+        });
+        const companyId = doc?.userId ?? documentId;
 
-    const document = await prisma.document.findUnique({ where: { id: documentId } });
-    if (!document) throw new Error(`Documento ${documentId} no encontrado`);
-
-    const indices = await prisma.pageIndex.findMany({
-      where: { documentId }, orderBy: { level: 'asc' },
-    });
-    console.log(`[AI] ✓ ${indices.length} nodos de índice`);
-
-    if (indices.length === 0) {
-      await prisma.document.update({ where: { id: documentId }, data: { status: 'INDEXED' } });
-      return { entitiesExtracted: 0 };
-    }
-
-    const fileSize = document.size || 0;
-    const isLargeDocument = fileSize > 50 * 1024 * 1024;
-    const companyId = document.userId;
-
-    if (isLargeDocument) {
-      await updateProgress(documentId, 'Procesando por lotes', 65, { stage: 'batch_processing' });
-      const { analyzeChunksInBatch } = await import('./large-document-batch');
-
-      const chunks = indices.map((idx, i) => ({
-        id: idx.id, index: i, content: idx.content || '',
-        startOffset: 0, endOffset: idx.content?.length || 0,
-        metadata: { charCount: idx.content?.length || 0, page: idx.page || undefined },
-      }));
-
-      const result = await analyzeChunksInBatch(
-        chunks, documentId, document.name,
-        (progress) => {
-          const pct = 65 + (progress.percentage * 0.3);
-          updateProgress(documentId, `Chunks: ${progress.details?.chunksProcessed || 0}/${progress.details?.totalChunks || chunks.length}`, pct, {
-            stage: 'batch_processing', ...progress.details,
-          });
-        },
-        (document.domain?.toLowerCase() as CogneeDomain) || 'industria'
-      );
-
-      await prisma.document.update({
-        where: { id: documentId },
-        data: {
-          status: result.totalEntities > 0 ? 'ANALYZED' : 'INDEXED',
-          description: `${document.description || ''} | Entidades: ${result.totalEntities}, Relaciones: ${result.totalRelations}`,
-        },
-      });
-      return { entitiesExtracted: result.totalEntities };
-    }
-
-    // Prefer actual Cognee Python service when available; fall back to TS reimplementation.
-    const useCogneeService = cogneeClient.available && (await cogneeClient.isHealthy());
-    console.log(`[AI] Cognee Python service: ${useCogneeService ? '✅ activo' : '⚠️  no disponible, usando TS fallback'}`);
-
-    const { checkFalkorDBHealth, falkorDBService } = await import('./falkordb');
-    const isHealthy = await checkFalkorDBHealth();
-    console.log(`[AI] FalkorDB: ${isHealthy ? '✅' : '❌'}`);
-
-    const validIndices = indices.filter(i => i.content && i.content.length > 50);
-    const MAX_CHUNKS = parseInt(process.env.MAX_CHUNKS_TO_PROCESS || '500');
-    // Cognee makes one LLM call per chunk in parallel — cap at 8 to stay under NIM rate limits
-    const MAX_COGNEE_CHUNKS = parseInt(process.env.MAX_COGNEE_CHUNKS || '8');
-    const toProcess = validIndices.slice(0, MAX_CHUNKS);
-    const domain = (document.domain?.toLowerCase() as CogneeDomain) || 'industria';
-
-    let entitiesInGraph = 0;
-    let totalRelations = 0;
-
-    if (useCogneeService) {
-      // ── Path A: Cognee Python microservice ────────────────────────────────
-      if (toProcess.length === 0) {
-        console.log(`[AI] Sin chunks válidos para Cognee — marcando como INDEXED`);
-        await prisma.document.update({ where: { id: documentId }, data: { status: 'INDEXED' } });
-        return { entitiesExtracted: 0 };
-      }
-
-      const cogneeChunks = toProcess.slice(0, MAX_COGNEE_CHUNKS);
-      console.log(`[AI] Enviando ${cogneeChunks.length} chunks a Cognee Python… (${toProcess.length} disponibles, cap=${MAX_COGNEE_CHUNKS})`);
-      await updateProgress(documentId, 'Enviando chunks a Cognee', 62, { stage: 'cognee_add', chunks: cogneeChunks.length });
-
-      await cogneeClient.addChunks(
-        documentId,
-        cogneeChunks.map(n => ({ title: n.title, content: n.content ?? '', page: n.page ?? undefined }))
-      );
-
-      await updateProgress(documentId, 'Construyendo grafo de conocimiento (Cognee)', 70, { stage: 'cognee_cognify' });
-      console.log(`[AI] Iniciando cognify para ${documentId}…`);
-
-      const cognifyResult = await cogneeClient.cognify(documentId);
-      entitiesInGraph = cognifyResult.entities;
-      console.log(`[AI] Cognee cognify completado: ${entitiesInGraph} entidades`);
-
-    } else {
-      // ── Path B: TS directo — DeepSeek V4 Pro batch extraction ─────────────
-      // DeepSeek V4 Pro acepta hasta 1M tokens: se procesan BATCH_SIZE chunks
-      // por llamada en lugar de 1 chunk/llamada. Reduce las llamadas ~20×.
-      const BATCH_SIZE = Math.max(1, parseInt(process.env.DEEPSEEK_BATCH_SIZE || '20'));
-      console.log(`[AI] DeepSeek batch: ${toProcess.length} nodos en lotes de ${BATCH_SIZE} | dominio: ${domain}`);
-
-      let totalEntities = 0;
-      let batchesProcessed = 0;
-      const totalBatches = Math.ceil(toProcess.length / BATCH_SIZE);
-
-      for (let i = 0; i < toProcess.length; i += BATCH_SIZE) {
-        const batch = toProcess.slice(i, i + BATCH_SIZE);
-        batchesProcessed++;
-
-        const pct = 55 + ((batchesProcessed / totalBatches) * 40);
-        await updateProgress(documentId, `Batch ${batchesProcessed}/${totalBatches} (${Math.min(i + BATCH_SIZE, toProcess.length)}/${toProcess.length} chunks)`, pct, {
-          stage: 'deepseek_batch', batchesProcessed, totalBatches, chunksProcessed: Math.min(i + BATCH_SIZE, toProcess.length),
+        const nodes = await prisma.pageIndex.findMany({
+          where: { documentId },
+          orderBy: [{ level: 'asc' }, { page: 'asc' }],
+          select: { title: true, content: true, page: true },
         });
 
-        const chunkInputs = batch.map(node => ({
-          id: node.id,
-          title: node.title,
-          content: node.content ?? '',
-          page: node.page ?? undefined,
-        }));
-
-        const batchResults = await cogneeService.batchExtractKnowledge(
-          chunkInputs, documentId, document.name, domain, companyId
-        );
-
-        // Persist each chunk's extracted graph in parallel (max 5 concurrent writes)
-        const writeLimiter = new Bottleneck({ maxConcurrent: 5 });
-        const writeSettled = await Promise.allSettled(
-          batchResults.map((result) =>
-            writeLimiter.schedule(async () => {
-              if (result.entities.length === 0) return 0;
-              const r = await cogneeService.persistToGraph(
-                result.entities, result.relations, documentId, companyId
-              );
-              return r.saved;
-            })
-          )
-        );
-
-        for (const r of writeSettled) {
-          if (r.status === 'fulfilled') totalEntities += r.value;
-          else console.warn(`[AI] Write falló en batch ${batchesProcessed}:`, r.reason?.message);
+        if (nodes.length > 0) {
+          const docHeader = `# ${doc?.name ?? documentId}\n\n`;
+          const body = nodes
+            .filter(n => n.content && n.content.length > 20)
+            .map(n => `## ${n.title}${n.page ? ` (p.${n.page})` : ''}\n${n.content}`)
+            .join('\n\n');
+          await openKBClient.addDocument(companyId, documentId, docHeader + body);
+          console.log(`[AI] ✓ OpenKB indexado: ${nodes.length} secciones → KB empresa ${companyId}`);
         }
-
-        console.log(`[AI] Batch ${batchesProcessed}/${totalBatches} completado | entidades acumuladas: ${totalEntities}`);
+      } else {
+        console.log(`[AI] OpenKB no disponible — continuando sin indexar`);
       }
-
-      const stats = await falkorDBService.roQuery(
-        'MATCH (n) WHERE n.documentId = $docId RETURN count(n) AS count',
-        { docId: documentId }
-      );
-      entitiesInGraph = stats.rows[0]?.count || totalEntities;
-
-      if (entitiesInGraph > 0 && companyId) {
-        try {
-          const linked = await falkorDBService.mergeSharedEntities(companyId);
-          if (linked > 0) console.log(`[AI] ${linked} relaciones SAME_AS creadas`);
-        } catch (err: any) {
-          console.warn(`[AI] mergeSharedEntities falló (no crítico):`, err.message);
-        }
-      }
+    } catch (err: any) {
+      console.warn(`[AI] OpenKB indexing falló (no crítico):`, err.message);
     }
 
-    await prisma.document.update({
-      where: { id: documentId },
-      data: {
-        status: entitiesInGraph > 0 ? 'ANALYZED' : 'INDEXED',
-        description: `${document.description || ''} | Entidades: ${entitiesInGraph}`,
-      },
-    });
-
-    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(`[AI] ✓ ANÁLISIS COMPLETADO EN ${duration}s | entidades: ${entitiesInGraph} | relaciones: ${totalRelations}`);
-    await updateProgress(documentId, '✓ Análisis completado', 100, { stage: 'completed', duration });
-    const finalStatus = entitiesInGraph > 0 ? 'ANALYZED' : 'INDEXED';
-    await publishProgress(documentId, { step: '✓ Análisis completado', percentage: 100, status: finalStatus });
-
-    // Disparar generación de dictamen IA si todos los docs de la empresa están listos
+    await prisma.document.update({ where: { id: documentId }, data: { status: 'ANALYZED' } });
+    await publishProgress(documentId, { step: '✓ Análisis completado', percentage: 100, status: 'ANALYZED' });
     const { maybeScheduleAiDictamen } = await import('./ai-dictamen-service');
     maybeScheduleAiDictamen(documentId).catch(() => {});
-
-    return { entitiesExtracted: entitiesInGraph };
-
+    return { entitiesExtracted: 0 };
   } catch (error: any) {
     console.error(`[AI] ❌ ERROR:`, error.message);
-    const isFalkorError = error.message.includes('FalkorDB') || error.message.includes('Redis');
-    if (!isFalkorError) {
-      await prisma.document.update({ where: { id: documentId }, data: { status: 'FAILED' } });
-    }
+    await prisma.document.update({ where: { id: documentId }, data: { status: 'FAILED' } });
     throw error;
   }
 }

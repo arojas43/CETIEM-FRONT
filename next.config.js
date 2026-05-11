@@ -18,7 +18,6 @@ const nextConfig = {
   },
   // Paquetes con módulos nativos o BigInt que no deben ser bundleados por webpack
   serverExternalPackages: [
-    'falkordb',
     'iovalkey',
     'ioredis',
     'bullmq',

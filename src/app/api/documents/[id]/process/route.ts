@@ -5,7 +5,7 @@ import { processDocument } from "@/lib/process-document-service";
 import { canAccessDocument } from "@/lib/access";
 import { withValidation } from "@/lib/api/with-validation";
 import { processSchema, VALID_DOMAINS } from "@/lib/schemas/documents";
-import type { ExtractionConfig } from "@/lib/cognee-service";
+import type { ExtractionConfig } from "@/lib/pipeline-types";
 
 export const dynamic = "force-dynamic";
 

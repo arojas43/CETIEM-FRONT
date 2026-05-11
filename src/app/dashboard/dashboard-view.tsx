@@ -864,10 +864,22 @@ export function DashboardView(props: Props) {
   const { role } = useRole()
   const router = useRouter()
 
-  // Company dashboard: poll every 15s to pick up dictamen/CAPA updates from assessor
+  // Company dashboard: comprueba cambios cada 30s y solo refresca si algo cambió.
+  // Mucho más ligero que router.refresh() ciego (2 queries vs 10+).
   useEffect(() => {
     if (role !== 'company') return
-    const id = setInterval(() => router.refresh(), 15000)
+    let lastHash = ''
+    const check = async () => {
+      try {
+        const r = await fetch('/api/dashboard/pulse')
+        if (!r.ok) return
+        const { hash } = await r.json()
+        if (lastHash && hash !== lastHash) router.refresh()
+        lastHash = hash
+      } catch {}
+    }
+    check()
+    const id = setInterval(check, 30_000)
     return () => clearInterval(id)
   }, [role, router])
 

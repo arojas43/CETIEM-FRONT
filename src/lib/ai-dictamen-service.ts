@@ -34,56 +34,90 @@ export type AiDictamenFinding = {
 
 // ── Prompt ────────────────────────────────────────────────────────────────────
 
+// Límite de caracteres por documento — kimi-k2.6 tiene 1M tokens (~4M chars).
+// 300K chars por doc = holgura para 10 docs dentro del límite.
+const MAX_CHARS_PER_DOC = 300_000;
+
 function buildPrompt(
   companyName: string,
   domain: string,
-  docs: Array<{ id: string; name: string; categoriaDoc: string; tipoDocumento: string | null; pageIndexSample: string }>
+  docs: Array<{
+    id: string;
+    name: string;
+    categoriaDoc: string;
+    tipoDocumento: string | null;
+    fullContent: string;
+    totalNodes: number;
+  }>
 ): string {
-  const docSummaries = docs.map((d, i) =>
-    `### Documento ${i + 1}: "${d.name}" (tipo: ${d.tipoDocumento || d.categoriaDoc})
-ID: ${d.id}
-Extracto de contenido:
-${d.pageIndexSample.slice(0, 3000)}`
-  ).join("\n\n");
+  const sep = "═".repeat(72);
+
+  const docBlocks = docs.map((d, i) => {
+    const content = d.fullContent.length > MAX_CHARS_PER_DOC
+      ? d.fullContent.slice(0, MAX_CHARS_PER_DOC) + `\n\n[...contenido truncado: ${d.fullContent.length - MAX_CHARS_PER_DOC} caracteres adicionales]`
+      : d.fullContent;
+
+    return `${sep}
+DOCUMENTO ${i + 1} DE ${docs.length}
+Nombre    : "${d.name}"
+Tipo      : ${d.tipoDocumento || d.categoriaDoc}
+Categoría : ${d.categoriaDoc}
+ID        : ${d.id}
+Secciones : ${d.totalNodes}
+${sep}
+
+${content || "(sin contenido extraído — documento posiblemente ilegible o vacío)"}
+
+${sep}
+FIN DOCUMENTO ${i + 1} — "${d.name}"
+${sep}`;
+  }).join("\n\n");
 
   return `Eres un experto certificador ESG del programa CETIEM de la Secretaría de Economía de México.
-Tu tarea es analizar los documentos de la empresa "${companyName}" (sector: ${domain}) y generar un DICTAMEN PRELIMINAR de certificación ESG.
+Tu tarea es analizar en detalle los ${docs.length} documentos de la empresa "${companyName}" (sector: ${domain}) y emitir un DICTAMEN PRELIMINAR de certificación ESG.
 
-DOCUMENTOS ANALIZADOS:
-${docSummaries}
+Tienes acceso al CONTENIDO COMPLETO de cada documento, separados por marcadores visuales claros (═══...). Analiza cada documento por separado y luego en conjunto.
 
-INSTRUCCIONES:
-1. Evalúa los 4 criterios V.L.A.P. para el conjunto de documentos:
-   - vigencia: ¿Los documentos están vigentes/actualizados? ¿Tienen fechas recientes?
-   - legibilidad: ¿Son legibles, bien estructurados, sin páginas ilegibles?
-   - autoria: ¿Tienen firmas, sellos, datos de autoría/responsable claros?
-   - pertinencia: ¿Son relevantes para la certificación ESG del sector ${domain}?
+${docBlocks}
 
-2. Identifica hallazgos de:
-   - COMPLIANCE: aspectos que cumplen correctamente los estándares ESG
-   - NON_COMPLIANCE: incumplimientos que DEBEN corregirse para certificar
+INSTRUCCIONES DE ANÁLISIS:
+1. Evalúa los 4 criterios V.L.A.P. para el CONJUNTO de documentos:
+   - vigencia: ¿Los documentos tienen fechas recientes y están vigentes? ¿Alguno está vencido?
+   - legibilidad: ¿Son legibles, bien estructurados? ¿Hay páginas en blanco o ilegibles?
+   - autoria: ¿Tienen firma, sello, RFC, o datos del responsable que acrediten autoría?
+   - pertinencia: ¿Son documentos relevantes para certificar ESG en el sector ${domain}?
+
+2. Identifica hallazgos concretos con referencia al documento y sección específica donde se encontró:
+   - COMPLIANCE: aspectos que sí cumplen los estándares (menciona el dato exacto del documento)
+   - NON_COMPLIANCE: incumplimientos bloqueantes para la certificación (cita la evidencia)
    - OBSERVATION: aspectos a mejorar pero no bloqueantes
    - RECOMMENDATION: buenas prácticas adicionales sugeridas
 
 3. Genera un resumen ejecutivo de 2-3 oraciones.
 
-RESPONDE ÚNICAMENTE con un JSON válido con esta estructura exacta (sin texto adicional):
+REGLAS IMPORTANTES:
+- El campo "documentId" de cada hallazgo debe ser el ID exacto del documento referenciado.
+- El campo "page" puede ser un número de página si lo identificas en el contenido.
+- Sé específico: menciona datos concretos del documento (fechas, montos, RFCs, nombres).
+- Si un documento está en blanco o ilegible, es hallazgo CRITICAL NON_COMPLIANCE.
+
+RESPONDE ÚNICAMENTE con un JSON válido con esta estructura exacta (sin texto adicional, sin markdown):
 {
   "vlap": {
-    "vigencia": { "suggestion": true/false/null, "confidence": 0-100, "rationale": "explicación breve en español" },
-    "legibilidad": { "suggestion": true/false/null, "confidence": 0-100, "rationale": "..." },
-    "autoria": { "suggestion": true/false/null, "confidence": 0-100, "rationale": "..." },
-    "pertinencia": { "suggestion": true/false/null, "confidence": 0-100, "rationale": "..." }
+    "vigencia":    { "suggestion": true, "confidence": 85, "rationale": "explicación con evidencia del documento" },
+    "legibilidad": { "suggestion": true, "confidence": 90, "rationale": "..." },
+    "autoria":     { "suggestion": false, "confidence": 70, "rationale": "..." },
+    "pertinencia": { "suggestion": true, "confidence": 95, "rationale": "..." }
   },
   "findings": [
     {
-      "type": "COMPLIANCE|NON_COMPLIANCE|OBSERVATION|RECOMMENDATION",
-      "severity": "LOW|MEDIUM|HIGH|CRITICAL",
+      "type": "COMPLIANCE",
+      "severity": "LOW",
       "title": "Título corto del hallazgo",
-      "description": "Descripción detallada del hallazgo con referencia al documento",
+      "description": "Descripción detallada con referencia al documento y dato específico",
       "recommendation": "Acción concreta que debe tomar la empresa",
-      "documentId": "id-del-documento-o-null",
-      "documentName": "nombre del documento o null",
+      "documentId": "id-exacto-del-documento",
+      "documentName": "nombre del archivo",
       "page": null
     }
   ],
@@ -94,7 +128,26 @@ RESPONDE ÚNICAMENTE con un JSON válido con esta estructura exacta (sin texto a
 // ── Generación ─────────────────────────────────────────────────────────────────
 
 export async function generateAiDictamen(companyId: string): Promise<string> {
-  // Upsert: si ya existe uno READY reciente (<1h), no regenerar
+  // Si hay uno en vuelo, devolver su id para que el cliente haga polling
+  const inFlight = await prisma.aiDictamen.findFirst({
+    where: { companyId, status: "GENERATING" },
+    orderBy: { generatedAt: "desc" },
+  });
+  if (inFlight) {
+    const ageMs = Date.now() - inFlight.generatedAt.getTime();
+    // Si lleva más de 10 min probablemente murió — dejar que se reintente
+    if (ageMs < 10 * 60 * 1000) {
+      console.log(`[AiDictamen] Ya hay uno en GENERATING para ${companyId}, esperando`);
+      return inFlight.id;
+    }
+    // Marcar el zombie como FAILED
+    await prisma.aiDictamen.update({
+      where: { id: inFlight.id },
+      data: { status: "FAILED", errorMsg: "Timeout — proceso anterior sin respuesta" },
+    });
+  }
+
+  // Si ya existe uno READY reciente (<1h), no regenerar
   const existing = await prisma.aiDictamen.findFirst({
     where: { companyId, status: "READY" },
     orderBy: { generatedAt: "desc" },
@@ -118,13 +171,12 @@ export async function generateAiDictamen(companyId: string): Promise<string> {
     where: { userId: companyId, status: { in: ["ANALYZED", "INDEXED"] } },
     include: {
       pageIndices: {
-        where: { level: 0 },
-        take: 1,
-        select: { content: true, title: true },
+        orderBy: [{ level: "asc" }, { page: "asc" }],
+        select: { content: true, title: true, page: true, level: true },
       },
     },
     orderBy: { createdAt: "desc" },
-    take: 10,
+    take: 15,
   });
 
   if (docs.length === 0) {
@@ -145,13 +197,29 @@ export async function generateAiDictamen(companyId: string): Promise<string> {
   });
 
   const domain = docs[0].domain || "INDUSTRIA";
-  const docsForPrompt = docs.map(d => ({
-    id: d.id,
-    name: d.name,
-    categoriaDoc: d.categoriaDoc,
-    tipoDocumento: d.tipoDocumento,
-    pageIndexSample: d.pageIndices[0]?.content || d.pageIndices[0]?.title || "(sin contenido extraído)",
-  }));
+
+  // Ensamblar contenido completo de cada documento desde todos sus nodos PageIndex
+  const docsForPrompt = docs.map(d => {
+    const sections = d.pageIndices
+      .map(n => {
+        const header = n.title ? `## ${n.title}${n.page ? ` (pág. ${n.page})` : ""}` : "";
+        return [header, n.content].filter(Boolean).join("\n");
+      })
+      .filter(s => s.trim().length > 0);
+
+    const fullContent = sections.join("\n\n");
+    const totalChars = fullContent.length;
+    console.log(`[AiDictamen] "${d.name}": ${d.pageIndices.length} secciones, ${totalChars} chars`);
+
+    return {
+      id: d.id,
+      name: d.name,
+      categoriaDoc: d.categoriaDoc,
+      tipoDocumento: d.tipoDocumento,
+      fullContent,
+      totalNodes: d.pageIndices.length,
+    };
+  });
 
   try {
     const prompt = buildPrompt(
@@ -159,6 +227,7 @@ export async function generateAiDictamen(companyId: string): Promise<string> {
       domain,
       docsForPrompt
     );
+    console.log(`[AiDictamen] Prompt total: ${prompt.length} chars (~${Math.round(prompt.length / 4)} tokens)`);
 
     // Usar NVIDIA_INTENT_API_KEY como key alternativa para el dictamen —
     // cuota separada a la del pipeline de indexación (NVIDIA_API_KEY)
@@ -191,8 +260,24 @@ export async function generateAiDictamen(companyId: string): Promise<string> {
       throw new Error(`JSON inválido del modelo. Inicio de respuesta: ${raw.slice(0, 200)}`);
     }
 
-    // Normalizar keys — el modelo puede usar variantes
-    const vlap = parsed.vlap ?? parsed.vlap_evaluation ?? parsed.evaluacion_vlap ?? parsed.VLAP ?? null;
+    // Normalizar keys — el modelo puede usar variantes o devolver VLAP en el nivel superior
+    let vlap = parsed.vlap ?? parsed.vlap_evaluation ?? parsed.evaluacion_vlap ?? parsed.VLAP ?? null;
+
+    // Si VLAP no está anidado, intentar construirlo desde claves de nivel superior
+    if (!vlap && (parsed.vigencia || parsed.legibilidad || parsed.autoria || parsed.autenticidad || parsed.pertinencia)) {
+      vlap = {
+        vigencia:    parsed.vigencia,
+        legibilidad: parsed.legibilidad,
+        autoria:     parsed.autoria ?? parsed.autenticidad ?? parsed.autenticacion ?? null,
+        pertinencia: parsed.pertinencia,
+      };
+    }
+
+    // Normalizar autoria si viene como autenticidad dentro del objeto vlap
+    if (vlap && !vlap.autoria && (vlap.autenticidad || vlap.autenticacion)) {
+      vlap.autoria = vlap.autenticidad ?? vlap.autenticacion;
+    }
+
     const findings = parsed.findings ?? parsed.hallazgos ?? parsed.findings_list ?? [];
     const summary = parsed.summary ?? parsed.resumen ?? parsed.resumen_ejecutivo ?? null;
 
@@ -223,7 +308,7 @@ export async function generateAiDictamen(companyId: string): Promise<string> {
       },
     });
 
-    console.log(`[AiDictamen] ✓ Generado para ${companyId}: ${parsed.findings.length} hallazgos`);
+    console.log(`[AiDictamen] ✓ Generado para ${companyId}: ${normalizedFindings.length} hallazgos`);
     return dictamen.id;
 
   } catch (err: any) {

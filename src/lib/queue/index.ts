@@ -1,7 +1,7 @@
 import { Queue, Worker } from "bullmq";
 import { prisma } from "../db";
 import { runIndexing, runAnalysis } from "../document-pipeline";
-import type { ExtractionConfig } from "../cognee-service";
+import type { ExtractionConfig } from "../pipeline-types";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const Redis = require("ioredis");

@@ -8,7 +8,7 @@ import { useEffect, useState, useRef } from 'react'
 import {
   LayoutDashboard, FileText, Upload, Award, Building2,
   ClipboardList, Users, BarChart3, ScrollText, Settings,
-  Network, ShieldAlert, Bell, X, CheckCheck, LogOut as SignOutIcon,
+  ShieldAlert, Bell, X, CheckCheck, LogOut as SignOutIcon,
   Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -36,7 +36,6 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { href: '/dashboard/companies', label: 'Empresas ESG', icon: Building2 },
     { href: '/dashboard/documents', label: 'Documentos', icon: FileText },
     { href: '/dashboard/capa', label: 'Tickets CAPA', icon: ShieldAlert },
-    { href: '/dashboard/graph', label: 'Grafo Global', icon: Network },
   ],
   admin: [
     { href: '/dashboard', label: 'Supervisión', icon: LayoutDashboard },
@@ -44,7 +43,6 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { href: '/dashboard/assessors', label: 'Assessors ESG', icon: Users },
     { href: '/dashboard/documents', label: 'Fondo Documental', icon: FileText },
     { href: '/dashboard/capa', label: 'Tickets CAPA', icon: ShieldAlert },
-    { href: '/dashboard/graph', label: 'Grafo de Relaciones', icon: Network },
     { href: '/dashboard/logs', label: 'Auditoría', icon: ScrollText },
     { href: '/dashboard/analytics', label: 'Métricas Reales', icon: BarChart3, disabled: true },
     { href: '/dashboard/settings', label: 'Configuración', icon: Settings, disabled: true },
@@ -80,7 +78,12 @@ function NotificationBell() {
     } catch { }
   };
 
-  useEffect(() => { load(); const id = setInterval(load, 20000); return () => clearInterval(id); }, []);
+  // Carga inicial + polling solo si hay notificaciones no leídas (cada 60s)
+  useEffect(() => {
+    load();
+    const id = setInterval(() => { if (unread > 0) load(); }, 60_000);
+    return () => clearInterval(id);
+  }, [unread]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
