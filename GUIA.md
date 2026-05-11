@@ -31,7 +31,7 @@ Guía completa de funcionamiento de la plataforma de certificación ESG con IA.
 │  │ • Sube docs  │    │ • Revisa     │    │ • Gestiona todo  │  │
 │  │ • Ve estado  │    │   expedientes│    │ • Asigna         │  │
 │  │ • Ve CAPA    │    │ • V.L.A.P.   │    │   assessors      │  │
-│  │ • Descarga   │    │ • Q&A / Grafo│    │ • Kill-switch    │  │
+│  │ • Descarga   │    │ • Q&A con IA │    │ • Kill-switch    │  │
 │  │   certificado│    │ • Emite      │    │ • Logs / CSV     │  │
 │  └──────┬───────┘    │   dictamen   │    └──────────────────┘  │
 │         │            └──────┬───────┘                          │
@@ -42,7 +42,7 @@ Guía completa de funcionamiento de la plataforma de certificación ESG con IA.
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │                  PIPELINE IA                             │  │
 │  │                                                          │  │
-│  │  PDF → SHA-256 → PageIndex → Cognee → FalkorDB          │  │
+│  │  PDF → PageIndex → OpenKB → Kimi K2.6 → AiDictamen      │  │
 │  │                                                          │  │
 │  │  PENDING → PROCESSING → INDEXED → ANALYZED → (FAILED)   │  │
 │  └──────────────────────────────────────────────────────────┘  │
@@ -100,33 +100,29 @@ Empresa sube PDF
 │  Estado: PENDING│  Documento guardado en /uploads/
 └────────┬────────┘  o Google Cloud Storage (prod)
          │
-         │ (Assessor o Admin dispara procesamiento)
-         │ POST /api/documents/[id]/process
+         │ BullMQ worker (automático al subir)
          ▼
 ┌─────────────────┐
-│  PROCESSING     │  BullMQ Worker en background
+│  PROCESSING     │  Pipeline IA en background
 └────────┬────────┘
          │
          ├── PageIndex extrae estructura jerárquica
-         │     → secciones, capítulos, páginas
+         │     → capítulos, secciones, subsecciones
          │     → guardadas en tabla PageIndex (BD)
+         │     → status = INDEXED
          │
-         ├── Cognee extrae entidades y relaciones
+         ├── OpenKB indexa el documento en el KB de la empresa
+         │     → wiki por empresa (cross-documento)
+         │     → status = ANALYZED
          │
-         └── FalkorDB almacena grafo de conocimiento
-                   → MATCH (n)-[r]->(m) ...
+         └── Kimi K2.6 genera Dictamen IA (automático)
+               → VLAP + hallazgos + resumen ejecutivo
+               → guardado en tabla AiDictamen
          │
-         ▼
-┌─────────────────┐
-│  INDEXED        │  PageIndex completo
-│  → ANALYZED     │  PageIndex + Cognee + FalkorDB OK
-│  → FAILED       │  Error en algún paso
-└────────┬────────┘
-         │
-         │ (Assessor entra a revisar)
          ▼
 ┌─────────────────────────────────┐
 │  Dictamen del Assessor          │
+│  (basado en el Dictamen IA)     │
 │                                 │
 │  APPROVED   → Cert ESG emitido  │
 │  IN_REVIEW  → Cambios solicitados│
@@ -153,10 +149,10 @@ PUEDE:
   ✓ Ver el progreso de certificación en 4 pasos
 
 NO PUEDE:
-  ✗ Reprocesar documentos (debe subir uno nuevo)
+  ✗ Reprocesar documentos (solo Assessor o Admin)
   ✗ Ver documentos de otras empresas
-  ✗ Cambiar el dominio de análisis
-  ✗ Acceder al grafo, Q&A o consola Cypher
+  ✗ Usar Q&A con IA sobre los documentos
+  ✗ Ver el Dictamen IA preliminar
   ✗ Ver el audit log global
   ✗ Asignar assessors
 ```
@@ -188,8 +184,9 @@ NO PUEDE:
 /dashboard/review/company/[companyId]
 │
 ├── Lista de documentos del expediente (acordeón expandible)
-│   • Visor PDF inline por documento (toggle [Ver PDF / Ocultar PDF])
+│   • Visor PDF inline por documento
 │   • Índice de secciones (PageIndex)
+│   • Dictamen IA preliminar (VLAP + hallazgos de Kimi K2.6)
 │   • Enlace a detalle → /dashboard/documents/[id]?from=review
 │
 └── Formulario de dictamen (empresa completa)
@@ -231,24 +228,22 @@ NO PUEDE:
 ```
 /dashboard/documents/[id]  (vista assessor — solo empresa asignada)
 │
-├── Visor PDF inline    → toggle [Ver PDF / Ocultar PDF] en la cabecera
-│     • Si viene de /review → botón "← Cola" de regreso
+├── Visor PDF inline    → toggle [Ver PDF / Ocultar PDF]
 │
 ├── [Procesar]          → /api/documents/[id]/process
 │     • Selecciona dominio: Industria / Construcción / Tecnología
-│     • Modos: Auto / Mixto / Dirigido
 │
-├── [Preguntar]         → /dashboard/documents/[id]/qa
-│     • Q&A con Qwen 3.5 122B sobre el contenido del documento
-│     • Búsqueda paralela: FalkorDB + PageIndex + keyword
+├── [Preguntar]         → Q&A con IA
+│     • Primero usa OpenKB (wiki de la empresa, razonamiento cross-documento)
+│     • Si OpenKB no disponible → fallback a PageIndex + Kimi K2.6 directo
 │
 ├── [Ver Contenido]     → /dashboard/documents/[id]/content
 │     • Texto estructurado extraído por PageIndex
 │     • Secciones con jerarquía de niveles
 │
-└── [Ver Grafo]         → /dashboard/documents/[id]/graph
-      • Grafo de entidades y relaciones (Cognee + FalkorDB)
-      • Visualización interactiva
+└── [Dictamen IA]
+      • VLAP preliminar generado por Kimi K2.6
+      • Hallazgos sugeridos (el assessor valida o modifica)
 ```
 
 ---
@@ -257,8 +252,6 @@ NO PUEDE:
 
 > **Acceso total:** El Admin ve todos los recursos del sistema sin restricción.
 > Solo el Admin puede asignar assessors, revocar certificados y ver el Audit Log.
-> Las páginas `/dashboard/companies`, `/dashboard/assessors` y `/dashboard/logs`
-> redirigen a `/dashboard` para cualquier rol que no sea ADMIN o ASSESSOR.
 
 ### 4.1 Gestión de empresas
 
@@ -278,6 +271,7 @@ NO PUEDE:
 │
 └── Documentos por empresa:
     • Estado IA + Cert status badge (APPROVED/CAPA_OPEN/etc.)
+    • Dictamen IA disponible si ya se generó
 ```
 
 ### 4.2 Kill-switch (revocación de certificado)
@@ -333,50 +327,55 @@ PDF subido por empresa
 │     • AuditLog: DOCUMENT_UPLOADED                   │
 └──────────────────────────────────────────────────────┘
          │
-         │ POST /api/documents/[id]/process
-         │ (disparado por Assessor/Admin)
+         │ BullMQ Worker (automático)
          ▼
 ┌──────────────────────────────────────────────────────┐
-│  2. EXTRACCIÓN DE TEXTO                              │
-│     • pdf-parse → extrae texto por página            │
-│     • Si falla → Tesseract.js (OCR)                 │
-│     • status = PROCESSING                           │
-└──────────────────────────────────────────────────────┘
-         │
-         ▼
-┌──────────────────────────────────────────────────────┐
-│  3. PageIndex — Indexación Jerárquica                │
-│     • Detecta capítulos, secciones, subsecciones    │
-│     • Asigna nivel (1, 2, 3...) y página            │
-│     • Guarda en tabla PageIndex (BD)                │
-│     • Permite navegación estructurada               │
+│  2. PageIndex — Indexación Jerárquica                │
+│     • pdfjs extrae texto página por página           │
+│     • LLM (Llama 3.1 70B) detecta estructura:       │
+│       capítulos, secciones, subsecciones             │
+│     • Guarda árbol en tabla PageIndex (BD)           │
+│     • Para docs > 50MB usa pdftotext (poppler)      │
 │     • status = INDEXED                              │
 └──────────────────────────────────────────────────────┘
          │
          ▼
 ┌──────────────────────────────────────────────────────┐
-│  4. Cognee — Extracción de Grafo                     │
-│     • Identifica entidades: ORG, PERSON, NORM...    │
-│     • Identifica relaciones entre entidades         │
-│     • Modo Auto / Mixto / Dirigido                  │
-│     • Dominio: Industria / Construcción / Tecnología│
+│  3. OpenKB — Base de Conocimiento                    │
+│     • Toma los nodos de PageIndex                   │
+│     • Envia al microservicio openkb-api:8001         │
+│     • OpenKB construye/actualiza el wiki de empresa  │
+│       → wiki/summaries/ (resumen por documento)     │
+│       → wiki/concepts/  (conceptos cross-documento) │
+│       → wiki/sources/   (contenido indexado)        │
+│     • Un KB por empresa (companyId)                 │
+│     • Hash SHA-256: evita reindexar si no cambió    │
+│     • status = ANALYZED                             │
+│     • (no bloquea: si OpenKB cae, sigue adelante)   │
 └──────────────────────────────────────────────────────┘
          │
          ▼
 ┌──────────────────────────────────────────────────────┐
-│  5. FalkorDB — Grafo de Conocimiento                 │
-│     • Nodos: entidades extraídas por Cognee         │
-│     • Aristas: relaciones entre entidades           │
-│     • Aislado por documentId                        │
-│     • Consultas Cypher disponibles                  │
-│     • status = ANALYZED                             │
+│  4. Kimi K2.6 — Dictamen IA (AiDictamen)             │
+│     • Lee TODOS los nodos PageIndex de la empresa   │
+│     • Los ensambla con separadores visuales:        │
+│       ═══════════════════════════                   │
+│       DOCUMENTO 1 DE 4 / Nombre: / Tipo: ...        │
+│       ═══════════════════════════                   │
+│     • Una sola llamada a Kimi K2.6 (1M tokens)      │
+│     • Genera:                                       │
+│       → VLAP: Vigencia / Legibilidad / Autoría /    │
+│               Pertinencia (valor + confianza)       │
+│       → Hallazgos con tipo y severidad              │
+│       → Resumen ejecutivo                           │
+│     • Guardado en tabla AiDictamen (status: READY)  │
 └──────────────────────────────────────────────────────┘
          │
          ▼
 Assessor puede usar:
-  • Q&A: búsqueda paralela FalkorDB + PageIndex + keyword → GLM4.7
-  • Grafo: visualización de entidades y relaciones
-  • Contenido: texto estructurado con jerarquía
+  • Dictamen IA como punto de partida para su revisión
+  • Q&A: pregunta → OpenKB (wiki empresa) o PageIndex + NIM directo
+  • Contenido: texto estructurado con jerarquía PageIndex
 ```
 
 ---
@@ -407,6 +406,9 @@ Ejemplo:
 
   → 3 criterios pasados → ESG Score = 75%
   → Si Override en Autoría → puede emitir dictamen
+
+El Dictamen IA (Kimi K2.6) genera un VLAP preliminar que el assessor
+puede usar como punto de partida, validando o ajustando cada criterio.
 ```
 
 ---
@@ -513,11 +515,11 @@ Acceso:
 PENDING ──────► PROCESSING ──────► INDEXED ──────► ANALYZED
                      │                                  │
                      └──────────────────────────► FAILED
-                     
+
   PENDING    = Subido, sin procesar
   PROCESSING = Pipeline IA en ejecución (BullMQ)
-  INDEXED    = PageIndex completado
-  ANALYZED   = Todo el pipeline completado
+  INDEXED    = PageIndex completado (árbol jerárquico en BD)
+  ANALYZED   = PageIndex + OpenKB + AiDictamen completados
   FAILED     = Error en algún paso del pipeline
 ```
 
@@ -534,7 +536,7 @@ PENDING ──────► PROCESSING ──────► INDEXED ───
           │         CAPA_OPEN
           │
           └──────► REVOKED  (Admin kill-switch)
-          
+
   APPROVED   = Certificado ESG emitido, descargable
   IN_REVIEW  = Cambios solicitados (sin NC findings)
   CAPA_OPEN  = Con No Conformidades → tickets 30 días
@@ -548,7 +550,7 @@ PENDING ──────► PROCESSING ──────► INDEXED ───
 OPEN ──────► IN_PROGRESS ──────► CLOSED
   │                │
   └───────────────►└──────────► OVERDUE (dueDate superado)
-  
+
   OPEN        = Creado, pendiente de atención
   IN_PROGRESS = Empresa trabajando en la corrección
   CLOSED      = Cerrado con resolución documentada
@@ -578,10 +580,9 @@ Assessor (ASSESSOR):
   /dashboard/queue               Cola de revisión (solo empresas asignadas)
   /dashboard/review/company/[id] Consola de dictamen empresa + V.L.A.P.
   /dashboard/documents           Documentos de empresas asignadas
-  /dashboard/documents/[id]      Detalle + procesamiento + Q&A + grafo
+  /dashboard/documents/[id]      Detalle + procesamiento + Q&A
   /dashboard/companies           Empresas asignadas
   /dashboard/capa                Tickets CAPA de empresas asignadas
-  /dashboard/graph               Grafo global (Cypher)
 
 Admin (ADMIN):
   [Todo lo de Assessor sobre todos los recursos, más:]
