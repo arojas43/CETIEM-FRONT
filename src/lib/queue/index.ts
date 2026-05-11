@@ -188,7 +188,7 @@ export async function createDocumentProcessingWorker() {
           errorType = 'METADATA_NOT_FOUND';
         } else if (error.message.includes('NIM') || error.message.includes('NVIDIA')) {
           errorType = 'AI_SERVICE_ERROR';
-        } else if (error.message.includes('FalkorDB') || error.message.includes('Redis')) {
+        } else if (error.message.includes('OpenKB') || error.message.includes('Redis')) {
           errorType = 'DATABASE_ERROR';
         }
 
@@ -303,5 +303,5 @@ async function processCertification(documentId: string): Promise<void> {
   console.log(`[Certificación] Procesando: ${documentId}`);
 
   // Aquí iría la lógica de generación de certificación
-  // basada en los análisis previos de PageIndex y Cognee
+  // basada en los análisis previos de PageIndex y OpenKB
 }

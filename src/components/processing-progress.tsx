@@ -118,7 +118,7 @@ export function ProcessingProgress({ documentId, status: initialStatus, classNam
 
   const getBarColor = () => {
     if (details?.stage?.includes("error")) return "bg-economia-error";
-    if (details?.stage?.includes("cognee") || details?.stage?.includes("analysis")) return "bg-economia-success";
+    if (details?.stage?.includes("openkb") || details?.stage?.includes("analysis")) return "bg-economia-success";
     if (details?.stage?.includes("index") || details?.stage?.includes("pageindex")) return "bg-economia-info";
     return "bg-[#00D47A]";
   };

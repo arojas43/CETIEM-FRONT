@@ -1,5 +1,5 @@
 /**
- * Servicio de Q&A Mejorado que combina PageIndex + FalkorDB
+ * Servicio de Q&A que combina OpenKB + PageIndex + NIM
  * 
  * Permite búsquedas específicas por:
  * - Página: "¿Qué hay en la página 4?"
