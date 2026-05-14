@@ -272,7 +272,7 @@
 
   /* ── Primary action button ──────────────────────── */
   .btn-cetiem-primary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-black text-sm text-black uppercase tracking-widest transition-all;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-black text-sm text-white uppercase tracking-widest transition-all;
     background: #00D47A;
     box-shadow: 0 0 20px rgba(0,212,122,0.30);
   }

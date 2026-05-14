@@ -125,9 +125,16 @@ function CoberturaPanel({ cola }: { cola: ItemCola[] }) {
   const obligatorios = (cat: CategoriaDocumento) =>
     CATALOGO_DOCUMENTOS.filter(d => d.categoria === cat && d.obligatorio).length;
 
+  const obligCubiertos = cola.filter(
+    i => i.tipo?.obligatorio && (i.estado === "ok" || i.estado === "pendiente")
+  ).length;
+  const pct = TOTAL_OBLIGATORIOS > 0
+    ? Math.min(100, Math.round((obligCubiertos / TOTAL_OBLIGATORIOS) * 100))
+    : 0;
+
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-2">
         <ListChecks className="h-4 w-4 text-muted-foreground" />
         <span className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">
           Cobertura de categorías
@@ -142,6 +149,16 @@ function CoberturaPanel({ cola }: { cola: ItemCola[] }) {
               completamente para aprobar la certificación.
             </span>
           }
+        />
+        <span className="ml-auto text-xs tabular-nums">
+          <span className="font-bold text-foreground/80">{obligCubiertos}</span>
+          <span className="text-muted-foreground">/{TOTAL_OBLIGATORIOS} oblig.</span>
+        </span>
+      </div>
+      <div className="h-1 bg-muted rounded-full overflow-hidden mb-3">
+        <div
+          className="h-full bg-cetiem-green rounded-full transition-all duration-500"
+          style={{ width: `${pct}%` }}
         />
       </div>
       <div className="grid grid-cols-3 gap-2">
@@ -165,14 +182,14 @@ function CoberturaPanel({ cola }: { cola: ItemCola[] }) {
                     ? "bg-economia-success/8 border-economia-success/30"
                     : "bg-economia-warning/8 border-economia-warning/30"
                   : pending > 0
-                    ? "bg-[#00D47A]/8 border-[#00D47A]/30"
+                    ? "bg-cetiem-green/8 border-cetiem-green/30"
                     : "bg-muted border-border"
               )}
             >
               <Icon className={cn(
                 "h-3.5 w-3.5 mt-0.5 shrink-0",
                 ok > 0 ? (allObligCovered ? "text-economia-success" : "text-economia-warning") :
-                pending > 0 ? "text-[#00D47A]" : "text-muted-foreground/60"
+                pending > 0 ? "text-cetiem-green" : "text-muted-foreground/60"
               )} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
@@ -191,7 +208,7 @@ function CoberturaPanel({ cola }: { cola: ItemCola[] }) {
               {total > 0 && (
                 <span className={cn(
                   "text-[10px] font-bold shrink-0",
-                  ok > 0 ? "text-economia-success" : "text-[#00D47A]"
+                  ok > 0 ? "text-economia-success" : "text-cetiem-green"
                 )}>
                   {total}
                 </span>
@@ -253,7 +270,7 @@ function TipoSelector({
           "w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm transition-all text-left",
           value
             ? "border-border bg-muted"
-            : "border-dashed border-border bg-muted/50 hover:border-[#00D47A]/40 hover:bg-[#00D47A]/3"
+            : "border-dashed border-border bg-muted/50 hover:border-cetiem-green/40 hover:bg-cetiem-green/3"
         )}
       >
         {value ? (
@@ -280,7 +297,7 @@ function TipoSelector({
   }
 
   return (
-    <div className="border border-[#00D47A]/30 rounded-xl bg-card shadow-xl">
+    <div className="border border-cetiem-green/30 rounded-xl bg-card shadow-xl">
       {/* Buscador */}
       <div className="relative p-2 border-b border-border">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40" />
@@ -433,25 +450,70 @@ function ItemFila({
 
         <div className="flex-1 min-w-0 space-y-2">
 
-          {/* ── Tipo selector ── */}
+          {/* ── Fields (2-col on sm+) ── */}
           {!isDone ? (
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  Tipo de documento
-                </span>
-                <HelpTip
-                  align="left"
-                  content={
-                    <span>
-                      Selecciona la categoría exacta del documento.
-                      Los marcados con <strong className="text-economia-warning">★</strong> son
-                      obligatorios para completar la certificación ESG.
+            <div className="space-y-2">
+              <div className="grid sm:grid-cols-2 gap-3">
+                {/* col 1: tipo */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      Tipo de documento
                     </span>
-                  }
-                />
+                    <HelpTip
+                      align="left"
+                      content={
+                        <span>
+                          Selecciona la categoría exacta del documento.
+                          Los marcados con <strong className="text-economia-warning">★</strong> son
+                          obligatorios para completar la certificación ESG.
+                        </span>
+                      }
+                    />
+                  </div>
+                  <TipoSelector value={item.tipo} onChange={onTipo} ocupados={ocupados} />
+                </div>
+                {/* col 2: archivo */}
+                <div className="space-y-1">
+                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Archivo PDF
+                  </span>
+                  <input ref={fileInputRef} type="file" accept="application/pdf"
+                    className="hidden" onChange={handleFileChange} />
+                  {item.file ? (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-xl">
+                      <FileText className="h-4 w-4 text-economia-error/60 shrink-0" />
+                      <span className="text-foreground text-xs truncate flex-1">{item.file.name}</span>
+                      <span className="text-muted-foreground/40 text-xs shrink-0">
+                        {(item.file.size / 1024 / 1024).toFixed(1)} MB
+                      </span>
+                      {!isBusy && (
+                        <button onClick={() => fileInputRef.current?.click()}
+                          className="text-muted-foreground/40 hover:text-foreground transition-colors shrink-0">
+                          <FolderOpen className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <button onClick={() => fileInputRef.current?.click()}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 border border-dashed border-border rounded-xl hover:border-cetiem-green/60 hover:bg-cetiem-green/5 transition-all text-sm text-muted-foreground hover:text-foreground">
+                      <FolderOpen className="h-4 w-4 shrink-0" />
+                      <span>Seleccionar PDF...</span>
+                      <span className="ml-auto text-[10px] text-muted-foreground/60">Solo .pdf</span>
+                    </button>
+                  )}
+                </div>
               </div>
-              <TipoSelector value={item.tipo} onChange={onTipo} ocupados={ocupados} />
+              {/* info box: full width */}
+              {item.tipo && (
+                <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-lg bg-muted text-[11px] text-muted-foreground">
+                  <Info className="h-3 w-3 shrink-0 mt-0.5 text-muted-foreground/70" />
+                  <span>{item.tipo.descripcion}</span>
+                  {item.tipo.obligatorio && (
+                    <span className="ml-auto shrink-0 text-economia-warning font-semibold">★ Obligatorio</span>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             /* Tipo completado — mostrar badge + nombre + descripción */
@@ -470,52 +532,11 @@ function ItemFila({
             )
           )}
 
-          {/* Descripción del tipo (cuando está seleccionado pero no subido) */}
-          {!isDone && item.tipo && (
-            <div className="flex items-start gap-2 px-2.5 py-1.5 rounded-lg bg-muted text-[11px] text-muted-foreground">
-              <Info className="h-3 w-3 shrink-0 mt-0.5 text-muted-foreground/70" />
-              <span>{item.tipo.descripcion}</span>
-              {item.tipo.obligatorio && (
-                <span className="ml-auto shrink-0 text-economia-warning font-semibold">★ Obligatorio</span>
-              )}
-            </div>
-          )}
-
-          {/* ── File picker ── */}
-          {!isDone && (
-            <div>
-              <input ref={fileInputRef} type="file" accept="application/pdf"
-                className="hidden" onChange={handleFileChange} />
-              {item.file ? (
-                <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-xl">
-                  <FileText className="h-4 w-4 text-economia-error/60 shrink-0" />
-                  <span className="text-foreground text-xs truncate flex-1">{item.file.name}</span>
-                  <span className="text-muted-foreground/40 text-xs shrink-0">
-                    {(item.file.size / 1024 / 1024).toFixed(1)} MB
-                  </span>
-                  {!isBusy && (
-                    <button onClick={() => fileInputRef.current?.click()}
-                      className="text-muted-foreground/40 hover:text-foreground transition-colors shrink-0">
-                      <FolderOpen className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <button onClick={() => fileInputRef.current?.click()}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 border border-dashed border-border rounded-xl hover:border-[#00D47A]/60 hover:bg-[#00D47A]/5 transition-all text-sm text-muted-foreground hover:text-foreground">
-                  <FolderOpen className="h-4 w-4 shrink-0" />
-                  <span>Seleccionar PDF...</span>
-                  <span className="ml-auto text-[10px] text-muted-foreground/60">Solo .pdf</span>
-                </button>
-              )}
-            </div>
-          )}
-
           {/* Progreso */}
           {isBusy && (
             <div className="space-y-1">
               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-[#00D47A] rounded-full transition-all"
+                <div className="h-full bg-cetiem-green rounded-full transition-all"
                   style={{ width: `${item.progreso}%` }} />
               </div>
               <p className="text-[10px] text-muted-foreground/50">Subiendo… {item.progreso}%</p>
@@ -579,8 +600,8 @@ function GlobalDropZone({ onFiles }: { onFiles: (files: File[]) => void }) {
       className={cn(
         "relative border-2 border-dashed rounded-2xl py-10 text-center transition-all cursor-pointer select-none",
         active
-          ? "border-[#00D47A] bg-[#00D47A]/8 scale-[1.01]"
-          : "border-border bg-muted/40 hover:border-[#00D47A]/50 hover:bg-[#00D47A]/3"
+          ? "border-cetiem-green bg-cetiem-green/8 scale-[1.01]"
+          : "border-border bg-muted/40 hover:border-cetiem-green/50 hover:bg-cetiem-green/3"
       )}
     >
       <input ref={inputRef} type="file" accept="application/pdf" multiple className="hidden" onChange={onPick} />
@@ -606,11 +627,11 @@ function GlobalDropZone({ onFiles }: { onFiles: (files: File[]) => void }) {
 
       <div className={cn(
         "h-12 w-12 rounded-2xl mx-auto mb-3 flex items-center justify-center transition-colors",
-        active ? "bg-[#00D47A]/20" : "bg-muted"
+        active ? "bg-cetiem-green/20" : "bg-cetiem-green/10"
       )}>
-        <Upload className={cn("h-6 w-6 transition-colors", active ? "text-[#00D47A]" : "text-muted-foreground")} />
+        <Upload className={cn("h-6 w-6 transition-colors", active ? "text-cetiem-green" : "text-cetiem-green/60")} />
       </div>
-      <p className={cn("text-sm font-semibold transition-colors", active ? "text-[#00D47A]" : "text-foreground")}>
+      <p className={cn("text-sm font-semibold transition-colors", active ? "text-cetiem-green" : "text-foreground")}>
         {active ? "Suelta los PDFs aquí" : "Arrastra varios PDFs aquí o haz clic para seleccionar"}
       </p>
       <p className="text-xs text-muted-foreground mt-1">Solo archivos PDF · Se crean entradas en la cola automáticamente</p>
@@ -807,7 +828,7 @@ export default function UploadPage() {
           {!uploading && (
             <button
               onClick={addItem}
-              className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-border rounded-xl text-muted-foreground hover:text-foreground hover:border-[#00D47A]/50 hover:bg-[#00D47A]/5 text-sm font-medium transition-all"
+              className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-border rounded-xl text-muted-foreground hover:text-foreground hover:border-cetiem-green/50 hover:bg-cetiem-green/5 text-sm font-medium transition-all"
             >
               <Plus className="h-4 w-4" /> Añadir otro documento
             </button>
@@ -823,7 +844,8 @@ export default function UploadPage() {
                   {colaTotal} en cola
                 </div>
                 {colaValida.length > 0 && (
-                  <span className="text-[#00D47A] font-medium">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cetiem-green/10 text-cetiem-green text-xs font-bold">
+                    <CheckCircle className="h-3 w-3" />
                     {colaValida.length} listo{colaValida.length !== 1 ? "s" : ""}
                   </span>
                 )}
@@ -858,7 +880,7 @@ export default function UploadPage() {
               {/* Ver documentos */}
               {!uploading && cola.some(i => i.estado === "ok") && (
                 <Link href="/dashboard/documents"
-                  className="text-xs text-economia-info hover:underline shrink-0">
+                  className="text-xs text-cetiem-cyan hover:underline shrink-0">
                   Ver documentos →
                 </Link>
               )}
@@ -887,7 +909,7 @@ export default function UploadPage() {
                 className={cn(
                   "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all shrink-0",
                   colaValida.length > 0 && !uploading
-                    ? "bg-[#00D47A] hover:bg-[#00D47A]/90 text-primary-foreground shadow-sm"
+                    ? "bg-cetiem-green hover:bg-cetiem-green/90 text-primary-foreground shadow-sm"
                     : "bg-muted text-muted-foreground/40 cursor-not-allowed"
                 )}
               >
@@ -911,18 +933,18 @@ export default function UploadPage() {
 // ─── Mini helper: paso del flujo ──────────────────────────────────────────────
 function Step({ n, label, done, active }: { n: string; label: string; done?: boolean; active?: boolean }) {
   return (
-    <div className={cn("flex items-center gap-1.5", done ? "text-economia-success" : active ? "text-[#00D47A]" : "")}>
+    <div className={cn("flex items-center gap-1.5", done ? "text-economia-success" : active ? "text-cetiem-green" : "")}>
       <span className={cn(
         "h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold border",
         done   ? "bg-economia-success/15 border-economia-success/30 text-economia-success" :
-        active ? "bg-[#00D47A]/15  border-[#00D47A]/30  text-[#00D47A]" :
+        active ? "bg-cetiem-green/15 border-cetiem-green/30 text-cetiem-green motion-safe:animate-pulse-green" :
                  "bg-muted border-border text-muted-foreground/40"
       )}>
         {done ? "✓" : n}
       </span>
       <span className={cn(
         "text-xs",
-        done ? "text-economia-success" : active ? "text-[#00D47A]" : "text-muted-foreground/40"
+        done ? "text-economia-success" : active ? "text-cetiem-green" : "text-muted-foreground/40"
       )}>{label}</span>
     </div>
   );

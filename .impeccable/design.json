@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-14T00:00:00Z",
+  "title": "Design System: CETIEM — Plataforma de Certificación ESG",
+  "extensions": {
+    "colorMeta": {
+      "institutional-jade": {
+        "role": "primary",
+        "displayName": "Institutional Jade",
+        "canonical": "oklch(60% 0.13 162deg)",
+        "note": "Moodboard canonical. Codebase currently uses #00D47A — migrate to this value.",
+        "tonalRamp": ["#061512", "#0b2922", "#0e3d2e", "#145648", "#196d5a", "#1d9e75", "#4aba97", "#9acfba"]
+      },
+      "compliance-lime": {
+        "role": "secondary",
+        "displayName": "Compliance Lime",
+        "canonical": "oklch(93% 0.22 130deg)",
+        "note": "Admin-role marker. Never used as a success state — that is status-approved.",
+        "tonalRamp": ["#192601", "#2f4603", "#4a6b07", "#66920c", "#87b815", "#ADFF4F", "#c9ff80", "#e8ffcc"]
+      },
+      "assessment-cyan": {
+        "role": "secondary",
+        "displayName": "Assessment Cyan",
+        "canonical": "oklch(79% 0.14 203deg)",
+        "note": "Assessor-role marker. Not used on Empresa-facing screens.",
+        "tonalRamp": ["#001f24", "#003c48", "#005c6e", "#007d94", "#00a5bd", "#00C8E0", "#5cdcf0", "#b2f0f8"]
+      },
+      "status-approved": {
+        "role": "semantic",
+        "displayName": "Status Approved",
+        "canonical": "oklch(73% 0.18 130deg)",
+        "note": "V.L.A.P. quad: verified, certified, complete.",
+        "tonalRamp": ["#182600", "#2e4500", "#476900", "#628e00", "#7fb200", "#9fc031", "#bada6e", "#d8eeac"]
+      },
+      "status-progress": {
+        "role": "semantic",
+        "displayName": "Status In Progress",
+        "canonical": "oklch(84% 0.18 85deg)",
+        "note": "V.L.A.P. quad: active AI processing, pipeline running.",
+        "tonalRamp": ["#271a00", "#4d3300", "#754e00", "#9e6900", "#c78500", "#ffbf00", "#ffd04d", "#ffe499"]
+      },
+      "status-review": {
+        "role": "semantic",
+        "displayName": "Status Review",
+        "canonical": "oklch(50% 0.11 213deg)",
+        "note": "V.L.A.P. quad: awaiting human validation by assessor.",
+        "tonalRamp": ["#001520", "#002840", "#003d61", "#005480", "#006ea3", "#1e7d93", "#4da3b5", "#9acdd8"]
+      },
+      "status-hardstop": {
+        "role": "semantic",
+        "displayName": "Status Hard Stop",
+        "canonical": "oklch(43% 0.14 25deg)",
+        "note": "V.L.A.P. quad: non-compliance detected, triggers CAPA workflow.",
+        "tonalRamp": ["#1a0303", "#350808", "#54100f", "#751a19", "#932525", "#aa3939", "#c46969", "#dfa7a7"]
+      },
+      "base": {
+        "role": "neutral",
+        "displayName": "Base Black",
+        "canonical": "oklch(5% 0.002 0deg)",
+        "note": "Page background. The vault floor.",
+        "tonalRamp": ["#0A0A0A", "#111111", "#181818", "#1f1f1f", "#282828", "#333333", "#4a4a4a", "#666666"]
+      },
+      "surface-raised": {
+        "role": "neutral",
+        "displayName": "Sidebar Surface",
+        "canonical": "oklch(8% 0.002 0deg)",
+        "tonalRamp": ["#0D0D0D", "#141414", "#1c1c1c", "#242424", "#2e2e2e", "#3a3a3a", "#505050", "#6e6e6e"]
+      },
+      "surface-elevated": {
+        "role": "neutral",
+        "displayName": "Card Surface",
+        "canonical": "oklch(10% 0.002 0deg)",
+        "tonalRamp": ["#111111", "#181818", "#202020", "#292929", "#333333", "#3f3f3f", "#565656", "#747474"]
+      },
+      "surface-floating": {
+        "role": "neutral",
+        "displayName": "Floating Surface",
+        "canonical": "oklch(12% 0.002 0deg)",
+        "tonalRamp": ["#161616", "#1e1e1e", "#272727", "#313131", "#3c3c3c", "#494949", "#616161", "#808080"]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Text Primary",
+        "canonical": "oklch(96% 0.002 0deg)"
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "Text Secondary",
+        "canonical": "oklch(60% 0.002 0deg)"
+      },
+      "neutral-mid": {
+        "role": "neutral",
+        "displayName": "Neutral Mid",
+        "canonical": "oklch(57% 0.004 266deg)",
+        "note": "From moodboard. Timestamps, metadata, neutral indicators."
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Landing page hero and major section anchors. Bricolage Grotesque only." },
+      "headline": { "displayName": "Headline", "purpose": "Section titles within the product. First heading the assessor sees per screen." },
+      "title": { "displayName": "Title", "purpose": "Panel headings, card titles, sidebar section labels." },
+      "body": { "displayName": "Body", "purpose": "All reading content. 65ch max line length." },
+      "label": { "displayName": "Label", "purpose": "Badges, nav labels, breadcrumbs, status tags, table column headers. Always uppercase + tracking 0.2em." },
+      "mono": { "displayName": "Mono", "purpose": "Certificate hashes, document UUIDs, audit log entries." }
+    },
+    "shadows": [
+      { "name": "glow-green", "value": "0 0 20px rgba(29,158,117,0.25), 0 0 60px rgba(29,158,117,0.08)", "purpose": "Primary button hover. The system's one moment of theatrics. Never on static surfaces." },
+      { "name": "glow-green-sm", "value": "0 0 10px rgba(29,158,117,0.20)", "purpose": "Input focus supplement, active nav item glow." },
+      { "name": "focus-ring", "value": "0 0 0 3px rgba(29,158,117,0.12)", "purpose": "Input focus state. Structural, not decorative." },
+      { "name": "focus-ring-error", "value": "0 0 0 3px rgba(170,57,57,0.10)", "purpose": "Input error state." },
+      { "name": "ambient-dark", "value": "0 4px 24px rgba(0,0,0,0.4)", "purpose": "Floating panels (notification drawer). Reinforces elevation above the surface stack." }
+    ],
+    "motion": [
+      { "name": "ease-out-quart", "value": "cubic-bezier(0.25, 1, 0.5, 1)", "purpose": "Default easing for all state transitions. Snappy out, never bouncy." },
+      { "name": "duration-fast", "value": "150ms", "purpose": "Color and opacity transitions (hover states, badge changes)." },
+      { "name": "duration-standard", "value": "200ms", "purpose": "Transform transitions (button lift, nav slide, card expand)." },
+      { "name": "duration-slow", "value": "400ms", "purpose": "Page-level entrance animations (Framer Motion stagger)." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" },
+      { "name": "2xl", "value": "1400px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary certification action. Used for Solicitar Certificación, Iniciar Registro, Emitir Dictamen. Lifts and glows on hover.",
+      "html": "<button class=\"ds-btn-primary\">Solicitar Certificación</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; background: #1d9e75; color: #0A0A0A; font-family: 'Inter', system-ui, sans-serif; font-size: 0.875rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; border: none; border-radius: 12px; cursor: pointer; transition: transform 150ms cubic-bezier(0.25,1,0.5,1), box-shadow 150ms cubic-bezier(0.25,1,0.5,1); } .ds-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 0 28px rgba(29,158,117,0.45); } .ds-btn-primary:focus-visible { outline: 2px solid #1d9e75; outline-offset: 2px; } .ds-btn-primary:active { transform: scale(0.97); box-shadow: none; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; pointer-events: none; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary navigation CTA. Used for Acceso al Sistema, secondary form actions. Arrow animates on hover.",
+      "html": "<button class=\"ds-btn-ghost\">Acceso al Sistema <svg class=\"ds-btn-ghost__arrow\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M5 12h14M12 5l7 7-7 7\"/></svg></button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: transparent; color: rgba(255,255,255,0.50); font-family: 'Inter', system-ui, sans-serif; font-size: 0.875rem; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; transition: color 150ms ease-out; } .ds-btn-ghost:hover { color: rgba(255,255,255,0.80); } .ds-btn-ghost:hover .ds-btn-ghost__arrow { transform: translateX(2px); } .ds-btn-ghost__arrow { width: 16px; height: 16px; flex-shrink: 0; transition: transform 150ms cubic-bezier(0.25,1,0.5,1); }"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "Hard Stop actions only: revoke certificate, reject assessment. Requires confirmation step before execution.",
+      "html": "<button class=\"ds-btn-destructive\">Revocar Certificado</button>",
+      "css": ".ds-btn-destructive { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; background: #aa3939; color: #F2F2F2; font-family: 'Inter', system-ui, sans-serif; font-size: 0.875rem; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; transition: opacity 150ms ease-out; } .ds-btn-destructive:hover { opacity: 0.9; } .ds-btn-destructive:focus-visible { outline: 2px solid #aa3939; outline-offset: 2px; } .ds-btn-destructive:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Status Badge — Approved",
+      "kind": "chip",
+      "refersTo": "status-approved",
+      "description": "V.L.A.P. certification complete. Olive-lime — serious, not celebratory. Always paired with label text.",
+      "html": "<span class=\"ds-status-approved\"><svg width=\"6\" height=\"6\" viewBox=\"0 0 6 6\"><circle cx=\"3\" cy=\"3\" r=\"3\" fill=\"#9fc031\"/></svg>APROBADO</span>",
+      "css": ".ds-status-approved { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: rgba(159,192,49,0.12); color: #9fc031; border: 1px solid rgba(159,192,49,0.30); border-radius: 4px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.625rem; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Status Badge — Hard Stop",
+      "kind": "chip",
+      "refersTo": "status-hardstop",
+      "description": "Non-compliance. Hard stop threshold breached (<85% V.L.A.P. score). Triggers CAPA workflow automatically.",
+      "html": "<span class=\"ds-status-hardstop\"><svg width=\"6\" height=\"6\" viewBox=\"0 0 6 6\"><circle cx=\"3\" cy=\"3\" r=\"3\" fill=\"#aa3939\"/></svg>HARD STOP</span>",
+      "css": ".ds-status-hardstop { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: rgba(170,57,57,0.12); color: #aa3939; border: 1px solid rgba(170,57,57,0.30); border-radius: 4px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.625rem; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card-default",
+      "description": "Base content container. Flat at rest. 12px radius. 1px subtle border. Used for document panels, data sections, form groups.",
+      "html": "<div class=\"ds-card\"><p class=\"ds-card-title\">Dictamen V.L.A.P.</p><p class=\"ds-card-body\">Análisis preliminar de cumplimiento ESG generado por Kimi K2.6.</p></div>",
+      "css": ".ds-card { background: #111111; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; } .ds-card-title { font-family: 'Inter', system-ui, sans-serif; font-size: 1.125rem; font-weight: 700; color: #F2F2F2; letter-spacing: -0.01em; margin: 0 0 8px 0; line-height: 1.3; } .ds-card-body { font-family: 'Inter', system-ui, sans-serif; font-size: 0.875rem; font-weight: 400; color: #999999; line-height: 1.6; margin: 0; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Standard text input. Jade focus ring. Used for search, form fields, document filters.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\">Nombre del documento</label><input class=\"ds-input\" type=\"text\" placeholder=\"Ej. Manual de Gestión Ambiental\"></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; } .ds-field-label { font-family: 'Inter', system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; color: rgba(255,255,255,0.60); } .ds-input { display: flex; width: 100%; height: 40px; padding: 10px 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); border-radius: 8px; font-family: 'Inter', system-ui, sans-serif; font-size: 0.875rem; color: #F2F2F2; outline: none; transition: border-color 150ms ease-out, box-shadow 150ms ease-out; box-sizing: border-box; } .ds-input::placeholder { color: rgba(255,255,255,0.30); } .ds-input:focus { border-color: #1d9e75; box-shadow: 0 0 0 3px rgba(29,158,117,0.12); } .ds-input:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Navigation Item",
+      "kind": "nav",
+      "description": "Sidebar navigation item. Active state uses jade accent + 2px left border (structural state signal, not decorative stripe).",
+      "html": "<a class=\"ds-nav-item ds-nav-item--active\" href=\"#\"><svg class=\"ds-nav-icon\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/></svg>Panel de Control</a>",
+      "css": ".ds-nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; border-left: 2px solid transparent; font-family: 'Inter', system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.015em; transition: color 150ms ease-out, background 150ms ease-out; } .ds-nav-item:hover { color: rgba(255,255,255,0.80); background: rgba(255,255,255,0.03); } .ds-nav-item--active { background: rgba(29,158,117,0.08); color: #1d9e75; border-left-color: #1d9e75; } .ds-nav-icon { width: 16px; height: 16px; flex-shrink: 0; color: inherit; }"
+    },
+    {
+      "name": "AI Hint Panel",
+      "kind": "custom",
+      "description": "Persistent sidebar tile. Shows the AI protocol context for the current role. Never interactive.",
+      "html": "<div class=\"ds-ai-hint\"><div class=\"ds-ai-hint__header\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#1d9e75\" stroke-width=\"2\"><polygon points=\"12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2\"/></svg><span class=\"ds-ai-hint__label\">Filtro Cero IA</span></div><p class=\"ds-ai-hint__body\">Procesamiento de documentos asistido por IA · Filtro Cero V.L.A.P.</p></div>",
+      "css": ".ds-ai-hint { background: rgba(29,158,117,0.04); border: 1px solid rgba(29,158,117,0.12); border-radius: 12px; padding: 16px; } .ds-ai-hint__header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; } .ds-ai-hint__label { font-family: 'Inter', system-ui, sans-serif; font-size: 0.5625rem; font-weight: 900; color: #1d9e75; text-transform: uppercase; letter-spacing: 0.3em; } .ds-ai-hint__body { font-family: 'Inter', system-ui, sans-serif; font-size: 0.625rem; font-weight: 300; color: rgba(255,255,255,0.35); line-height: 1.6; margin: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Certification Vault",
+    "overview": "CETIEM is not a SaaS dashboard. It is the place where Mexico's ESG compliance record is created, validated, and sealed. Every visual decision answers one question: would this document hold up in court? The aesthetic is that of a notarial chamber running on AI: absolute black surfaces like polished carbon, a deep institutional jade that reads as a compliance seal, and UI density calibrated strictly to role.\n\nThe system explicitly rejects three failure modes: generic SaaS green (warm, rounded, disposable), Mexican government portal aesthetics (gray, formless, no hierarchy), and crypto dark-mode (neon excess, speculative energy). When the certification is issued, it must feel final, verifiable, and serious.",
+    "keyCharacteristics": [
+      "Always-dark surfaces: authority is not negotiated per-screen",
+      "Institutional Jade (#1d9e75) as the single canonical primary: rare, earned by proximity to certification events",
+      "Tonal layering (#0A → #0D → #11 → #16) creates depth without shadows or decoration",
+      "The V.L.A.P. status quad is the system's primary communication mechanism",
+      "Typographic hierarchy through weight + scale contrast; no gradient text, no ornament",
+      "All UI copy in Spanish (Mexico)"
+    ],
+    "rules": [
+      { "name": "The One Pair Rule", "body": "Every V.L.A.P. status color always travels with its label or icon. Color alone is never sufficient for state communication.", "section": "colors" },
+      { "name": "The Glow Exception Rule", "body": "The only decorative light effect permitted is the green glow on activated interactive elements. Every other bloom or radial gradient on a UI element is prohibited.", "section": "colors" },
+      { "name": "The Triple-Layer Rule", "body": "Every badge carries all three: background tint + solid text color + opacity border. A badge with only one or two layers is incomplete.", "section": "components" },
+      { "name": "The No-Decoration Rule", "body": "No text-shadow on any label or body copy. No background-clip: text gradient text. Emphasis through weight and scale, never through color on multi-line text.", "section": "typography" },
+      { "name": "The Label Reserve Rule", "body": "The Inter Black + uppercase + wide-tracking combination belongs exclusively to the Label role. Do not use it on body text, descriptions, or headings.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Panels and cards are flat at rest. No resting card box-shadow. The surface color difference is the elevation system.", "section": "elevation" },
+      { "name": "The No-Nested-Card Rule", "body": "Cards inside cards are always wrong. Use padding variation, dividers, or section-level background tints instead.", "section": "components" }
+    ],
+    "dos": [
+      "Do use Institutional Jade (#1d9e75) as the canonical primary, not #00D47A.",
+      "Do pair every V.L.A.P. status color with its text label or icon.",
+      "Do use the tonal surface stack for elevation: #0A0A0A base → #0D0D0D sidebar → #111111 cards → #161616 floating.",
+      "Do write all UI labels, error messages, and notifications in Spanish (Mexico).",
+      "Do use uppercase Inter Black + tracking 0.2em exclusively for Badge/Label content.",
+      "Do use Bricolage Grotesque exclusively for Display and Headline roles.",
+      "Do use JetBrains Mono for certificate hashes, document UUIDs, and audit log entries.",
+      "Do cap body text at 65ch maximum line length.",
+      "Do keep the green glow strictly reserved for primary button activation.",
+      "Do vary padding across sections for rhythm."
+    ],
+    "donts": [
+      "Don't use #00D47A as the brand primary. It reads as generic SaaS green.",
+      "Don't use generic SaaS green UI patterns: warm rounded cards, illustration-led empty states, soft pastel backgrounds.",
+      "Don't reference Mexican government portal aesthetics: gray form surfaces, table-heavy layouts, no visual rhythm.",
+      "Don't use crypto/Web3 neon-dark patterns: multiple simultaneous neon colors, neon-on-neon layering, aggressive bloom.",
+      "Don't use background-clip: text gradient text. Prohibited absolutely.",
+      "Don't add resting box-shadow card shadows. Elevation is tonal.",
+      "Don't use glassmorphism on content panels, data tables, or closely-read surfaces.",
+      "Don't use border-left greater than 1px as a decorative color stripe on cards or callouts.",
+      "Don't use V.L.A.P. status colors outside their defined semantic roles.",
+      "Don't add illustrations, mascots, or celebratory animations. The Certification Vault has no characters.",
+      "Don't nest cards."
+    ]
+  }
+}

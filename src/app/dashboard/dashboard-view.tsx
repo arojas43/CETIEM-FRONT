@@ -62,18 +62,18 @@ interface Props {
 // Moodboard status colors: Approved=#9fc031, In-progress=#ffbf00, Review=#1e7d93, Hard-stop=#aa3939
 const DOC_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ComponentType<{ className?: string }> }> = {
   PENDING:    { label: 'Pendiente',  color: 'text-white/40',      bg: 'bg-white/5',                    icon: Clock },
-  PROCESSING: { label: 'Procesando', color: 'text-[#ffbf00]',     bg: 'bg-[#ffbf00]/10',               icon: RefreshCw },
-  INDEXED:    { label: 'Indexado',   color: 'text-[#1e7d93]',     bg: 'bg-[#1e7d93]/10',               icon: Search },
-  ANALYZED:   { label: 'Analizado',  color: 'text-[#9fc031]',     bg: 'bg-[#9fc031]/10',               icon: CheckCircle },
-  FAILED:     { label: 'Fallido',    color: 'text-[#aa3939]',     bg: 'bg-[#aa3939]/10',               icon: AlertCircle },
+  PROCESSING: { label: 'Procesando', color: 'text-status-progress',     bg: 'bg-status-progress/10',               icon: RefreshCw },
+  INDEXED:    { label: 'Indexado',   color: 'text-status-review',     bg: 'bg-status-review/10',               icon: Search },
+  ANALYZED:   { label: 'Analizado',  color: 'text-status-approved',     bg: 'bg-status-approved/10',               icon: CheckCircle },
+  FAILED:     { label: 'Fallido',    color: 'text-status-hardstop',     bg: 'bg-status-hardstop/10',               icon: AlertCircle },
 }
 
 const CERT_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  APPROVED:  { label: 'Aprobado',    color: 'text-[#9fc031]',  bg: 'bg-[#9fc031]/10' },
-  IN_REVIEW: { label: 'En revisión', color: 'text-[#1e7d93]',  bg: 'bg-[#1e7d93]/10' },
-  REJECTED:  { label: 'Rechazado',   color: 'text-[#aa3939]',  bg: 'bg-[#aa3939]/10' },
-  REVOKED:   { label: 'Revocado',    color: 'text-[#aa3939]',  bg: 'bg-[#aa3939]/10' },
-  CAPA_OPEN: { label: 'CAPA Abierta',color: 'text-[#ffbf00]',  bg: 'bg-[#ffbf00]/10' },
+  APPROVED:  { label: 'Aprobado',    color: 'text-status-approved',  bg: 'bg-status-approved/10' },
+  IN_REVIEW: { label: 'En revisión', color: 'text-status-review',  bg: 'bg-status-review/10' },
+  REJECTED:  { label: 'Rechazado',   color: 'text-status-hardstop',  bg: 'bg-status-hardstop/10' },
+  REVOKED:   { label: 'Revocado',    color: 'text-status-hardstop',  bg: 'bg-status-hardstop/10' },
+  CAPA_OPEN: { label: 'CAPA Abierta',color: 'text-status-progress',  bg: 'bg-status-progress/10' },
   DRAFT:     { label: 'Borrador',    color: 'text-white/30',   bg: 'bg-white/5' },
 }
 
@@ -105,8 +105,8 @@ function DonutChart({ analyzed, processing, indexed, failed, total }: DocStats) 
   const data = [
     { pct: analyzed / safeTotal, color: '#9fc031' },
     { pct: processing / safeTotal, color: '#ffbf00' },
-    { pct: indexed / safeTotal, color: '#1e7d93' },
-    { pct: failed / safeTotal, color: '#aa3939' },
+    { pct: indexed / safeTotal, color: '#31A8C8' },
+    { pct: failed / safeTotal, color: '#D45858' },
   ]
   let offset = 0
   const segments = data.filter(d => d.pct > 0).map(d => {
@@ -140,15 +140,15 @@ function DictamenBanner({ certStats, companyId: _companyId }: { certStats: CertS
 
   if (certStatus === 'APPROVED') {
     return (
-      <div role="alert" aria-live="polite" className="bg-gradient-to-r from-[#00D47A]/10 to-cetiem-green/10 border border-economia-success/30 rounded-2xl p-5">
+      <div role="alert" aria-live="polite" className="bg-cetiem-green/5 border border-cetiem-green/25 rounded-2xl p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <Award className="h-8 w-8 text-[#00D47A] shrink-0 mt-0.5" aria-hidden="true" />
+            <Award className="h-8 w-8 text-cetiem-green shrink-0 mt-0.5" aria-hidden="true" />
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-sans font-bold text-[#00D47A] text-base">Certificado ESG Aprobado</h3>
+                <h3 className="font-sans font-bold text-cetiem-green text-base">Certificado ESG Aprobado</h3>
                 {esgScore !== null && esgScore !== undefined && (
-                  <span className="text-xs font-bold bg-economia-success/20 text-[#00D47A] px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-bold bg-cetiem-green/15 text-cetiem-green px-2 py-0.5 rounded-full">
                     Score {Math.round(esgScore)}%
                   </span>
                 )}
@@ -163,7 +163,7 @@ function DictamenBanner({ certStats, companyId: _companyId }: { certStats: CertS
           </div>
           <Link
             href="/dashboard/mi-certificado"
-            className="shrink-0 flex items-center gap-2 bg-[#00D47A] hover:bg-[#00D47A]/90 text-black font-semibold text-sm px-4 py-2 rounded-xl transition-colors"
+            className="shrink-0 flex items-center gap-2 bg-cetiem-green hover:bg-cetiem-green/90 text-white font-semibold text-sm px-4 py-2 rounded-xl transition-colors"
           >
             <Download className="h-4 w-4" aria-hidden="true" /> Ver Certificado
           </Link>
@@ -192,18 +192,18 @@ function DictamenBanner({ certStats, companyId: _companyId }: { certStats: CertS
 
   // IN_REVIEW or CAPA_OPEN
   return (
-    <div className="bg-economia-warning/10 border border-economia-warning/30 rounded-2xl p-5">
+    <div role="alert" aria-live="polite" className="bg-economia-warning/8 border border-economia-warning/30 rounded-2xl p-5">
       <div className="flex items-start gap-3">
-        <MessageSquare className="h-6 w-6 text-[#FBBF24] shrink-0 mt-0.5" />
+        <MessageSquare className="h-6 w-6 text-economia-warning shrink-0 mt-0.5" />
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <h3 className="font-sans font-semibold text-[#FBBF24] text-sm">
+            <h3 className="font-sans font-semibold text-economia-warning text-sm">
               {certStatus === 'CAPA_OPEN' ? 'Acciones correctivas requeridas' : 'Revisión en curso — feedback del Assessor'}
             </h3>
           </div>
           {certNotes && (
-            <p className="text-foreground text-sm italic mb-3 bg-muted rounded-xl px-3 py-2 border-l-2 border-economia-warning/40">
-              "{certNotes}"
+            <p className="text-foreground text-sm italic mb-3 bg-white/5 rounded-xl px-3 py-2">
+              &ldquo;{certNotes}&rdquo;
             </p>
           )}
           <div className="flex items-center gap-3 text-xs flex-wrap">
@@ -213,12 +213,12 @@ function DictamenBanner({ certStats, companyId: _companyId }: { certStats: CertS
               </span>
             )}
             {findingsSummary.obs > 0 && (
-              <span className="bg-economia-warning/15 text-[#FBBF24] px-2 py-1 rounded-lg font-medium">
+              <span className="bg-economia-warning/15 text-economia-warning px-2 py-1 rounded-lg font-medium">
                 {findingsSummary.obs} Observación{findingsSummary.obs !== 1 ? 'es' : ''}
               </span>
             )}
             {findingsSummary.comp > 0 && (
-              <span className="bg-economia-success/10 text-[#00D47A] px-2 py-1 rounded-lg font-medium">
+              <span className="bg-economia-success/10 text-cetiem-green px-2 py-1 rounded-lg font-medium">
                 {findingsSummary.comp} Cumplimiento{findingsSummary.comp !== 1 ? 's' : ''}
               </span>
             )}
@@ -231,7 +231,7 @@ function DictamenBanner({ certStats, companyId: _companyId }: { certStats: CertS
             )}
           </div>
           {certStatus === 'CAPA_OPEN' && capaOpen > 0 && (
-            <Link href="/dashboard/capa" className="mt-3 inline-flex items-center gap-2 text-xs bg-[#FBBF24] text-black font-medium px-3 py-1.5 rounded-lg hover:bg-[#FBBF24]/90 transition-colors">
+            <Link href="/dashboard/capa" className="mt-3 inline-flex items-center gap-2 text-xs bg-economia-warning text-white font-medium px-3 py-1.5 rounded-lg hover:bg-economia-warning/90 transition-colors">
               Gestionar acciones correctivas <ChevronRight className="h-3 w-3" />
             </Link>
           )}
@@ -242,22 +242,23 @@ function DictamenBanner({ certStats, companyId: _companyId }: { certStats: CertS
 }
 
 // ─── COMPANY VIEW ─────────────────────────────────────────────────────────────
-function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta: _companyMeta, certStats }: Pick<Props, 'userName' | 'stats' | 'recentDocs' | 'companyMeta' | 'certStats'>) {
+function CompanyDashboard({ userName, stats, recentDocs, companyMeta, certStats }: Pick<Props, 'userName' | 'stats' | 'recentDocs' | 'companyMeta' | 'certStats'>) {
   const pct = (n: number) => stats.total > 0 ? Math.round((n / stats.total) * 100) : 0
+  const firstName = userName.split(' ')[0]
 
   const hasCert = (certStats?.total ?? 0) > 0
   const certApproved = (certStats?.approved ?? 0) > 0
   const capaOpen = certStats?.capaOpen ?? 0
 
   const certSteps = [
-    { n: 1, label: 'Documentos\nSubidos', done: stats.total > 0, active: stats.total === 0 },
-    { n: 2, label: 'Análisis IA\nImpulsado por NVIDIA', done: stats.analyzed > 0, active: stats.total > 0 && stats.analyzed === 0 },
-    { n: 3, label: 'Revisión\nAssessor ESG', done: hasCert, active: stats.analyzed > 0 && !hasCert },
-    { n: 4, label: 'Certificado\nESG Emitido', done: certApproved, active: hasCert && !certApproved },
+    { n: 1, label: 'Documentos\nsubidos',   done: stats.total > 0,    active: stats.total === 0 },
+    { n: 2, label: 'Análisis\nIA',           done: stats.analyzed > 0, active: stats.total > 0 && stats.analyzed === 0 },
+    { n: 3, label: 'Revisión\nassessor',     done: hasCert,            active: stats.analyzed > 0 && !hasCert },
+    { n: 4, label: 'Certificado\nESG',       done: certApproved,       active: hasCert && !certApproved },
   ]
 
   return (
-    <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#0A0A0A]">
+    <div className="flex-1 p-8 space-y-6 overflow-auto bg-cetiem-dark">
       {/* Breadcrumbs — ol.breadcrumb con icon-home */}
       <nav aria-label="Ubicación" className="mb-2">
         <ol className="breadcrumb">
@@ -270,40 +271,64 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
         </ol>
       </nav>
 
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-3xl font-sans font-bold text-white/90 leading-tight mb-2">Panel de Certificación</h1>
-          <div className="pleca-dorada" />
-          <p className="text-muted-foreground text-sm font-medium">Gestión de cumplimiento ambiental, social y de gobernanza.</p>
+      <div className="flex items-start justify-between gap-6 mb-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+            <h1 className="font-sans font-bold text-3xl text-white/90 leading-tight">Hola, {firstName}.</h1>
+            {companyMeta?.track && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-cetiem-green/10 text-cetiem-green border border-cetiem-green/20">
+                {companyMeta.track}
+              </span>
+            )}
+            {companyMeta?.sprintLevel && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/5 text-muted-foreground border border-border">
+                {companyMeta.sprintLevel}
+              </span>
+            )}
+          </div>
+          <p className="text-muted-foreground text-sm font-medium">
+            {companyMeta?.companyName ?? 'Gestión de cumplimiento ESG.'}
+          </p>
         </div>
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard/upload" className="btn-cetiem-primary !px-10 !py-3">
-            <Upload className="h-4 w-4" /> SUBIR DOCUMENTACIÓN
-          </Link>
-        </div>
+        <Link href="/dashboard/upload" className="btn-cetiem-primary shrink-0">
+          <Upload className="h-4 w-4" /> Subir documentos
+        </Link>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
         <div className="col-span-2 space-y-5">
           {certStats && <DictamenBanner certStats={certStats} />}
 
+          {companyMeta?.assessor && (
+            <div className="bg-card border border-border/60 rounded-2xl p-4 flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-cetiem-cyan/10 border border-cetiem-cyan/20 flex items-center justify-center shrink-0">
+                <Users className="h-4 w-4 text-cetiem-cyan" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-cetiem-cyan mb-0.5">Assessor ESG asignado</p>
+                <p className="text-sm font-semibold text-foreground truncate">
+                  {companyMeta.assessor.name || companyMeta.assessor.email}
+                </p>
+              </div>
+            </div>
+          )}
+
           {capaOpen > 0 && (!certStats?.certStatus || certStats.certStatus === 'DRAFT') && (
-            <Link href="/dashboard/capa" className="flex items-center gap-3 bg-economia-warning/10 border border-economia-warning/30 rounded-2xl p-6 hover:border-economia-warning/50 transition-colors ">
-              <ShieldAlert className="h-6 w-6 text-[#FBBF24] shrink-0" />
+            <Link role="alert" href="/dashboard/capa" className="flex items-center gap-3 bg-economia-warning/10 border border-economia-warning/30 rounded-2xl p-6 hover:border-economia-warning/50 transition-colors">
+              <ShieldAlert className="h-6 w-6 text-economia-warning shrink-0" />
               <div className="flex-1">
-                <p className="text-[#FBBF24] font-black text-sm uppercase tracking-widest">
-                  {capaOpen} ACCIÓN CORRECTIVA {capaOpen !== 1 ? 'S' : ''} PENDIENTE{capaOpen !== 1 ? 'S' : ''}
+                <p className="text-economia-warning font-black text-sm uppercase tracking-widest">
+                  {capaOpen} acción{capaOpen !== 1 ? 'es' : ''} correctiva{capaOpen !== 1 ? 's' : ''} pendiente{capaOpen !== 1 ? 's' : ''}
                 </p>
                 <p className="text-muted-foreground text-xs font-medium">Tienes hallazgos que requieren atención inmediata. Haz clic para gestionarlos.</p>
               </div>
-              <ChevronRight className="h-5 w-5 text-[#FBBF24] shrink-0" />
+              <ChevronRight className="h-5 w-5 text-economia-warning shrink-0" />
             </Link>
           )}
 
-          <div className="bg-card border border-border/60 rounded-2xl p-5 ">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="pleca-dorada w-1 h-6" />
-              <h2 className="text-lg font-sans font-bold text-white/90 uppercase tracking-wider">Flujo Institucional</h2>
+          <div className="bg-card border border-border/60 rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-6">
+              <h2 className="text-sm font-sans font-bold text-foreground/60 uppercase tracking-widest">Flujo institucional</h2>
             </div>
             <div className="flex items-center gap-0">
               {certSteps.map((step, i) => (
@@ -311,19 +336,19 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
                   <div className="flex flex-col items-center flex-1">
                     <div className={cn(
                       "h-12 w-12 rounded-full flex items-center justify-center text-sm font-black border-2 mb-3 shadow-sm transition-all",
-                      step.done ? "bg-[#00D47A] border-[#00D47A] text-white" :
-                        step.active ? "bg-economia-warning/20 border-economia-warning text-[#FBBF24] animate-pulse" :
+                      step.done ? "bg-cetiem-green border-cetiem-green text-white" :
+                        step.active ? "bg-economia-warning/20 border-economia-warning text-economia-warning motion-safe:animate-pulse" :
                           "bg-muted border-border text-muted-foreground/60"
                     )}>
                       {step.done ? <CheckCircle className="h-6 w-6" /> : step.n}
                     </div>
                     <span className={cn("text-xs text-center font-black leading-tight whitespace-pre-line uppercase tracking-widest",
-                      step.done ? "text-[#00D47A]" : step.active ? "text-[#FBBF24]" : "text-muted-foreground/60"
+                      step.done ? "text-cetiem-green" : step.active ? "text-economia-warning" : "text-muted-foreground/60"
                     )}>{step.label}</span>
                   </div>
                   {i < certSteps.length - 1 && (
                     <div className={cn("h-1 w-full mx-2 mb-8 rounded-full",
-                      step.done ? "bg-[#00D47A]" : "bg-muted"
+                      step.done ? "bg-cetiem-green" : "bg-muted"
                     )} />
                   )}
                 </div>
@@ -331,54 +356,48 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-[#00D47A] rounded-2xl p-6  group hover:scale-[1.02] transition-transform">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-white/70 text-sm font-bold uppercase tracking-widest">Documentos</span>
-                <FileText className="h-5 w-5 text-white/60" />
-              </div>
-              <div className="text-4xl font-sans font-bold text-white">{stats.total}</div>
-              <Link href="/dashboard/documents" className="text-white/80 text-xs mt-4 flex items-center gap-1 hover:text-white font-bold uppercase tracking-tighter">
-                Ver Repositorio <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-              </Link>
+          <div className="flex items-stretch bg-cetiem-surface border border-border/60 rounded-2xl overflow-hidden">
+            <Link href="/dashboard/documents" className="flex-1 px-5 py-4 hover:bg-white/5 transition-colors group">
+              <div className="text-2xl font-bold text-foreground leading-none mb-1">{stats.total}</div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Documentos</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1 group-hover:text-cetiem-green transition-colors">
+                Ver repositorio <ArrowRight className="h-2.5 w-2.5" />
+              </p>
+            </Link>
+            <div className="w-px bg-border/60 shrink-0" />
+            <div className="flex-1 px-5 py-4">
+              <div className="text-2xl font-bold text-foreground leading-none mb-1">{stats.analyzed}</div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Analizados</p>
+              <p className="text-[10px] text-status-approved mt-0.5">Listos para dictamen</p>
             </div>
-            <div className="bg-card border border-border rounded-2xl p-6  group hover:border-[#00D47A]/30 transition-all">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-muted-foreground text-sm font-bold uppercase tracking-widest">Analizados</span>
-                <div className="h-8 w-8 rounded-lg bg-economia-success/10 flex items-center justify-center">
-                  <CheckCircle className="h-5 w-5 text-[#00D47A]" />
-                </div>
-              </div>
-              <div className="text-4xl font-sans font-bold text-foreground">{stats.analyzed}</div>
-              <span className="text-muted-foreground/60 text-xs mt-4 block font-medium">Listos para dictamen</span>
+            <div className="w-px bg-border/60 shrink-0" />
+            <div className="flex-1 px-5 py-4">
+              <div className="text-2xl font-bold text-foreground leading-none mb-1">{stats.processing}</div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">En proceso</p>
+              <p className="text-[10px] text-status-progress mt-0.5">IA activa</p>
             </div>
-            <div className={cn("rounded-2xl p-8  group transition-all border", certApproved ? "bg-economia-success/10 border-economia-success/30" : "bg-card border-border")}>
-              <div className="flex items-center justify-between mb-4">
-                <span className={cn("text-xs font-black uppercase tracking-widest", certApproved ? "text-[#00D47A]" : "text-muted-foreground")}>Sellos ESG</span>
-                <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", certApproved ? "bg-economia-success/20" : "bg-muted")}>
-                  <Award className={cn("h-5 w-5", certApproved ? "text-[#00D47A]" : "text-muted-foreground/60")} />
-                </div>
+            <div className="w-px bg-border/60 shrink-0" />
+            <div className="flex-1 px-5 py-4">
+              <div className={cn("text-2xl font-bold leading-none mb-1", certApproved ? "text-status-approved" : "text-foreground")}>
+                {certStats?.approved ?? 0}
               </div>
-              <div className="text-4xl font-sans font-bold text-foreground">{certStats?.approved ?? 0}</div>
-              <span className={cn("text-xs mt-4 block font-medium", certApproved ? "text-[#00D47A]/70" : "text-muted-foreground/60")}>
-                {certApproved ? 'Felicidades: Aprobado' : 'Pendiente de emisión'}
-              </span>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sellos ESG</p>
+              <p className={cn("text-[10px] mt-0.5", certApproved ? "text-status-approved" : "text-muted-foreground/60")}>
+                {certApproved ? 'Aprobado' : 'Pendiente'}
+              </p>
             </div>
           </div>
 
           <div className="bg-card border border-border/60 rounded-2xl p-6 ">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="pleca-dorada w-1 h-6" />
-                <h2 className="font-sans font-semibold text-foreground text-base uppercase tracking-wider">Cargas Recientes</h2>
-              </div>
-              <Link href="/dashboard/documents" className="text-secondary text-xs font-black hover:underline uppercase tracking-widest">Ver repositorio completo →</Link>
+              <h2 className="font-sans font-bold text-foreground/60 text-sm uppercase tracking-widest">Cargas recientes</h2>
+              <Link href="/dashboard/documents" className="text-cetiem-green text-xs font-black hover:text-cetiem-green/80 transition-colors uppercase tracking-widest">Ver todo →</Link>
             </div>
             {recentDocs.length === 0 ? (
               <div className="text-center py-12">
                 <Upload className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
                 <p className="text-muted-foreground text-sm font-medium mb-6">Aún no has subido documentos.</p>
-                <Link href="/dashboard/upload" className="btn-cetiem-primary !px-8">
+                <Link href="/dashboard/upload" className="btn-cetiem-primary">
                   Subir mi primer documento
                 </Link>
               </div>
@@ -386,9 +405,9 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
               <div className="space-y-1">
                 {recentDocs.map((doc, i) => (
                   <Link key={doc.id} href={`/dashboard/documents/${doc.id}`}
-                    className={cn("flex items-center gap-4 p-4 rounded-xl transition-all border border-transparent hover:border-primary/20 hover:bg-[#111111] hover:shadow-sm group", i % 2 === 0 ? "bg-muted/60" : "")}>
-                    <div className="h-10 w-10 bg-[#111111] rounded-lg flex items-center justify-center shrink-0 border border-border shadow-sm group-hover:bg-[#00D47A] group-hover:border-[#00D47A] transition-colors">
-                      <FileText className="h-5 w-5 text-muted-foreground group-hover:text-white transition-colors" />
+                    className={cn("flex items-center gap-4 p-4 rounded-xl transition-all border border-transparent hover:border-cetiem-green/15 hover:bg-cetiem-surface group", i % 2 === 0 ? "bg-muted/40" : "")}>
+                    <div className="h-10 w-10 bg-cetiem-surface rounded-lg flex items-center justify-center shrink-0 border border-border shadow-sm group-hover:bg-cetiem-green/10 group-hover:border-cetiem-green/30 transition-colors">
+                      <FileText className="h-5 w-5 text-muted-foreground group-hover:text-cetiem-green transition-colors" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-foreground text-sm font-bold truncate tracking-tight">{doc.name}</p>
@@ -396,7 +415,7 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       {doc.certStatus && <CertBadge status={doc.certStatus} />}
-                      <ArrowRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-[#00D47A] transition-all group-hover:translate-x-1" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-cetiem-green transition-all group-hover:translate-x-1" />
                     </div>
                   </Link>
                 ))}
@@ -418,10 +437,10 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
             </div>
             <div className="space-y-3">
               {[
-                { label: 'Analizados', color: 'bg-[#9fc031]', count: stats.analyzed },
-                { label: 'Procesando', color: 'bg-[#ffbf00]', count: stats.processing },
-                { label: 'Indexados',  color: 'bg-[#1e7d93]', count: stats.indexed },
-                { label: 'Fallidos',   color: 'bg-[#aa3939]', count: stats.failed },
+                { label: 'Analizados', color: 'bg-status-approved', count: stats.analyzed },
+                { label: 'Procesando', color: 'bg-status-progress', count: stats.processing },
+                { label: 'Indexados',  color: 'bg-status-review', count: stats.indexed },
+                { label: 'Fallidos',   color: 'bg-status-hardstop', count: stats.failed },
               ].map(item => (
                 <div key={item.label} className="flex items-center gap-3">
                   <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', item.color)} />
@@ -432,48 +451,44 @@ function CompanyDashboard({ userName: _userName, stats, recentDocs, companyMeta:
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="p-4 rounded-xl text-sm shadow-sm !px-6 !py-5">
-              <div className="flex gap-4">
-                <ShieldAlert className="h-6 w-6 text-[#00C8E0] shrink-0" />
-                <div>
-                  <p className="font-black text-xs uppercase tracking-widest mb-1">PROTOCOLO V.L.A.P.</p>
-                  <p className="text-[11px] font-medium leading-relaxed opacity-80">Documentación protegida por Verificación, Validación y Auditoría.</p>
-                </div>
+          <div className="space-y-3">
+            <div className="flex gap-3 px-4 py-4 rounded-xl border border-border/60 bg-card">
+              <ShieldAlert className="h-5 w-5 text-cetiem-cyan shrink-0 mt-0.5" />
+              <div>
+                <p className="font-black text-[10px] uppercase tracking-widest mb-1 text-foreground/80">Protocolo V.L.A.P.</p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">Documentación protegida por Verificación, Validación y Auditoría.</p>
               </div>
             </div>
 
             {recentDocs.some(d => d.certStatus === 'APPROVED') && (
-              <div className="p-4 rounded-xl text-sm shadow-sm !px-6 !py-5">
-                <div className="flex gap-4">
-                  <Award className="h-6 w-6 text-[#00D47A] shrink-0" />
-                  <div>
-                    <p className="font-black text-xs uppercase tracking-widest mb-1">DICTAMEN POSITIVO</p>
-                    <p className="text-[11px] font-medium leading-relaxed opacity-80">Tienes certificados institucionales aprobados para descarga.</p>
-                  </div>
+              <div className="flex gap-3 px-4 py-4 rounded-xl border border-status-approved/20 bg-status-approved/5">
+                <Award className="h-5 w-5 text-status-approved shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-black text-[10px] uppercase tracking-widest mb-1 text-status-approved">Dictamen positivo</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">Tienes certificados institucionales aprobados para descarga.</p>
                 </div>
               </div>
             )}
           </div>
 
           {certApproved ? (
-            <Link href="/dashboard/documents" className="block bg-[#111111] border border-economia-success/30 rounded-2xl p-6  hover:scale-[1.02] transition-all group">
-              <div className="h-12 w-12 rounded-xl bg-economia-success/10 flex items-center justify-center mb-4 group-hover:bg-economia-success/20 transition-colors">
-                <Award className="h-6 w-6 text-[#00D47A]" />
+            <Link href="/dashboard/documents" className="block bg-cetiem-surface border border-status-approved/25 rounded-2xl p-6 hover:-translate-y-0.5 transition-all group">
+              <div className="h-12 w-12 rounded-xl bg-status-approved/10 flex items-center justify-center mb-4 group-hover:bg-status-approved/20 transition-colors">
+                <Award className="h-6 w-6 text-cetiem-green" />
               </div>
               <h3 className="font-sans font-black text-white/90 text-xs uppercase tracking-widest mb-2">Certificado ESG Activo</h3>
               <p className="text-muted-foreground text-[11px] font-medium mb-4 leading-relaxed">Tu cumplimiento ha sido validado satisfactoriamente por el comité evaluador.</p>
-              <span className="text-[#00D47A] text-xs font-black flex items-center gap-1 uppercase tracking-widest group-hover:gap-2 transition-all">
-                DESCARGAR SELLOS <ChevronRight className="h-3.5 w-3.5" />
+              <span className="text-cetiem-green text-xs font-black flex items-center gap-1.5 uppercase tracking-widest">
+                Descargar sellos <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
               </span>
             </Link>
           ) : (
-            <div className="bg-[#00D47A]/10 rounded-2xl p-6  relative overflow-hidden group">
+            <div className="bg-cetiem-surface border border-cetiem-green/20 rounded-2xl p-6 relative overflow-hidden group">
               <div className="relative z-10">
-                <Award className="h-10 w-10 text-white/40 mb-4" />
+                <Award className="h-10 w-10 text-cetiem-green/40 mb-4" />
                 <h3 className="font-sans font-black text-white text-xs uppercase tracking-widest mb-2">Obtén tu Certificación</h3>
                 <p className="text-white/70 text-[11px] font-medium mb-6 leading-relaxed">Sube tu evidencia para iniciar el proceso de dictamen institucional.</p>
-                <Link href="/dashboard/upload" className="block text-center bg-[#111111] text-[#00D47A] hover:bg-[#111111]/90 text-[11px] font-black py-3 rounded-xl transition-all uppercase tracking-[0.2em]">
+                <Link href="/dashboard/upload" className="block text-center bg-white/5 hover:bg-white/10 text-cetiem-green text-[11px] font-black py-3 rounded-xl transition-colors uppercase tracking-[0.2em]">
                   SUBIR EVIDENCIA
                 </Link>
               </div>
@@ -493,13 +508,13 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
   const queue = allDocsGlobal.filter(d => d.status === 'ANALYZED' || d.status === 'INDEXED')
 
   const quickActions = [
-    { href: '/dashboard/queue', label: 'Cola de Revisión', icon: ClipboardList, color: 'text-[#FBBF24]', bg: 'bg-economia-warning/10', border: 'border-economia-warning/20', count: queue.length },
-    { href: '/dashboard/companies', label: 'Empresas Asignadas', icon: Building2, color: 'text-[#00C8E0]', bg: 'bg-economia-info/10', border: 'border-economia-info/20', count: null },
+    { href: '/dashboard/queue', label: 'Cola de Revisión', icon: ClipboardList, color: 'text-economia-warning', bg: 'bg-economia-warning/10', border: 'border-economia-warning/20', count: queue.length },
+    { href: '/dashboard/companies', label: 'Empresas Asignadas', icon: Building2, color: 'text-cetiem-cyan', bg: 'bg-economia-info/10', border: 'border-economia-info/20', count: null },
     { href: '/dashboard/capa', label: 'Tickets CAPA', icon: ShieldAlert, color: 'text-economia-error', bg: 'bg-economia-error/10', border: 'border-economia-error/20', count: globalStats.capaOpen },
   ]
 
   return (
-    <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#0A0A0A]">
+    <div className="flex-1 p-8 space-y-6 overflow-auto bg-cetiem-dark">
       {/* Breadcrumbs — ol.breadcrumb con icon-home */}
       <nav aria-label="Ubicación" className="mb-2">
         <ol className="breadcrumb">
@@ -532,24 +547,24 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
           <div className="grid grid-cols-4 gap-6">
             <div className="bg-economia-warning/10 border border-economia-warning/30 rounded-2xl p-6 ">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[#FBBF24] text-xs font-bold uppercase">Por Revisar</span>
-                <ClipboardList className="h-5 w-5 text-[#FBBF24]" aria-hidden="true" />
+                <span className="text-economia-warning text-xs font-bold uppercase">Por Revisar</span>
+                <ClipboardList className="h-5 w-5 text-economia-warning" aria-hidden="true" />
               </div>
               <div className="text-4xl font-sans font-black text-foreground">{queue.length}</div>
-              <span className="text-[#FBBF24]/60 text-xs mt-1 block">En cola de dictamen</span>
+              <span className="text-economia-warning/60 text-xs mt-1 block">En cola de dictamen</span>
             </div>
             <div className="bg-economia-success/10 border border-economia-success/30 rounded-2xl p-6 ">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[#00D47A] text-xs font-bold uppercase">Aprobados</span>
-                <CheckCircle className="h-5 w-5 text-[#00D47A]" aria-hidden="true" />
+                <span className="text-cetiem-green text-xs font-bold uppercase">Aprobados</span>
+                <CheckCircle className="h-5 w-5 text-cetiem-green" aria-hidden="true" />
               </div>
               <div className="text-4xl font-sans font-black text-foreground">{globalStats.approved}</div>
-              <span className="text-[#00D47A]/60 text-xs mt-1 block">Sellos emitidos</span>
+              <span className="text-cetiem-green/60 text-xs mt-1 block">Sellos emitidos</span>
             </div>
             <div className="bg-card border border-border/60 rounded-2xl p-6 ">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-muted-foreground text-xs font-bold uppercase">Empresas</span>
-                <Building2 className="h-5 w-5 text-[#00C8E0]" aria-hidden="true" />
+                <Building2 className="h-5 w-5 text-cetiem-cyan" aria-hidden="true" />
               </div>
               <div className="text-4xl font-sans font-black text-foreground">{globalStats.users}</div>
               <span className="text-muted-foreground text-xs mt-1 block">Participantes</span>
@@ -571,13 +586,13 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
                 <h2 className="font-sans font-semibold text-foreground text-sm">Cola de Revisión</h2>
                 <p className="text-muted-foreground/60 text-xs">Documentos analizados por IA listos para dictamen</p>
               </div>
-              <Link href="/dashboard/queue" className="text-[#00D47A] text-xs hover:underline flex items-center gap-1">
+              <Link href="/dashboard/queue" className="text-cetiem-green text-xs hover:underline flex items-center gap-1">
                 Ver cola completa <ChevronRight className="h-3 w-3" />
               </Link>
             </div>
             {queue.length === 0 ? (
               <div className="text-center py-8">
-                <CheckCircle className="h-10 w-10 text-[#00D47A]/30 mx-auto mb-3" />
+                <CheckCircle className="h-10 w-10 text-cetiem-green/30 mx-auto mb-3" />
                 <p className="text-muted-foreground text-sm">Cola vacía — sin documentos pendientes.</p>
               </div>
             ) : (
@@ -585,7 +600,7 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
                 {queue.slice(0, 5).map(doc => (
                   <div key={doc.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted border border-border">
                     <div className="h-8 w-8 bg-economia-warning/10 rounded-lg flex items-center justify-center shrink-0">
-                      <FileText className="h-4 w-4 text-[#FBBF24]" />
+                      <FileText className="h-4 w-4 text-economia-warning" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-foreground text-sm font-medium truncate">{doc.name}</p>
@@ -596,7 +611,7 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
                     <StatusBadge status={doc.status} />
                     <Link
                       href={`/dashboard/review/company/${doc.userId}`}
-                      className="flex items-center gap-1 text-xs bg-[#FBBF24] hover:bg-[#FBBF24]/90 text-black font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0"
+                      className="flex items-center gap-1 text-xs bg-economia-warning hover:bg-economia-warning/90 text-black font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0"
                     >
                       <Eye className="h-3 w-3" /> Revisar
                     </Link>
@@ -644,10 +659,10 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
                 return (
                   <Link key={doc.id} href={`/dashboard/documents/${doc.id}`} className="flex items-start gap-2 hover:opacity-80 transition-opacity">
                     <div className={cn("h-1.5 w-1.5 rounded-full mt-1.5 shrink-0",
-                      certStatus === 'APPROVED' ? 'bg-[#9fc031]' :
-                        certStatus === 'REJECTED' ? 'bg-[#aa3939]' :
-                          doc.status === 'ANALYZED' ? 'bg-[#1e7d93]' :
-                            doc.status === 'PROCESSING' ? 'bg-[#ffbf00]' : 'bg-white/20'
+                      certStatus === 'APPROVED' ? 'bg-status-approved' :
+                        certStatus === 'REJECTED' ? 'bg-status-hardstop' :
+                          doc.status === 'ANALYZED' ? 'bg-status-review' :
+                            doc.status === 'PROCESSING' ? 'bg-status-progress' : 'bg-white/20'
                     )} />
                     <div className="flex-1 min-w-0">
                       <p className="text-foreground text-xs font-medium truncate">{doc.name}</p>
@@ -671,23 +686,23 @@ function AssessorDashboard({ userName: _userName, globalStats, allDocsGlobal }: 
 // ─── ADMIN VIEW ─────────────────────────────────────────────────────────────
 function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlobal }: Pick<Props, 'userName' | 'globalStats' | 'allUsers' | 'allDocsGlobal'>) {
   const kpis = [
-    { label: 'Empresas', value: globalStats.users, color: 'text-[#00D47A]', icon: Building2, bg: 'bg-economia-success/10', href: '/dashboard/companies' },
-    { label: 'Documentos', value: globalStats.total, color: 'text-[#00C8E0]', icon: FileText, bg: 'bg-economia-info/10', href: '/dashboard/documents' },
-    { label: 'Certificados ESG', value: globalStats.approved, color: 'text-[#00D47A]', icon: Award, bg: 'bg-[#00D47A]/10', href: '/dashboard/documents' },
-    { label: 'CAPA Abiertos', value: globalStats.capaOpen, color: 'text-[#FBBF24]', icon: ShieldAlert, bg: 'bg-economia-warning/10', href: '/dashboard/capa' },
+    { label: 'Empresas', value: globalStats.users, color: 'text-cetiem-green', icon: Building2, bg: 'bg-economia-success/10', href: '/dashboard/companies' },
+    { label: 'Documentos', value: globalStats.total, color: 'text-cetiem-cyan', icon: FileText, bg: 'bg-economia-info/10', href: '/dashboard/documents' },
+    { label: 'Certificados ESG', value: globalStats.approved, color: 'text-cetiem-green', icon: Award, bg: 'bg-cetiem-green/10', href: '/dashboard/documents' },
+    { label: 'CAPA Abiertos', value: globalStats.capaOpen, color: 'text-economia-warning', icon: ShieldAlert, bg: 'bg-economia-warning/10', href: '/dashboard/capa' },
     { label: 'IA Analizados', value: globalStats.analyzed, color: 'text-foreground', icon: CheckCircle, bg: 'bg-muted', href: '/dashboard/documents' },
   ]
 
   const adminActions = [
-    { href: '/dashboard/companies', label: 'Gestionar Empresas', icon: Building2, color: 'text-[#00C8E0]' },
-    { href: '/dashboard/assessors', label: 'Ver Assessors', icon: Users, color: 'text-[#00D47A]' },
-    { href: '/dashboard/capa', label: 'Tickets CAPA', icon: ShieldAlert, color: 'text-[#FBBF24]' },
+    { href: '/dashboard/companies', label: 'Gestionar Empresas', icon: Building2, color: 'text-cetiem-cyan' },
+    { href: '/dashboard/assessors', label: 'Ver Assessors', icon: Users, color: 'text-cetiem-green' },
+    { href: '/dashboard/capa', label: 'Tickets CAPA', icon: ShieldAlert, color: 'text-economia-warning' },
     { href: '/dashboard/logs', label: 'Logs de Auditoría', icon: ScrollText, color: 'text-muted-foreground' },
-    { href: '/api/export/documents', label: 'Exportar CSV', icon: Download, color: 'text-[#00D47A]', external: true },
+    { href: '/api/export/documents', label: 'Exportar CSV', icon: Download, color: 'text-cetiem-green', external: true },
   ]
 
   return (
-    <div className="flex-1 p-8 space-y-6 overflow-auto bg-[#0A0A0A]">
+    <div className="flex-1 p-8 space-y-6 overflow-auto bg-cetiem-dark">
       {/* Breadcrumbs — ol.breadcrumb con icon-home */}
       <nav aria-label="Ubicación" className="mb-2">
         <ol className="breadcrumb">
@@ -707,7 +722,7 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
           <p className="text-muted-foreground text-sm font-medium">Gestión integral de cumplimiento normativo y activos digitales.</p>
         </div>
         <div className="flex items-center gap-4">
-          <button className="flex items-center gap-2 bg-[#111111] border border-border/60 shadow-sm px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-white/4 transition-all">
+          <button className="flex items-center gap-2 bg-cetiem-surface border border-border/60 shadow-sm px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-white/4 transition-all">
             <Download className="h-4 w-4" aria-hidden="true" /> Exportar Reporte
           </button>
           <Link href="/dashboard/upload" className="btn-cetiem-primary !px-8 !py-3">
@@ -726,7 +741,7 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
           {kpis.map(kpi => {
             const Icon = kpi.icon
             return (
-              <Link key={kpi.label} href={kpi.href} className="bg-card border border-border/60 rounded-2xl p-6  hover:border-[#00D47A]/30 transition-all">
+              <Link key={kpi.label} href={kpi.href} className="bg-card border border-border/60 rounded-2xl p-6  hover:border-cetiem-green/30 transition-all">
                 <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center mb-4", kpi.bg)}>
                   <Icon className={cn("h-5 w-5", kpi.color)} />
                 </div>
@@ -777,7 +792,7 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
           {adminActions.map(action => {
             const Icon = action.icon
             const content = (
-              <div className="flex flex-col items-center gap-3 p-4 rounded-xl border border-border/60 hover:border-[#00D47A]/30 hover:bg-muted/40 transition-all text-center group">
+              <div className="flex flex-col items-center gap-3 p-4 rounded-xl border border-border/60 hover:border-cetiem-green/30 hover:bg-muted/40 transition-all text-center group">
                 <Icon className={cn("h-6 w-6 group-hover:scale-110 transition-transform", action.color)} />
                 <span className="text-muted-foreground text-xs font-medium leading-tight">{action.label}</span>
               </div>
@@ -811,7 +826,7 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
                   <p className="text-foreground text-sm font-bold truncate">{user.companyName || user.name || user.email}</p>
                   <p className="text-muted-foreground/70 text-[10px] uppercase font-bold tracking-tighter truncate">{user.email}</p>
                 </div>
-                <span className="text-[#00C8E0] text-[10px] font-black bg-economia-info/10 px-3 py-1 rounded-full shrink-0 border border-economia-info/20">
+                <span className="text-cetiem-cyan text-[10px] font-black bg-economia-info/10 px-3 py-1 rounded-full shrink-0 border border-economia-info/20">
                   {user._count.documents} DOCS
                 </span>
               </div>
@@ -832,12 +847,12 @@ function AdminDashboard({ userName: _userName, globalStats, allUsers, allDocsGlo
             {allDocsGlobal.slice(0, 10).map((doc, i) => {
               const certStatus = doc.certifications[0]?.status
               return (
-                <Link key={doc.id} href={`/dashboard/documents/${doc.id}`} className={cn("flex items-center gap-4 p-3 rounded-lg transition-all border border-transparent hover:border-primary/20 hover:bg-[#111111] hover:shadow-sm", i % 2 === 0 ? "bg-muted/60" : "")}>
+                <Link key={doc.id} href={`/dashboard/documents/${doc.id}`} className={cn("flex items-center gap-4 p-3 rounded-lg transition-all border border-transparent hover:border-primary/20 hover:bg-cetiem-surface hover:shadow-sm", i % 2 === 0 ? "bg-muted/60" : "")}>
                   <div className={cn("h-2 w-2 rounded-full shrink-0",
-                    certStatus === 'APPROVED' ? 'bg-[#9fc031]' :
-                      certStatus === 'REJECTED' ? 'bg-[#aa3939]' :
-                        doc.status === 'ANALYZED' ? 'bg-[#1e7d93]' :
-                          doc.status === 'PROCESSING' ? 'bg-[#ffbf00]' : 'bg-white/20'
+                    certStatus === 'APPROVED' ? 'bg-status-approved' :
+                      certStatus === 'REJECTED' ? 'bg-status-hardstop' :
+                        doc.status === 'ANALYZED' ? 'bg-status-review' :
+                          doc.status === 'PROCESSING' ? 'bg-status-progress' : 'bg-white/20'
                   )} />
                   <div className="flex-1 min-w-0">
                     <p className="text-foreground text-sm font-medium truncate">{doc.name}</p>
