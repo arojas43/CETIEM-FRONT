@@ -31,7 +31,12 @@ KB_ROOT.mkdir(parents=True, exist_ok=True)
 # We set them from NVIDIA env vars so OpenKB's LiteLLM calls hit NIM.
 _nvidia_key = os.environ.get("NVIDIA_API_KEY", "")
 _nvidia_base = os.environ.get("NVIDIA_API_BASE", "https://integrate.api.nvidia.com/v1")
-_raw_model = os.environ.get("NVIDIA_DEEPSEEK_MODEL", "moonshotai/kimi-k2.6")
+
+# OPENKB_MODEL: modelo para compilación de wiki Y búsqueda.
+# Usa NVIDIA_CHAT_MODEL (llama-3.3-70b) por defecto — es rápido, soporta tool-calling,
+# y tiene buen soporte de español. kimi-k2.6 es para dictamen IA (otra ruta), no para KB.
+_raw_model = os.environ.get("OPENKB_MODEL") \
+    or os.environ.get("NVIDIA_CHAT_MODEL", "meta/llama-3.3-70b-instruct")
 
 # LiteLLM openai-compatible routing: prefix with "openai/" if not already there
 OPENKB_MODEL = _raw_model if _raw_model.startswith("openai/") else f"openai/{_raw_model}"
@@ -63,6 +68,25 @@ async def health():
 
 # ── Add ───────────────────────────────────────────────────────────────────────
 
+def _ensure_kb_config(kb_dir: Path) -> None:
+    """Crea .openkb/config.yaml con el modelo NIM correcto si no existe.
+
+    add_single_file lee el modelo del config.yaml — sin él cae al default
+    'gpt-5.4-mini' que NIM no tiene, y la compilación falla silenciosamente.
+    """
+    from openkb.config import save_config
+    openkb_dir = kb_dir / ".openkb"
+    openkb_dir.mkdir(parents=True, exist_ok=True)
+    config_path = openkb_dir / "config.yaml"
+    if not config_path.exists():
+        save_config(config_path, {
+            "model": OPENKB_MODEL,
+            "language": "es",
+            "pageindex_threshold": 20,
+        })
+        print(f"[OpenKB] Creado config.yaml: model={OPENKB_MODEL}, language=es")
+
+
 @app.post("/api/v1/add")
 async def add_document(
     data: UploadFile = File(...),
@@ -77,6 +101,8 @@ async def add_document(
     from openkb.cli import add_single_file
 
     kb_dir = _kb_dir(datasetName)
+    _ensure_kb_config(kb_dir)  # garantiza config.yaml con el modelo NIM correcto
+
     # Usar el filename original para que wiki/sources/<documentId>.* sea determinístico
     original_name = data.filename or "document.txt"
     tmp_dir = tempfile.mkdtemp()

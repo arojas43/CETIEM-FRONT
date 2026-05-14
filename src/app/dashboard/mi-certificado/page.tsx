@@ -2,11 +2,12 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import {
-  Award, CheckCircle, Calendar, Shield, Download,
+  Award, CheckCircle, Calendar, Shield,
   ArrowLeft, Hash, Building2, XCircle, AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { CompanyCertificateButton } from "./company-certificate-button";
 
 const CERT_STATUS_LABEL: Record<string, string> = {
   APPROVED:  "Certificado Aprobado",
@@ -118,16 +119,7 @@ export default async function MiCertificadoPage() {
             {isApproved ? "Certificación vigente" : CERT_STATUS_LABEL[cert.status] ?? cert.status}
           </p>
         </div>
-        {isApproved && (
-          <a
-            href={`/api/companies/${userId}/certificate`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 bg-economia-success hover:bg-economia-success/90 text-black font-semibold text-sm px-4 py-2 rounded-xl transition-colors"
-          >
-            <Download className="h-4 w-4" /> Descargar PDF
-          </a>
-        )}
+        {isApproved && <CompanyCertificateButton companyId={userId} />}
       </div>
 
       <div className="flex-1 p-8 overflow-auto">

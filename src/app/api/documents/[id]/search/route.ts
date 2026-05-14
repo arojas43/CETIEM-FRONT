@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { openKBClient } from "@/lib/openkb-client";
 import { qaService } from "@/lib/qa-service";
 import { withValidation } from "@/lib/api/with-validation";
 import { searchSchema } from "@/lib/schemas/documents";
@@ -13,8 +12,10 @@ export const maxDuration = 120;
 /**
  * POST /api/documents/[id]/search
  *
- * Intenta Q&A con OpenKB (KB wiki por empresa, razonamiento cross-documento).
- * Si OpenKB no está disponible, cae a qaService (PageIndex + NIM directo).
+ * Q&A sobre un documento específico vía PageIndex + NIM (2 llamadas LLM).
+ * NIM tiene límite de 40 req/hora por clave — OpenKB (agente multi-turno) consume
+ * 3-5 llamadas por query sin aportar valor en búsqueda por documento; se omite aquí.
+ * OpenKB sigue disponible para análisis cross-documento desde otros endpoints.
  */
 export const POST = withValidation({ body: searchSchema })(
   async (
@@ -44,42 +45,15 @@ export const POST = withValidation({ body: searchSchema })(
     }
 
     const userRole = (session.user as any).role;
+    if (userRole === "COMPANY") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     const canAccessAll = userRole === "ASSESSOR" || userRole === "ADMIN";
     if (!canAccessAll && document.userId !== session.user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     console.log(`[Search] Query: "${query}", Document: ${id}`);
-
-    // Intentar OpenKB (KB por empresa → cross-documento)
-    if (openKBClient.available) {
-      const healthy = await openKBClient.isHealthy().catch(() => false);
-      if (healthy) {
-        try {
-          const companyId = document.userId;
-          const openkbResult = await openKBClient.search(query, companyId);
-          if (openkbResult.answer && openkbResult.answer.length > 20) {
-            console.log(`[Search] OpenKB respondió (${openkbResult.answer.length} chars)`);
-            return NextResponse.json({
-              success: true,
-              backend: 'openkb',
-              query,
-              answer: openkbResult.answer,
-              entities: [],
-              relations: [],
-              context: openkbResult.answer,
-              references: openkbResult.sources,
-              stats: { entityCount: 0, relationCount: 0, contextPages: [] },
-            });
-          }
-        } catch (err: any) {
-          console.warn(`[Search] OpenKB falló, usando qaService:`, err.message);
-        }
-      }
-    }
-
-    // Fallback: PageIndex + NIM (qa-service)
-    console.log(`[Search] Usando qaService (PageIndex + NIM)`);
     const result = await qaService.answerSpecificQuestion(query, id, document.name);
 
     return NextResponse.json({

@@ -81,7 +81,7 @@ class OpenKBClient {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, datasets: [companyId], top_k: 10 }),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(15_000),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => '');

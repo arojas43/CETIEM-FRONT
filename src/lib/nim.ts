@@ -30,7 +30,7 @@ export class NIMService {
     for (let attempt = 1; attempt <= retries; attempt++) {
       const res = await fetch(url, init);
       if (res.status !== 429 || attempt === retries) return res;
-      const wait = attempt * 30_000; // 30s, 60s, 90s
+      const wait = attempt * 5_000; // 5s, 10s, 15s — suficiente para rate-limit de NIM
       console.warn(`[NIM] 429 — reintentando en ${wait / 1000}s (intento ${attempt}/${retries})`);
       await new Promise(r => setTimeout(r, wait));
     }

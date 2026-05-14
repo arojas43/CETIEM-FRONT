@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FileText, Trash2, Edit2, Save, X, ChevronLeft, ChevronRight, Search, Filter, RefreshCw, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProcessingProgress } from "@/components/processing-progress";
+import { PdfModal } from "@/components/pdf-modal";
 import { useRole } from "@/lib/role-context";
 import { CATEGORIAS, getCatalogoById } from "@/lib/document-catalogue";
 
@@ -108,6 +109,7 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [pdfModal, setPdfModal] = useState<{ url: string; name: string } | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -280,6 +282,7 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
   }
 
   return (
+    <>
     <div className="space-y-4">
       {/* Action feedback toasts */}
       {actionError && (
@@ -451,15 +454,14 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
                   </button>}
 
                   {/* View PDF */}
-                  <a
-                    href={doc.storageUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => doc.storageUrl && doc.storageUrl !== "/pending" && setPdfModal({ url: doc.storageUrl, name: doc.name })}
+                    disabled={!doc.storageUrl || doc.storageUrl === "/pending"}
                     title="Ver PDF"
-                    className="h-8 w-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:border-[#00D47A]/40 hover:text-[#00D47A] transition-colors"
+                    className="h-8 w-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:border-[#00D47A]/40 hover:text-[#00D47A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Eye className="h-3.5 w-3.5" />
-                  </a>
+                  </button>
 
                   {/* View details */}
                   <button
@@ -578,5 +580,10 @@ export function DocumentListPaginated({ onDocumentDeleted }: DocumentListPaginat
         </>
       )}
     </div>
+
+    {pdfModal && (
+      <PdfModal url={pdfModal.url} title={pdfModal.name} onClose={() => setPdfModal(null)} />
+    )}
+    </>
   );
 }

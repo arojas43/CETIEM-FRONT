@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, ExternalLink, FileText, AlertCircle, Loader2 } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PdfInlineViewerProps {
@@ -50,17 +50,6 @@ export function PdfInlineViewer({ url, height = "70vh", className }: PdfInlineVi
           {open ? "Ocultar PDF" : "Ver PDF"}
         </button>
 
-        {!unavailable && (
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Abrir en nueva pestaña"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm transition-colors border bg-card border-border text-muted-foreground/50 hover:text-muted-foreground hover:border-border"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </a>
-        )}
       </div>
 
       {open && (
@@ -70,17 +59,9 @@ export function PdfInlineViewer({ url, height = "70vh", className }: PdfInlineVi
             <div className="flex flex-col items-center justify-center h-full gap-3 bg-economia-verdeDark p-6">
               <AlertCircle className="h-10 w-10 text-economia-error/50" />
               <p className="text-muted-foreground text-sm text-center">
-                No se pudo mostrar el PDF en el navegador.
+                No se pudo mostrar el PDF en este visor.<br />
+                Intenta con otro navegador o actualiza la página.
               </p>
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-xs bg-[#00D47A] hover:bg-[#00D47A]/90 text-primary-foreground font-medium px-4 py-2 rounded-xl transition-colors"
-              >
-                <FileText className="h-4 w-4" />
-                Abrir PDF en nueva pestaña
-              </a>
             </div>
           ) : (
             /* ── iframe ─────────────────────────────────────────────── */

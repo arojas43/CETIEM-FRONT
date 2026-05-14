@@ -4,13 +4,14 @@ import { prisma } from "@/lib/db";
 import {
   FileText, Brain, MessageSquare, ChevronRight,
   ArrowLeft, CheckCircle, XCircle, Flag, AlertCircle, Clock,
-  Award, ShieldOff,
+  ShieldOff,
 } from "lucide-react";
 import Link from "next/link";
 import ProcessDocumentButton from "./process-button";
 import { cn } from "@/lib/utils";
 import { KillSwitchButton } from "./kill-switch-button";
 import { PdfInlineViewer } from "@/components/pdf-inline-viewer";
+import { CertificateButton } from "./certificate-button";
 
 const statusColor: Record<string, string> = {
   ANALYZED:   "text-economia-success",
@@ -132,17 +133,9 @@ export default async function DocumentDetailPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Certificate download (if approved) */}
+          {/* Certificate viewer (if approved) */}
           {latestCert?.status === "APPROVED" && (
-            <a
-              href={`/api/documents/${id}/certificate`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-economia-success/10 border border-economia-success/30 hover:border-economia-success/60 text-economia-success rounded-xl text-sm transition-colors"
-            >
-              <Award className="h-4 w-4" />
-              Certificado ESG
-            </a>
+            <CertificateButton documentId={id} />
           )}
           {/* Kill-switch (admin only) */}
           {role === "admin" && latestCert?.status === "APPROVED" && (

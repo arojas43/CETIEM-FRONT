@@ -429,18 +429,9 @@ export default function ReviewPage() {
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-3">
               <AlertCircle className="h-10 w-10 text-economia-error/40" />
-              <p className="text-muted-foreground text-sm">No se pudo cargar el PDF</p>
-              {pdfUrl && (
-                <a
-                  href={pdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-xs bg-[#00D47A] hover:bg-[#00D47A]/90 text-primary-foreground font-medium px-4 py-2 rounded-xl transition-colors"
-                >
-                  <FileText className="h-4 w-4" />
-                  Abrir PDF en nueva pestaña
-                </a>
-              )}
+              <p className="text-muted-foreground text-sm text-center">
+                No se pudo cargar el PDF.<br />Intenta con otro navegador.
+              </p>
             </div>
           )}
         </div>

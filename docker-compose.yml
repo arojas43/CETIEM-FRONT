@@ -14,7 +14,9 @@
 #   http://localhost:5555  → Prisma Studio (npx prisma studio --port 5555)
 # ============================================================
 
-# Variables de entorno internas compartidas por app y workers
+# Variables de entorno internas compartidas por app y workers.
+# NOTA: Las claves NVIDIA_* NO van aquí — vienen directo del .env via env_file
+# para evitar que el shell del host las sobreescriba con valores obsoletos.
 x-app-env:
   # ── Base de datos ─────────────────────────────────────────
   # Usa el hostname del servicio Docker, no localhost
@@ -24,25 +26,12 @@ x-app-env:
   # ── Auth ──────────────────────────────────────────────────
   NEXTAUTH_URL: "http://localhost:3000"
   NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-  # Si no se define en .env, usa este valor de desarrollo
   NEXTAUTH_SECRET: "${NEXTAUTH_SECRET:-secretaria-economia-dev-secret}"
   AUTH_SECRET: "${AUTH_SECRET:-secretaria-economia-dev-secret}"
   AUTH_TRUST_HOST: "true"
 
   # ── Almacenamiento ────────────────────────────────────────
   LOCAL_STORAGE_PATH: "/app/uploads"
-
-  # ── NVIDIA NIM (desde .env del desarrollador) ─────────────
-  NVIDIA_API_KEY: "${NVIDIA_API_KEY}"
-  NVIDIA_QA_API_KEY: "${NVIDIA_QA_API_KEY}"
-  NVIDIA_CHAT_MODEL: "${NVIDIA_CHAT_MODEL:-meta/llama-3.1-70b-instruct}"
-  NVIDIA_EMBEDDING_MODEL: "${NVIDIA_EMBEDDING_MODEL:-nvidia/llama-nemotron-embed-1b-v2}"
-  NVIDIA_QA_MODEL: "${NVIDIA_QA_MODEL:-z-ai/glm4.7}"
-  # Kimi K2.6 — 1M contexto, usado para dictamen IA y Q&A
-  NVIDIA_DEEPSEEK_MODEL: "${NVIDIA_DEEPSEEK_MODEL:-moonshotai/kimi-k2.6}"
-  # Kimi K2 para extracción de intención (razonamiento superior)
-  NVIDIA_INTENT_API_KEY: "${NVIDIA_INTENT_API_KEY:-}"
-  NVIDIA_INTENT_MODEL: "${NVIDIA_INTENT_MODEL:-moonshotai/kimi-k2.6}"
 
   # ── Redis (hostname del servicio Docker) ──────────────────
   REDIS_HOST: "redis"
@@ -123,9 +112,9 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file: .env        # NVIDIA_* y otras keys desde .env (sin riesgo de override del shell)
     environment:
-      <<: *app-env
-      NODE_ENV: development
+      <<: *app-env         # Sobreescribe variables Docker-internas (DB host, Redis host, etc.)
     volumes:
       - ./src:/app/src
       - ./prisma:/app/prisma
@@ -136,7 +125,7 @@ services:
       - ./tailwind.config.js:/app/tailwind.config.js
       - ./tsconfig.json:/app/tsconfig.json
       - economia_uploads:/app/uploads
-    command: npm run dev
+    command: npm run start
     depends_on:
       db-init:
         condition: service_completed_successfully
@@ -152,11 +141,13 @@ services:
     restart: unless-stopped
     ports:
       - "8001:8000"
+    env_file: .env        # lee todas las vars del .env primero
     environment:
       OPENKB_DATA_DIR: "/data/kb"
-      NVIDIA_API_KEY: "${NVIDIA_API_KEY}"
       NVIDIA_API_BASE: "https://integrate.api.nvidia.com/v1"
-      NVIDIA_DEEPSEEK_MODEL: "${NVIDIA_DEEPSEEK_MODEL:-moonshotai/kimi-k2.6}"
+      # Usar KEY3 (NVIDIA_INTENT_API_KEY) para OpenKB — separa el budget de rate-limit
+      # del KEY1 que usan los workers y el pipeline de Q&A de la app.
+      NVIDIA_API_KEY: "${NVIDIA_INTENT_API_KEY}"
     volumes:
       - economia_openkb_data:/data/kb
     healthcheck:
@@ -172,8 +163,9 @@ services:
     container_name: secretaria-economia-workers
     command: npm run workers
     restart: unless-stopped
+    env_file: .env        # NVIDIA_* keys desde .env
     environment:
-      <<: *app-env
+      <<: *app-env         # Sobreescribe variables Docker-internas
     volumes:
       - ./src:/app/src
       - economia_uploads:/app/uploads

@@ -527,12 +527,10 @@ export default function CompanyReviewPage() {
                       )}
                       <div className="pt-2 border-t border-border flex flex-wrap items-center gap-2">
                         <a href={`/dashboard/documents/${doc.id}/qa`}
-                          target="_blank"
                           className="text-[10px] text-economia-info hover:underline">
                           Q&A →
                         </a>
                         <a href={`/dashboard/documents/${doc.id}?from=review&companyId=${companyId}`}
-                          target="_blank"
                           className="text-[10px] text-muted-foreground hover:underline">
                           Detalle →
                         </a>
