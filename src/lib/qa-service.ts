@@ -266,7 +266,8 @@ export class QAService {
 
     try {
       return await nimService.generateText({
-        model: process.env.NVIDIA_CHAT_MODEL || 'qwen/qwen3-next-80b-a3b-instruct',
+        model: process.env.NVIDIA_QA_MODEL || process.env.NVIDIA_CHAT_MODEL || 'google/gemma-4-31b-it',
+        apiKey: process.env.NVIDIA_QA_API_KEY,
         systemPrompt: 'Eres un experto en auditoría ESG para la Secretaría de Economía de México. Responde en español, basándote ÚNICAMENTE en el contenido del documento proporcionado. Si la información no está en el documento, di explícitamente que no se encontró.',
         prompt: `Basándote ÚNICAMENTE en la siguiente información del documento "${documentName}", responde la pregunta de forma clara y completa.\n\nPREGUNTA: ${query}\n\n---\n\n${pageIndexText}`,
         maxTokens: 4096,
