@@ -1,0 +1,120 @@
+# ============================================================
+# CETIEM — Deploy a Google Cloud Run
+#
+# Trigger: push a `main` (producción) o `cetiem-ui` (staging)
+#
+# Prerequisitos en Google Cloud:
+#   1. Artifact Registry habilitado con un repositorio Docker:
+#      gcloud artifacts repositories create cetiem-repo \
+#        --repository-format=docker --location=us-central1
+#
+#   2. Cloud Run habilitado:
+#      gcloud services enable run.googleapis.com
+#
+#   3. Service Account con permisos:
+#      roles/run.admin
+#      roles/artifactregistry.writer
+#      roles/iam.serviceAccountUser
+#
+#   4. Secreto GCP_SA_KEY en GitHub (JSON de la service account)
+#      o configura Workload Identity Federation (recomendado)
+#
+# Variables a personalizar (busca TODO):
+#   GCP_PROJECT_ID   → tu proyecto de GCP
+#   GCP_REGION       → región (ej: us-central1, us-east1)
+#   SERVICE_NAME     → nombre del servicio en Cloud Run
+#   REPO_NAME        → nombre del repositorio en Artifact Registry
+# ============================================================
+
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main       # producción — gob.mx theme
+      - cetiem-ui  # staging — CETIEM dark theme
+
+env:
+  # TODO: Reemplaza estos valores con los de tu proyecto GCP
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: us-central1                          # TODO: ajusta región
+  REPO_NAME: cetiem-repo                            # TODO: nombre de tu Artifact Registry repo
+  SERVICE_NAME_MAIN: secretaria-economia-app        # Cloud Run service para `main`
+  SERVICE_NAME_STAGING: cetiem-ui-app               # Cloud Run service para `cetiem-ui`
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # necesario para Workload Identity Federation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Opción A: Service Account Key (más simple, menos seguro)
+      - name: Authenticate to GCP (Service Account Key)
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # Opción B: Workload Identity Federation (recomendado para producción)
+      # Descomenta esto y comenta la Opción A si usas WIF:
+      # - name: Authenticate to GCP (Workload Identity)
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      #     service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Determine deployment target
+        id: target
+        run: |
+          if [ "${{ github.ref_name }}" == "main" ]; then
+            echo "service=${{ env.SERVICE_NAME_MAIN }}" >> $GITHUB_OUTPUT
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          else
+            echo "service=${{ env.SERVICE_NAME_STAGING }}" >> $GITHUB_OUTPUT
+            echo "tag=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Docker image
+        run: |
+          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.REPO_NAME }}/${{ steps.target.outputs.service }}:${{ steps.target.outputs.tag }}"
+          docker build -t "$IMAGE" .
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+
+      - name: Push Docker image
+        run: docker push "$IMAGE"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ steps.target.outputs.service }} \
+            --image "$IMAGE" \
+            --region ${{ env.GCP_REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-secrets="NVIDIA_API_KEY=NVIDIA_API_KEY:latest,NVIDIA_QA_API_KEY=NVIDIA_QA_API_KEY:latest,NVIDIA_INTENT_API_KEY=NVIDIA_INTENT_API_KEY:latest,NEXTAUTH_SECRET=NEXTAUTH_SECRET:latest,AUTH_SECRET=AUTH_SECRET:latest" \
+            --set-env-vars="NODE_ENV=production,NEXTAUTH_URL=https://${{ steps.target.outputs.service }}-${{ env.GCP_PROJECT_ID }}.run.app,NEXT_PUBLIC_APP_URL=https://${{ steps.target.outputs.service }}-${{ env.GCP_PROJECT_ID }}.run.app,AUTH_TRUST_HOST=true" \
+            --memory=2Gi \
+            --cpu=2 \
+            --min-instances=0 \
+            --max-instances=10 \
+            --port=3000 \
+            --quiet
+
+      - name: Show deployment URL
+        run: |
+          URL=$(gcloud run services describe ${{ steps.target.outputs.service }} \
+            --region ${{ env.GCP_REGION }} \
+            --format='value(status.url)')
+          echo "Deployed to: $URL"
+          echo "### Deployment URL" >> $GITHUB_STEP_SUMMARY
+          echo "$URL" >> $GITHUB_STEP_SUMMARY
