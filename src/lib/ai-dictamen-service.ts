@@ -2,7 +2,7 @@
  * Genera un dictamen preliminar de IA para una empresa a partir de sus documentos ANALYZED.
  * El assessor lo usa como punto de partida — puede aceptar, editar o descartar cada hallazgo.
  *
- * Modelo: Kimi K2.6 (1M ctx) vía NVIDIA_DEEPSEEK_MODEL env var.
+ * Modelo: DeepSeek V4 Flash (1M ctx) vía NVIDIA_DEEPSEEK_MODEL env var.
  * Se guarda en tabla AiDictamen con status GENERATING → READY | FAILED.
  */
 import { prisma } from "./db";
@@ -34,7 +34,7 @@ export type AiDictamenFinding = {
 
 // ── Prompt ────────────────────────────────────────────────────────────────────
 
-// Límite de caracteres por documento — kimi-k2.6 tiene 1M tokens (~4M chars).
+// Límite de caracteres por documento — deepseek-v4-flash tiene 1M tokens (~4M chars).
 // 300K chars por doc = holgura para 10 docs dentro del límite.
 const MAX_CHARS_PER_DOC = 300_000;
 
@@ -232,7 +232,7 @@ export async function generateAiDictamen(companyId: string): Promise<string> {
     // Usar NVIDIA_INTENT_API_KEY como key alternativa para el dictamen —
     // cuota separada a la del pipeline de indexación (NVIDIA_API_KEY)
     const dictamenApiKey = process.env.NVIDIA_INTENT_API_KEY || process.env.NVIDIA_API_KEY;
-    const dictamenModel  = process.env.NVIDIA_INTENT_MODEL  || process.env.NVIDIA_DEEPSEEK_MODEL || "moonshotai/kimi-k2-instruct-0905";
+    const dictamenModel  = process.env.NVIDIA_DEEPSEEK_MODEL || process.env.NVIDIA_INTENT_MODEL  || "deepseek-ai/deepseek-v4-flash";
 
     const raw = await nimService.generateWithDeepSeek({
       userPrompt: prompt,

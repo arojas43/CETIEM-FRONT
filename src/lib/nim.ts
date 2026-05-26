@@ -130,7 +130,7 @@ export class NIMService {
 
     const response = await this.fetchWithRetry(`${this.baseUrl}/chat/completions`, {
       method: "POST",
-      signal: this.withTimeout(timeoutMs + 200_000), // ampliar timeout para cubrir reintentos
+      signal: this.withTimeout(timeoutMs + 30_000), // +30s cubre los reintentos de fetchWithRetry (5+10+15s)
       headers: {
         Authorization: `Bearer ${apiKey || this.apiKey}`,
         "Content-Type": "application/json",
@@ -175,9 +175,9 @@ export class NIMService {
       apiKey,
     } = options;
 
-    // kimi-k2.6 por defecto — 1M ctx, 446ms, sin parámetros thinking especiales
+    // deepseek-v4-flash por defecto — 1M ctx, thinking desactivable, fiable en NIM
     const model = options.model ||
-      process.env.NVIDIA_DEEPSEEK_MODEL || "moonshotai/kimi-k2.6";
+      process.env.NVIDIA_DEEPSEEK_MODEL || "deepseek-ai/deepseek-v4-flash";
 
     const messages: { role: string; content: string }[] = [];
     if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
