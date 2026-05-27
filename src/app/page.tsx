@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { InstitutionalLogo } from "@/components/institutional-logo";
+import { BrandThemeToggle } from "@/components/brand-theme-toggle";
 import { cn } from "@/lib/utils";
 
 // ─── Variants ─────────────────────────────────────────────────────────────────
@@ -162,6 +163,7 @@ export default function HomePage() {
               </nav>
 
               <div className="flex items-center gap-3">
+                <BrandThemeToggle compact />
                 <Link href="/auth/signin"
                   className="hidden sm:block text-[11px] font-black text-white/35 hover:text-white/65 uppercase tracking-wider transition-colors">
                   Ingresar
@@ -178,7 +180,7 @@ export default function HomePage() {
 
       <main>
         {/* ── Hero: split screen ── */}
-        <section className="relative min-h-[100dvh] flex items-center border-b border-white/5 overflow-hidden">
+        <section className="hero-section relative min-h-[100dvh] flex items-center border-b border-white/5 overflow-hidden">
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-1/3 left-[55%] w-[500px] h-[500px] rounded-full blur-[130px] bg-cetiem-green/7 -translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full blur-[100px] bg-cetiem-cyan/5" />

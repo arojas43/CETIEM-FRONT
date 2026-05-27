@@ -306,3 +306,80 @@
   /* Keep some backward-compat aliases used by existing pages */
   .shadow-gob { box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
 }
+
+/* ══════════════════════════════════════════════════════
+   INSTITUCIONAL THEME — Secretaría de Economía
+   Activated by: data-theme="institucional" on <html>
+   ══════════════════════════════════════════════════════ */
+[data-theme="institucional"] {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 20%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 20%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 20%;
+  --primary: 345 63% 37%;       /* #9D2449 guinda */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 35 38% 52%;      /* #BC955C dorado */
+  --secondary-foreground: 0 0% 4%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 42%;
+  --accent: 35 38% 52%;
+  --accent-foreground: 0 0% 4%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 88%;
+  --input: 0 0% 92%;
+  --ring: 345 63% 37%;
+  color-scheme: light;
+}
+[data-theme="institucional"] body {
+  background-color: #FAFAFA;
+  color: hsl(var(--foreground));
+  font-family: var(--font-noto), 'Noto Sans', system-ui, sans-serif;
+}
+[data-theme="institucional"] h1,
+[data-theme="institucional"] h2,
+[data-theme="institucional"] h3 {
+  font-family: 'Patria', var(--font-playfair), 'Playfair Display', serif;
+}
+[data-theme="institucional"] .glass,
+[data-theme="institucional"] .glass-md,
+[data-theme="institucional"] .glass-strong {
+  background: white;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+[data-theme="institucional"] .nav-active {
+  background: rgba(157,36,73,0.08);
+  color: #9D2449;
+  border-left: 2px solid #9D2449;
+}
+[data-theme="institucional"] .btn-cetiem-primary {
+  background: #9D2449;
+  box-shadow: 0 0 20px rgba(157,36,73,0.30);
+}
+[data-theme="institucional"] ::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+}
+[data-theme="institucional"] ::selection {
+  background: rgba(157,36,73,0.20);
+  color: #fff;
+}
+[data-theme="institucional"] :focus-visible {
+  outline-color: #9D2449;
+}
+
+/* Landing page hero in institucional mode */
+[data-theme="institucional"] .hero-section {
+  background: linear-gradient(135deg, #9D2449 0%, #7A1B37 50%, #4a0e26 100%);
+}
+
+/* Hide gob.mx CDN injected elements (applies in both themes) */
+#global-header, nav.navbar-inverse, .navbar-inverse,
+#gobmx-accesibilidad-widget, .gobmx-accesibilidad-bar,
+.menu-btn, .menu-slide, .gobmx-widget,
+[id^="gobmx-"], [class^="gobmx-"] { display: none !important; }
+body { padding-top: 0 !important; }

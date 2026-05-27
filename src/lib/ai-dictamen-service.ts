@@ -230,17 +230,30 @@ export async function generateAiDictamen(companyId: string): Promise<string> {
     console.log(`[AiDictamen] Prompt total: ${prompt.length} chars (~${Math.round(prompt.length / 4)} tokens)`);
 
     // Usar NVIDIA_INTENT_API_KEY como key alternativa para el dictamen —
-    // cuota separada a la del pipeline de indexación (NVIDIA_API_KEY)
-    const dictamenApiKey = process.env.NVIDIA_INTENT_API_KEY || process.env.NVIDIA_API_KEY;
-    const dictamenModel  = process.env.NVIDIA_DEEPSEEK_MODEL || process.env.NVIDIA_INTENT_MODEL  || "deepseek-ai/deepseek-v4-flash";
+    const useCerebras = !!process.env.CEREBRAS_API_KEY;
+    const dictamenApiKey = useCerebras
+      ? process.env.CEREBRAS_API_KEY
+      : (process.env.NVIDIA_INTENT_API_KEY || process.env.NVIDIA_API_KEY);
+    const dictamenModel = useCerebras
+      ? (process.env.CEREBRAS_DICTAMEN_MODEL || 'qwen-3-235b-a22b-instruct-2507')
+      : (process.env.NVIDIA_DEEPSEEK_MODEL || process.env.NVIDIA_INTENT_MODEL || "deepseek-ai/deepseek-v4-flash");
 
-    const raw = await nimService.generateWithDeepSeek({
-      userPrompt: prompt,
-      maxTokens: 4096,
-      temperature: 0.2,
-      apiKey: dictamenApiKey,
-      model:  dictamenModel,
-    });
+    const raw = useCerebras
+      ? await nimService.generateText({
+          model: dictamenModel,
+          apiKey: dictamenApiKey,
+          baseUrl: process.env.CEREBRAS_BASE_URL,
+          prompt,
+          maxTokens: 4096,
+          temperature: 0.2,
+        })
+      : await nimService.generateWithDeepSeek({
+          userPrompt: prompt,
+          maxTokens: 4096,
+          temperature: 0.2,
+          apiKey: dictamenApiKey,
+          model: dictamenModel,
+        });
 
     console.log(`[AiDictamen] Raw response (first 500): ${raw.slice(0, 500)}`);
 

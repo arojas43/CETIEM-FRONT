@@ -11,6 +11,8 @@ export const {
   signOut,
 } = NextAuth({
   adapter: PrismaAdapter(prisma) as any,
+  // Necesario para funcionar detrás de un proxy inverso (Cloud Run → Cloudflare Tunnel → local)
+  trustHost: true,
   providers: [
     CredentialsProvider({
       name: "credentials",

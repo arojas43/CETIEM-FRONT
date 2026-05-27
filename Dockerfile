@@ -28,8 +28,10 @@ COPY . .
 RUN npx prisma generate
 
 # Variables públicas necesarias en build time
+# Pasar como: docker build --build-arg NEXT_PUBLIC_APP_URL=https://tu-url.run.app
+ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NEXT_PUBLIC_APP_URL=http://localhost:3000
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 
 RUN npm run build
 

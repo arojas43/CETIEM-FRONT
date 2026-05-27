@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { InstitutionalLogo } from './institutional-logo'
+import { BrandThemeToggle } from './brand-theme-toggle'
 
 type NavItem = {
   href: string
@@ -49,10 +50,10 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   ],
 }
 
-const ROLE_META: Record<string, { label: string; color: string; hint: string }> = {
-  company: { label: 'Portal Empresa', color: 'text-[#00D47A]', hint: 'Procesamiento de documentos asistido por IA · Filtro Cero V.L.A.P.' },
-  assessor: { label: 'Data Assessor', color: 'text-[#00C8E0]', hint: 'Validación técnica y emisión de dictámenes V.L.A.P.' },
-  admin: { label: 'Administrador', color: 'text-[#ADFF4F]', hint: 'Gestión global y monitoreo del ecosistema CETIEM.' },
+const ROLE_META: Record<string, { label: string; badge: string; color: string; hint: string }> = {
+  company:  { label: 'Portal Empresa', badge: 'badge-green', color: 'text-primary', hint: 'Procesamiento de documentos asistido por IA · Filtro Cero V.L.A.P.' },
+  assessor: { label: 'Data Assessor',  badge: 'badge-cyan',  color: 'text-accent',  hint: 'Validación técnica y emisión de dictámenes V.L.A.P.' },
+  admin:    { label: 'Administrador',  badge: 'badge-lime',  color: 'text-secondary', hint: 'Gestión global y monitoreo del ecosistema CETIEM.' },
 }
 
 interface Notif {
@@ -205,7 +206,7 @@ export function Sidebar({
 
         {/* Role badge */}
         <div className="mt-4">
-          <span className={cn("badge-green text-[9px]", meta.color === 'text-[#00C8E0]' && "badge-cyan", meta.color === 'text-[#ADFF4F]' && "badge-lime")}>
+          <span className={cn(meta.badge, "text-[9px]")}>
             {meta.label}
           </span>
         </div>
@@ -233,13 +234,13 @@ export function Sidebar({
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group text-sm font-medium',
                 isActive
-                  ? 'bg-[#00D47A]/10 text-[#00D47A] border-l-2 border-[#00D47A]'
-                  : 'text-white/45 hover:text-white/80 hover:bg-[#111111]/5 border-l-2 border-transparent'
+                  ? 'nav-active border-l-2'
+                  : 'text-white/45 hover:text-white/80 hover:bg-white/5 border-l-2 border-transparent'
               )}
             >
               <Icon className={cn(
                 "h-4 w-4 shrink-0 transition-colors",
-                isActive ? "text-[#00D47A]" : "text-white/30 group-hover:text-white/60"
+                isActive ? "text-primary" : "text-white/30 group-hover:text-white/60"
               )} />
               <span className="tracking-wide leading-none">{item.label}</span>
               {item.badge && (
@@ -252,21 +253,20 @@ export function Sidebar({
 
       {/* AI hint */}
       <div className="px-3 pb-3">
-        <div className="rounded-xl p-4" style={{ background: 'rgba(0,212,122,0.04)', border: '1px solid rgba(0,212,122,0.12)' }}>
+        <div className="rounded-xl p-4 bg-primary/5 border border-primary/15">
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-3.5 w-3.5 text-[#00D47A]" />
-            <span className="text-[9px] font-black text-[#00D47A] uppercase tracking-widest">Filtro Cero IA</span>
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span className="text-[9px] font-black text-primary uppercase tracking-widest">Filtro Cero IA</span>
           </div>
-          <p className="text-[10px] text-white/35 leading-relaxed">{meta.hint}</p>
+          <p className="text-[10px] text-foreground/35 leading-relaxed">{meta.hint}</p>
         </div>
       </div>
 
       {/* User + actions */}
       <div className="p-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
         <div className="flex items-center gap-3 px-2 py-2 mb-2">
-          <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(0,212,122,0.15)', border: '1px solid rgba(0,212,122,0.3)' }}>
-            <span className="text-[#00D47A] text-xs font-black">
+          <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 bg-primary/15 border border-primary/30">
+            <span className="text-primary text-xs font-black">
               {(userName || userEmail || 'U')[0].toUpperCase()}
             </span>
           </div>
@@ -275,20 +275,23 @@ export function Sidebar({
               {userName?.split(' ')[0] || userEmail?.split('@')[0]}
             </p>
             <div className="flex items-center gap-1.5 mt-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#00D47A]" style={{ boxShadow: '0 0 6px #00D47A' }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" style={{ boxShadow: '0 0 6px hsl(var(--primary))' }} />
               <span className="text-[9px] font-bold text-white/25 uppercase tracking-widest">En línea</span>
             </div>
           </div>
           <NotificationBell />
         </div>
 
-        <button
-          onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-          className="w-full flex items-center justify-center gap-2 py-2 text-[10px] font-bold text-white/30 hover:text-white/60 rounded-lg hover:bg-[#111111]/5 transition-all uppercase tracking-widest group"
-        >
-          <SignOutIcon className="h-3 w-3 group-hover:-translate-x-0.5 transition-transform" />
-          Cerrar Sesión
-        </button>
+        <div className="flex items-center justify-between mb-2">
+          <BrandThemeToggle compact />
+          <button
+            onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+            className="flex items-center gap-1.5 py-2 px-3 text-[10px] font-bold text-foreground/30 hover:text-foreground/60 rounded-lg hover:bg-foreground/5 transition-all uppercase tracking-widest group"
+          >
+            <SignOutIcon className="h-3 w-3 group-hover:-translate-x-0.5 transition-transform" />
+            Salir
+          </button>
+        </div>
       </div>
     </aside>
   )

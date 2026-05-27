@@ -112,6 +112,7 @@ export class NIMService {
     maxTokens?: number;
     temperature?: number;
     apiKey?: string;
+    baseUrl?: string;
     timeoutMs?: number;
   }): Promise<string> {
     const {
@@ -121,6 +122,7 @@ export class NIMService {
       maxTokens = 4096,
       temperature = 0.2,
       apiKey,
+      baseUrl,
       timeoutMs = 90_000,
     } = options;
 
@@ -128,7 +130,8 @@ export class NIMService {
     if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
     messages.push({ role: "user", content: prompt });
 
-    const response = await this.fetchWithRetry(`${this.baseUrl}/chat/completions`, {
+    const endpoint = `${baseUrl ?? this.baseUrl}/chat/completions`;
+    const response = await this.fetchWithRetry(endpoint, {
       method: "POST",
       signal: this.withTimeout(timeoutMs + 30_000), // +30s cubre los reintentos de fetchWithRetry (5+10+15s)
       headers: {
