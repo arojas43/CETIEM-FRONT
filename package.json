@@ -30,6 +30,7 @@
     "bullmq": "^5.0.0",
     "canvas": "^3.2.1",
     "clsx": "^2.1.0",
+    "framer-motion": "^12.40.0",
     "ioredis": "^5.4.1",
     "lucide-react": "^0.460.0",
     "next": "^15.0.0",
